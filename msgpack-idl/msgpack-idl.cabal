@@ -1,0 +1,54 @@
+Name:                msgpack-idl
+Version:             0.1.0
+Synopsis:            An IDL Compiler for MessagePack
+Description:         An IDL Compiler for MessagePack <http://msgpack.org/>
+Homepage:            http://msgpack.org/
+License:             BSD3
+License-file:        LICENSE
+Author:              Hideyuki Tanaka
+Maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
+Copyright:           Copyright (c) 2011, Hideyuki Tanaka
+Category:            Language
+Stability:           Experimental
+Cabal-version:       >=1.6
+Build-type:          Simple
+
+Extra-source-files:  
+
+Library
+  Build-depends:       base >= 4 && < 5
+                     , bytestring >= 0.9 && < 0.10
+                     , text >= 0.11 && < 0.12
+                     , shakespeare-text >= 0.10 && < 0.11
+                     , blaze-builder >= 0.3 && < 0.4
+                     , template-haskell >= 2.5 && < 2.7
+                     , containers >= 0.4 && < 0.5
+                     , cmdargs >= 0.9 && < 0.10
+                     , filepath >= 1.2 && < 1.3
+                     , msgpack >= 0.7 && < 0.8
+                     , msgpack-rpc >= 0.7 && < 0.8
+                     , peggy >= 0.3 && < 0.4
+
+  Ghc-options:         -Wall
+  
+  Exposed-modules:     Language.MessagePack.IDL
+                       Language.MessagePack.IDL.Syntax
+                       Language.MessagePack.IDL.Parser
+                       Language.MessagePack.IDL.Check
+                       Language.MessagePack.IDL.CodeGen.Cpp
+                       Language.MessagePack.IDL.CodeGen.Haskell
+  
+  Other-modules:       
+
+Executable mpidl
+  Main-is:             Main.hs
+
+  Build-depends:       base >= 4 && < 5
+                     , directory >= 1.1 && < 1.2
+                     , text >= 0.11 && < 0.12
+                     , shakespeare-text >= 0.10 && < 0.11
+                     , peggy >= 0.3 && < 0.4
+
+Source-repository head
+  Type:                git
+  Location:            git://github.com/msgpack/msgpack-haskell.git
