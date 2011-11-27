@@ -32,8 +32,6 @@ module Data.MessagePack.Unpack(
 import Control.Exception
 import Control.Monad
 import qualified Data.Attoparsec as A
-import Data.Binary.Get
-import Data.Binary.IEEE754
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -45,6 +43,7 @@ import Data.Int
 import Data.Typeable
 import qualified Data.Vector as V
 import Data.Word
+import Foreign
 import Text.Printf
 
 import Data.MessagePack.Assoc
@@ -142,8 +141,9 @@ instance Unpackable Float where
   get = do
     c <- A.anyWord8
     case c of
-      0xCA ->
-        return . runGet getFloat32be . toLBS =<< A.take 4
+      0xCA -> do
+        bs <- A.take 4
+        return $! unsafePerformIO $ B.useAsCString bs $ peek . castPtr
       _ ->
         fail $ printf "invlid float tag: 0x%02X" c
 
@@ -151,8 +151,9 @@ instance Unpackable Double where
   get = do
     c <- A.anyWord8
     case c of
-      0xCB ->
-        return . runGet getFloat64be . toLBS =<< A.take 8
+      0xCB -> do
+        bs <- A.take 8
+        return $! unsafePerformIO $ B.useAsCString bs $ peek . castPtr
       _ ->
         fail $ printf "invlid double tag: 0x%02X" c
 

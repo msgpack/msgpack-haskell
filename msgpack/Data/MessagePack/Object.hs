@@ -53,8 +53,7 @@ data Object
   | ObjectRAW B.ByteString
   | ObjectArray [Object]
   | ObjectMap [(Object, Object)]
-  deriving (Show, Eq, Ord, Typeable)
-  
+  deriving (Show, Eq, Ord, Typeable)  
 
 instance NFData Object where
   rnf obj =
@@ -67,7 +66,6 @@ instance NFData Object where
       ObjectRAW bs -> bs `seq` ()
       ObjectArray a -> rnf a
       ObjectMap m -> rnf m
-
 
 instance Unpackable Object where
   get =
@@ -83,24 +81,24 @@ instance Unpackable Object where
     ]
 
 instance Packable Object where
-  put obj =
+  from obj =
     case obj of
       ObjectInteger n ->
-        put n
+        from n
       ObjectNil ->
-        put ()
+        from ()
       ObjectBool b ->
-        put b
+        from b
       ObjectFloat f ->
-        put f
+        from f
       ObjectDouble d ->
-        put d
+        from d
       ObjectRAW raw ->
-        put raw
+        from raw
       ObjectArray arr ->
-        put arr
+        from arr
       ObjectMap m ->
-        put $ Assoc m
+        from $ Assoc m
 
 -- | The class of types serializable to and from MessagePack object
 class (Unpackable a, Packable a) => OBJECT a where
@@ -330,4 +328,3 @@ instance OBJECT a => OBJECT (Maybe a) where
   
   tryFromObject ObjectNil = return Nothing
   tryFromObject obj = liftM Just $ tryFromObject obj
-

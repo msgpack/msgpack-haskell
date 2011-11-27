@@ -36,7 +36,7 @@ derivePack asObject tyName = do
     alt (NormalC conName elms) = do
       vars <- replicateM (length elms) (newName "v")
       match (conP conName $ map varP vars)
-        (normalB [| put $(tupE $ map varE vars) |])
+        (normalB [| from $(tupE $ map varE vars) |])
         []
 
     alt (RecC conName elms) = do
@@ -45,7 +45,7 @@ derivePack asObject tyName = do
         then
         match (conP conName $ map varP vars)
         (normalB
-         [| put $ Assoc
+         [| from $ Assoc
               $(listE [ [| ( $(return $ LitE $ StringL $ key conName fname) :: T.Text
                            , toObject $(varE v)) |]
                       | (v, (fname, _, _)) <- zip vars elms])
@@ -53,7 +53,7 @@ derivePack asObject tyName = do
         []
         else
         match (conP conName $ map varP vars)
-        (normalB [| put $(tupE $ map varE vars) |])
+        (normalB [| from $(tupE $ map varE vars) |])
         []
 
     alt c = error $ "unsupported constructor: " ++ pprint c
