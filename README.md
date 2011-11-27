@@ -4,6 +4,7 @@ MessagePack for Haskell
 This is a msgpack implementation of Haskell.
 
 It containes
+
 * Serializer/Deserializer
 * RPC
 * IDL
