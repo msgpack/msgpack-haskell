@@ -1,5 +1,4 @@
-{-# Language TemplateHaskell #-}
-{-# Language FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell, FlexibleInstances #-}
 
 module Data.MessagePack.Derive (
   -- | deriving OBJECT

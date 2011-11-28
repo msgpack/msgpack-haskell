@@ -1,7 +1,5 @@
-{-# Language FlexibleInstances #-}
-{-# Language IncoherentInstances #-}
-{-# Language TypeSynonymInstances #-}
-{-# Language DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleInstances, IncoherentInstances, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 --------------------------------------------------------------------
 -- |

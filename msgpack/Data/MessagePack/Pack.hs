@@ -1,6 +1,4 @@
-{-# Language FlexibleInstances #-}
-{-# Language IncoherentInstances #-}
-{-# Language TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, IncoherentInstances, TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
 -- |

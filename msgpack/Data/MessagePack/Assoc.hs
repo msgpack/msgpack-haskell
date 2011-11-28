@@ -1,5 +1,4 @@
-{-# Language DeriveDataTypeable #-}
-{-# Language GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 
 --------------------------------------------------------------------
 -- |
