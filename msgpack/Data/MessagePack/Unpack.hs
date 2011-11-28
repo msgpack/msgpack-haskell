@@ -143,7 +143,8 @@ instance Unpackable Float where
     case c of
       0xCA -> do
         bs <- A.take 4
-        return $! unsafePerformIO $ B.useAsCString bs $ peek . castPtr
+        -- TODO: unsafePerformIO => unsafeLocalState
+        return $! unsafePerformIO $ B.useAsCString (B.reverse bs) $ peek . castPtr
       _ ->
         fail $ printf "invlid float tag: 0x%02X" c
 
@@ -153,7 +154,7 @@ instance Unpackable Double where
     case c of
       0xCB -> do
         bs <- A.take 8
-        return $! unsafePerformIO $ B.useAsCString bs $ peek . castPtr
+        return $! unsafePerformIO $ B.useAsCString (B.reverse bs) $ peek . castPtr
       _ ->
         fail $ printf "invlid double tag: 0x%02X" c
 
