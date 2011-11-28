@@ -28,6 +28,9 @@ import Blaze.ByteString.Builder.Internal.Write
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map as M
+import qualified Data.IntMap as IM
 import Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -216,6 +219,15 @@ instance (Packable k, Packable v) => Packable (Assoc [(k,v)]) where
 
 instance (Packable k, Packable v) => Packable (Assoc (V.Vector (k,v))) where
   from = fromMap V.length (V.foldl (\a b -> a <> fromPair b) mempty) . unAssoc
+
+instance (Packable k, Packable v) => Packable (M.Map k v) where
+  from = fromMap M.size (mconcat . map fromPair . M.toList)
+
+instance Packable v => Packable (IM.IntMap v) where
+  from = fromMap IM.size (mconcat . map fromPair . IM.toList)
+
+instance (Packable k, Packable v) => Packable (HM.HashMap k v) where
+  from = fromMap HM.size (mconcat . map fromPair . HM.toList)
 
 fromPair :: (Packable a, Packable b) => (a, b) -> Builder
 fromPair (a, b) = from a <> from b

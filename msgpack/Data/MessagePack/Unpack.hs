@@ -29,12 +29,17 @@ module Data.MessagePack.Unpack(
   IsByteString(..),
   ) where
 
+import Control.Applicative
 import Control.Exception
 import Control.Monad
 import qualified Data.Attoparsec as A
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+import Data.Hashable
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map as M
+import qualified Data.IntMap as IM
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
@@ -250,6 +255,15 @@ instance (Unpackable k, Unpackable v) => Unpackable (Assoc [(k,v)]) where
 
 instance (Unpackable k, Unpackable v) => Unpackable (Assoc (V.Vector (k, v))) where
   get = liftM Assoc $ parseMap (flip V.replicateM parsePair)
+
+instance (Ord k, Unpackable k, Unpackable v) => Unpackable (M.Map k v) where
+  get = parseMap (\n -> M.fromList <$> replicateM n parsePair)
+
+instance Unpackable v => Unpackable (IM.IntMap v) where
+  get = parseMap (\n -> IM.fromList <$> replicateM n parsePair)
+
+instance (Hashable k, Eq k, Unpackable k, Unpackable v) => Unpackable (HM.HashMap k v) where
+  get = parseMap (\n -> HM.fromList <$> replicateM n parsePair)
 
 parsePair :: (Unpackable k, Unpackable v) => A.Parser (k, v)
 parsePair = do
