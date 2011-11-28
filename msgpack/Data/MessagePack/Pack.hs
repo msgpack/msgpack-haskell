@@ -24,7 +24,6 @@ module Data.MessagePack.Pack (
   ) where
 
 import Blaze.ByteString.Builder
-import Blaze.ByteString.Builder.Internal.Write
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -97,42 +96,15 @@ instance Packable Bool where
 instance Packable Float where
   from f =
     fromWord8 0xCB <>
-    fromWriteSingleton (\_ -> exactWrite 4 wr) f
-    where
-      wr ptr = do
-        poke (castPtr ptr) f
-        b0 <- peekElemOff ptr 0
-        b1 <- peekElemOff ptr 1
-        b2 <- peekElemOff ptr 2
-        b3 <- peekElemOff ptr 3
-        pokeElemOff ptr 0 b3
-        pokeElemOff ptr 1 b2
-        pokeElemOff ptr 2 b1
-        pokeElemOff ptr 3 b0
+    fromWord32be (cast f)
 
 instance Packable Double where
   from d =
     fromWord8 0xCB <>
-    fromWriteSingleton (\_ -> exactWrite 8 wr) d
-    where
-      wr ptr = do
-        poke (castPtr ptr) d
-        b0 <- peekElemOff ptr 0
-        b1 <- peekElemOff ptr 1
-        b2 <- peekElemOff ptr 2
-        b3 <- peekElemOff ptr 3
-        b4 <- peekElemOff ptr 4
-        b5 <- peekElemOff ptr 5
-        b6 <- peekElemOff ptr 6
-        b7 <- peekElemOff ptr 7
-        pokeElemOff ptr 0 b7
-        pokeElemOff ptr 1 b6
-        pokeElemOff ptr 2 b5
-        pokeElemOff ptr 3 b4
-        pokeElemOff ptr 4 b3
-        pokeElemOff ptr 5 b2
-        pokeElemOff ptr 6 b1
-        pokeElemOff ptr 7 b0
+    fromWord64be (cast d)
+
+cast :: (Storable a, Storable b) => a -> b
+cast v = unsafePerformIO $ alloca $ \ptr -> poke (castPtr ptr) v >> peek ptr
 
 instance Packable String where
   from = fromString encodeUtf8 B.length fromByteString
