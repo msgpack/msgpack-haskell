@@ -3,7 +3,7 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Assoc
--- Copyright : (c) Daiki Handa, 2010
+-- Copyright : (c) Daiki Handa, 2010-2011
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com

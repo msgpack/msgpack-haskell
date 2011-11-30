@@ -1,7 +1,7 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack
--- Copyright : (c) Hideyuki Tanaka, 2009-2010
+-- Copyright : (c) Hideyuki Tanaka, 2009-2011
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com

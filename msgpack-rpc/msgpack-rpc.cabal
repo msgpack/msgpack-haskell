@@ -19,20 +19,23 @@ Extra-source-files:  test/Serv.hs
 Library
   Build-depends:     base >= 4 && < 5
                    , bytestring >= 0.9 && < 0.10
+                   , text >= 0.11 && < 0.12
                    , network >= 2.2 && < 2.4
                    , random >= 1.0 && < 1.1
+                   , data-default >= 0.3 && < 0.4
                    , mtl >= 2.0 && < 2.1
                    , monad-control >= 0.2 && < 0.3
+                   , BoundedChan >= 1.0 && < 1.1
                    , enumerator >= 0.4 && < 0.5
-                   , attoparsec-enumerator >= 0.2 && < 0.3
+                   , attoparsec-enumerator >= 0.3 && < 0.4
                    , msgpack >= 0.7 && < 0.8
                    , transformers >= 0.2 && < 0.3
                    , deepseq >= 1.1 && < 1.2
 
   Ghc-options:       -Wall
 
-  Exposed-modules:   Network.MessagePackRpc.Server
-                     Network.MessagePackRpc.Client
+  Exposed-modules:   Network.MessagePack.Server
+                     Network.MessagePack.Client
 
 Source-repository head
   Type:              git

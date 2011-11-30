@@ -3,7 +3,7 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Pack
--- Copyright : (c) Hideyuki Tanaka, 2009-2010
+-- Copyright : (c) Hideyuki Tanaka, 2009-2011
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com
@@ -102,7 +102,7 @@ instance Packable Double where
     fromWord64be (cast d)
 
 cast :: (Storable a, Storable b) => a -> b
-cast v = unsafePerformIO $ alloca $ \ptr -> poke (castPtr ptr) v >> peek ptr
+cast v = unsafePerformIO $ with v $ peek . castPtr
 
 instance Packable String where
   from = fromString encodeUtf8 B.length fromByteString
