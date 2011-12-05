@@ -29,7 +29,7 @@ generate Config {..} spec = do
   let name = takeBaseName configFilePath
       once = map toUpper name
       ns = LT.splitOn "::" $ LT.pack configNameSpace
-  LT.writeFile "types.hpp" $ templ configFilePath once "TYPES" [lt|
+  LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
 #include <vector>
 #include <map>
 #include <string>
@@ -40,14 +40,14 @@ generate Config {..} spec = do
 #{genNameSpace ns $ LT.concat $ map (genTypeDecl name) spec }
 |]
 
-  LT.writeFile "server.hpp" $ templ configFilePath once "SERVER" [lt|
+  LT.writeFile (name ++ "_server.hpp") $ templ configFilePath once "SERVER" [lt|
 #include "types.hpp"
 #include <msgpack/rpc/server.h>
 
 #{genNameSpace (snoc ns "server") $ LT.concat $ map genServer spec}
 |]
 
-  LT.writeFile "client.hpp" [lt|
+  LT.writeFile (name ++ "_client.hpp") [lt|
 #include "types.hpp"
 #include <msgpack/rpc/client.h>
 
@@ -119,7 +119,7 @@ public:
     case params of
       [] -> [lt|
       if (method == "#{methodName}") {
-        req.result<#{genType methodRetType}>(static_cast<Impl*>(this)->#{methodName}());
+        req.result<#{genType methodRetType} >(static_cast<Impl*>(this)->#{methodName}());
         return;
       }
 |]
@@ -127,7 +127,7 @@ public:
       if (method == "#{methodName}") {
         msgpack::type::tuple<#{LT.intercalate ", " typs} > params;
         req.params().convert(&params);
-        req.result<#{genType methodRetType}>(static_cast<Impl*>(this)->#{methodName}(#{LT.intercalate ", " params}));
+        req.result<#{genType methodRetType} >(static_cast<Impl*>(this)->#{methodName}(#{LT.intercalate ", " params}));
         return;
       }
 |]
