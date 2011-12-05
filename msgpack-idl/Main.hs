@@ -17,7 +17,11 @@ import Paths_msgpack_idl
 
 data MPRPC
   = Haskell
-  | Cpp { output_dir :: FilePath, namespace :: String, filepath :: FilePath }
+  | Cpp
+    { output_dir :: FilePath
+    , namespace :: String
+    , pficommon :: Bool
+    , filepath :: FilePath }
   deriving (Show, Eq, Data, Typeable)
 
 main :: IO ()
@@ -26,6 +30,7 @@ main = do
     modes [ Haskell
           , Cpp { output_dir = def
                 , namespace = "msgpack"
+                , pficommon = False
                 , filepath = def &= argPos 0
                 }
           ]
@@ -44,7 +49,7 @@ compile Cpp {..} = do
     Right spec -> do
       print spec
       withDirectory output_dir $ do
-        Cpp.generate (Cpp.Config filepath namespace) spec
+        Cpp.generate (Cpp.Config filepath namespace pficommon) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do
