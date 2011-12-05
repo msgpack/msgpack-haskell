@@ -58,14 +58,14 @@ generate Config {..} spec = do
 |]
 
   LT.writeFile (name ++ "_server.hpp") $ templ configFilePath once "SERVER" [lt|
-#include "types.hpp"
+#include "#{name}_types.hpp"
 #{serverHeader}
 
 #{genNameSpace (snoc ns "server") $ LT.concat $ map (genServer configPFICommon) spec}
 |]
 
   LT.writeFile (name ++ "_client.hpp") [lt|
-#include "types.hpp"
+#include "#{name}_types.hpp"
 #{clientHeader}
 
 #{genNameSpace (snoc ns "client") $ LT.concat $ map (genClient configPFICommon) spec}
@@ -168,7 +168,7 @@ public:
           sign = [lt|#{genType methodRetType}(#{LT.intercalate ", " typs})|]
           phs  = LT.concat $ [[lt|, pfi::lang::_#{show ix}|] | ix <- [1 .. length (typs)]]
       in [lt|
-    rpc_server::add<#{sign} >("#{methodName}", pfi::lang::bind(&Impl::#{methodName}, this#{phs});|]
+    rpc_server::add<#{sign} >("#{methodName}", pfi::lang::bind(&Impl::#{methodName}, static_cast<Impl*>(this)#{phs}));|]
 
     genSetMethod _ = ""
 
@@ -207,7 +207,7 @@ private:
   genMethodCall _ = ""
 
 genClient True MPService {..} = [lt|
-class #{serviceName} : public pfi::lang::mprpc::rpc_client {
+class #{serviceName} : public pfi::network::mprpc::rpc_client {
 public:
   #{serviceName}(const std::string &host, uint64_t port, double timeout_sec)
     : rpc_client(host, port, timeout_sec) {}
