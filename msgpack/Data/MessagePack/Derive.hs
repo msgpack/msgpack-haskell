@@ -24,7 +24,7 @@ derivePack asObject tyName = do
   info <- reify tyName
   d <- case info of
     TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) -> do
-      ds <- [d| put v = $(caseE [| v |] (map alt cons)) |]
+      ds <- [d| from v = $(caseE [| v |] (map alt cons)) |]
       instanceD (cx tyVars) (ct ''Packable name tyVars) $
         map return ds
 
