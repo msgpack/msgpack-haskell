@@ -28,24 +28,26 @@ generate Config {..} spec = do
       once = map toUpper name
       ns = LT.splitOn "::" $ LT.pack configNameSpace
 
-  LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
-#include <vector>
-#include <map>
-#include <string>
-#include <stdexcept>
-#include <stdint.h>
+  LT.writeFile (name ++ "_types.pm") $ templ configFilePath once "TYPES" [lt|
+package types;
+use strict;
+use warnings;
 
 #{genNameSpace ns $ LT.concat $ map (genTypeDecl name) spec }
 |]
 
-  LT.writeFile (name ++ "_server.hpp") $ templ configFilePath once "SERVER" [lt|
-#include "#{name}_types.hpp"
+  LT.writeFile (name ++ "_server.pm") $ templ configFilePath once "SERVER" [lt|
+package server;
+use strict;
+use warnings;
 
 #{genNameSpace (snoc ns "server") $ LT.concat $ map genServer spec}
 |]
 
-  LT.writeFile (name ++ "_client.hpp") [lt|
-#include "#{name}_types.hpp"
+  LT.writeFile (name ++ "_client.pm") [lt|
+package client;
+use strict;
+use warnings;
 
 #{genNameSpace (snoc ns "client") $ LT.concat $ map genClient spec}
 |]
@@ -193,12 +195,8 @@ templ filepath once name content = [lt|
 // This file is auto-generated from #{filepath}
 // *** DO NOT EDIT ***
 
-#ifndef #{once}_#{name}_HPP_
-#define #{once}_#{name}_HPP_
-
 #{content}
 
-#endif // #{once}_#{name}_HPP_
 |]
 
 genNameSpace :: [LT.Text] -> LT.Text -> LT.Text
