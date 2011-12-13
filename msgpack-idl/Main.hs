@@ -12,7 +12,7 @@ import Text.Peggy
 import Language.MessagePack.IDL
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
-import qualified Language.MessagePack.IDL.CodeGen.Cpp as Perl
+import qualified Language.MessagePack.IDL.CodeGen.Perl as Perl
 
 import Paths_msgpack_idl
 
@@ -26,7 +26,6 @@ data MPRPC
   | Perl
     { output_dir :: FilePath
     , namespace :: String
-    , pficommon :: Bool
     , filepath :: FilePath }
   deriving (Show, Eq, Data, Typeable)
 
@@ -41,7 +40,6 @@ main = do
                 }
           , Perl { output_dir = def
                 , namespace = "msgpack"
-                , pficommon = False
                 , filepath = def &= argPos 0
                 }
           ]
@@ -69,7 +67,7 @@ compile Perl {..} = do
     Right spec -> do
       print spec
       withDirectory output_dir $ do
-        Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+        Perl.generate (Perl.Config filepath namespace) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do

@@ -19,7 +19,6 @@ data Config
   = Config
     { configFilePath :: FilePath
     , configNameSpace :: String
-    , configPFICommon :: Bool
     }
   deriving (Show, Eq)
 
@@ -29,23 +28,10 @@ generate Config {..} spec = do
       once = map toUpper name
       ns = LT.splitOn "::" $ LT.pack configNameSpace
 
-      typeHeader
-        | configPFICommon =
-          [lt|#include <msgpack.hpp>|]
-        | otherwise =
-          [lt|#include <msgpack.hpp>|]
-      serverHeader
-        | configPFICommon =
-          [lt|#include <pficommon/network/mprpc.h>
-#include <pficommon/lang/bind.h>|]
-        | otherwise =
-          [lt|#include <msgpack/rpc/server.h>|]
-      clientHeader
-        | configPFICommon =
-          [lt|#include <pficommon/network/mprpc.h>|]
-        | otherwise =
-          [lt|#include <msgpack/rpc/client/h>|]
-  
+      typeHeader = [lt|#include <msgpack.hpp>|]
+      serverHeader = [lt|#include <msgpack/rpc/server.h>|]
+      clientHeader = [lt|#include <msgpack/rpc/client/h>|]
+
   LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
 #include <vector>
 #include <map>
@@ -61,14 +47,14 @@ generate Config {..} spec = do
 #include "#{name}_types.hpp"
 #{serverHeader}
 
-#{genNameSpace (snoc ns "server") $ LT.concat $ map (genServer configPFICommon) spec}
+#{genNameSpace (snoc ns "server") $ LT.concat $ map genServer spec}
 |]
 
   LT.writeFile (name ++ "_client.hpp") [lt|
 #include "#{name}_types.hpp"
 #{clientHeader}
 
-#{genNameSpace (snoc ns "client") $ LT.concat $ map (genClient configPFICommon) spec}
+#{genNameSpace (snoc ns "client") $ LT.concat $ map genClient spec}
 |]
 
 genTypeDecl :: String -> Decl -> LT.Text
@@ -109,8 +95,8 @@ sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->
   find ((==ix). fldId) flds
 
-genServer :: Bool -> Decl -> LT.Text
-genServer False MPService {..} = [lt|
+genServer :: Decl -> LT.Text
+genServer MPService {..} = [lt|
 template <class Impl>
 class #{serviceName} : public msgpack::rpc::server::base {
 public:
@@ -153,29 +139,10 @@ public:
 
   genMethodDispatch _ = ""
 
-genServer True MPService {..} = [lt|
-template <class Impl>
-class #{serviceName} : public pfi::network::mprpc::rpc_server {
-public:
-  #{serviceName}(double timeout_sec): rpc_server(timeout_sec) {
-#{LT.concat $ map genSetMethod serviceMethods}
-  }
-};
-|]
-  where
-    genSetMethod Function {..} =
-      let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs
-          sign = [lt|#{genType methodRetType}(#{LT.intercalate ", " typs})|]
-          phs  = LT.concat $ [[lt|, pfi::lang::_#{show ix}|] | ix <- [1 .. length (typs)]]
-      in [lt|
-    rpc_server::add<#{sign} >("#{methodName}", pfi::lang::bind(&Impl::#{methodName}, static_cast<Impl*>(this)#{phs}));|]
+genServer _ = ""
 
-    genSetMethod _ = ""
-
-genServer _ _ = ""
-
-genClient :: Bool -> Decl -> LT.Text
-genClient False MPService {..} = [lt|
+genClient :: Decl -> LT.Text
+genClient MPService {..} = [lt|
 class #{serviceName} {
 public:
   #{serviceName}(const std::string &host, uint64_t port)
@@ -206,39 +173,7 @@ private:
 
   genMethodCall _ = ""
 
-genClient True MPService {..} = [lt|
-class #{serviceName} : public pfi::network::mprpc::rpc_client {
-public:
-  #{serviceName}(const std::string &host, uint64_t port, double timeout_sec)
-    : rpc_client(host, port, timeout_sec) {}
-#{LT.concat $ map genMethodCall serviceMethods}
-private:
-};
-|]
-  where
-  genMethodCall Function {..} =
-    let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs
-        sign = [lt|#{genType methodRetType}(#{LT.intercalate ", " typs})|]
-        args = LT.intercalate ", " $ map arg methodArgs
-        vals = LT.intercalate ", " $ map val methodArgs in
-    case methodRetType of
-      TVoid -> [lt|
-    void #{methodName}(#{args}) {
-      call<#{sign}>("#{methodName}")(#{vals});
-    }
-|]
-      _ -> [lt|
-    #{genType methodRetType} #{methodName}(#{args}) {
-      return call<#{sign}>("#{methodName}")(#{vals});
-    }
-|]
-    where
-      arg Field {..} = [lt|#{genType fldType} #{fldName}|]
-      val Field {..} = [lt|#{fldName}|]
-
-  genMethodCall _ = ""
-
-genClient _ _ = ""
+genClient _ = ""
 
 genType :: Type -> LT.Text
 genType (TInt sign bits) =
