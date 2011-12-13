@@ -35,7 +35,7 @@ main = do
                 }
           ]
     &= help "MessagePack RPC IDL Compiler"
-    &= summary ("mprpc " ++ showVersion version)
+    &= summary ("mpidl " ++ showVersion version)
 
   print conf
   compile conf
