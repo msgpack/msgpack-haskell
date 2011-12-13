@@ -12,12 +12,18 @@ import Text.Peggy
 import Language.MessagePack.IDL
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
+import qualified Language.MessagePack.IDL.CodeGen.Cpp as Perl
 
 import Paths_msgpack_idl
 
 data MPRPC
   = Haskell
   | Cpp
+    { output_dir :: FilePath
+    , namespace :: String
+    , pficommon :: Bool
+    , filepath :: FilePath }
+  | Perl
     { output_dir :: FilePath
     , namespace :: String
     , pficommon :: Bool
@@ -33,6 +39,11 @@ main = do
                 , pficommon = False
                 , filepath = def &= argPos 0
                 }
+          , Perl { output_dir = def
+                , namespace = "msgpack"
+                , pficommon = False
+                , filepath = def &= argPos 0
+                }
           ]
     &= help "MessagePack RPC IDL Compiler"
     &= summary ("mpidl " ++ showVersion version)
@@ -42,6 +53,15 @@ main = do
   
 compile :: MPRPC -> IO ()
 compile Cpp {..} = do
+  espec <- parseFile idl filepath
+  case espec of
+    Left err -> do
+      print err
+    Right spec -> do
+      print spec
+      withDirectory output_dir $ do
+        Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+compile Perl {..} = do
   espec <- parseFile idl filepath
   case espec of
     Left err -> do
