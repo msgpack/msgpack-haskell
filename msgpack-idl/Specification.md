@@ -140,7 +140,7 @@ include "foo.idl"
 ## Response
 
 * `(type, msgid, error, result)`
-    * same as normal msgpack-rpc
+    - same as normal msgpack-rpc
 
 # Semantics
 
