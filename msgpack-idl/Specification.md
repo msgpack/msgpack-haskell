@@ -57,6 +57,7 @@ service <name> [: <version>] {
   <method>
   ...
 }
+~~~
 
 ## field
 
