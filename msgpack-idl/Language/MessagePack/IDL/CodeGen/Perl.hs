@@ -68,19 +68,11 @@ genMsg name flds isExc =
   let fields = map f flds
       fs = map (maybe undefined fldName) $ sortField flds
   in [lt|
-struct #{name}#{e} {
-public:
-
-  #{destructor}
-  MSGPACK_DEFINE(#{T.intercalate ", " fs});  
+struct #{name} {
 #{LT.concat fields}
 };
 |]
   where
-    e = if isExc then [lt| : public std::exception|] else ""
-    destructor = if isExc then [lt|~#{name}() throw() {}
-|] else ""
-
     f Field {..} = [lt|
   #{genType fldType} #{fldName};|]
 
