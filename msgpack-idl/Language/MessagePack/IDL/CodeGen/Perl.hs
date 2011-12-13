@@ -28,31 +28,24 @@ generate Config {..} spec = do
       once = map toUpper name
       ns = LT.splitOn "::" $ LT.pack configNameSpace
 
-      typeHeader = [lt|#include <msgpack.hpp>|]
-      serverHeader = [lt|#include <msgpack/rpc/server.h>|]
-      clientHeader = [lt|#include <msgpack/rpc/client/h>|]
-
   LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
 #include <vector>
 #include <map>
 #include <string>
 #include <stdexcept>
 #include <stdint.h>
-#{typeHeader}
 
 #{genNameSpace ns $ LT.concat $ map (genTypeDecl name) spec }
 |]
 
   LT.writeFile (name ++ "_server.hpp") $ templ configFilePath once "SERVER" [lt|
 #include "#{name}_types.hpp"
-#{serverHeader}
 
 #{genNameSpace (snoc ns "server") $ LT.concat $ map genServer spec}
 |]
 
   LT.writeFile (name ++ "_client.hpp") [lt|
 #include "#{name}_types.hpp"
-#{clientHeader}
 
 #{genNameSpace (snoc ns "client") $ LT.concat $ map genClient spec}
 |]
