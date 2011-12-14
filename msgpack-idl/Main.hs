@@ -15,7 +15,7 @@ import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
 
 import Paths_msgpack_idl
 
-data MPRPC
+data MPIDL
   = Haskell
   | Cpp
     { output_dir :: FilePath
@@ -40,7 +40,7 @@ main = do
   print conf
   compile conf
   
-compile :: MPRPC -> IO ()
+compile :: MPIDL -> IO ()
 compile Cpp {..} = do
   espec <- parseFile idl filepath
   case espec of
