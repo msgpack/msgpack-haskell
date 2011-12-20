@@ -12,6 +12,7 @@ import Text.Peggy
 import Language.MessagePack.IDL
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
+import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
 
 import Paths_msgpack_idl
 
@@ -21,6 +22,10 @@ data MPIDL
     { output_dir :: FilePath
     , namespace :: String
     , pficommon :: Bool
+    , filepath :: FilePath }
+  | Ruby
+    { output_dir :: FilePath
+    , modules :: String
     , filepath :: FilePath }
   deriving (Show, Eq, Data, Typeable)
 
@@ -33,6 +38,10 @@ main = do
                 , pficommon = False
                 , filepath = def &= argPos 0
                 }
+          , Ruby { output_dir = def
+                 , modules = "MessagePack"
+                 , filepath = def &= argPos 0
+                 }
           ]
     &= help "MessagePack RPC IDL Compiler"
     &= summary ("mpidl " ++ showVersion version)
@@ -50,6 +59,16 @@ compile Cpp {..} = do
       print spec
       withDirectory output_dir $ do
         Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+
+compile Ruby {..} = do
+  espec <- parseFile idl filepath
+  case espec of
+    Left err -> do
+      print err
+    Right spec -> do
+      print spec
+      withDirectory output_dir $ do
+        Ruby.generate (Ruby.Config filepath modules) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do
