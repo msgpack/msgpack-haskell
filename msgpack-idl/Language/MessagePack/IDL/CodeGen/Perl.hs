@@ -45,10 +45,10 @@ use warnings;
 |]
 
   LT.writeFile (name ++ "_client.pm") [lt|
-package client;
+package #{name}_client;
 use strict;
 use warnings;
-
+use AnyEvent::MPRPC::Client;
 #{genNameSpace (snoc ns "client") $ LT.concat $ map genClient spec}
 |]
 
@@ -130,26 +130,27 @@ genServer _ = ""
 
 genClient :: Decl -> LT.Text
 genClient MPService {..} = [lt|
-class #{serviceName} {
-public:
-  #{serviceName}(const std::string &host, uint64_t port)
-    : c_(host, port) {}
-#{LT.concat $ map genMethodCall serviceMethods}
-private:
-  msgpack::rpc::client c_;
+sub new {
+  my ($self, $host, $port) = @_;
+  my $client = AnyEvent::MPRPC::Client->new(
+    host => $host,
+    port => $port
+    );
+  bless { client => $client }, $self;
 };
+
+sub bar {
+  my ($self, $lang, $xs) = @_;
+  $self->{'client'}->call(bar => [$xs, $lang])->recv;
+};
+
+1;
 |]
   where
   genMethodCall Function {..} =
     let args = LT.intercalate ", " $ map arg methodArgs in
     let vals = LT.concat $ map val methodArgs in
-    case methodRetType of
-      TVoid -> [lt|
-    void #{methodName}(#{args}) {
-      c_.call("#{methodName}"#{vals});
-    }
-|]
-      _ -> [lt|
+    [lt|
     #{genType methodRetType} #{methodName}(#{args}) {
       return c_.call("#{methodName}"#{vals}).get<#{genType methodRetType} >();
     }
@@ -202,11 +203,6 @@ templ filepath once name content = [lt|
 genNameSpace :: [LT.Text] -> LT.Text -> LT.Text
 genNameSpace namespace content = f namespace
   where
-    f [] = [lt|#{content}|]
-    f (n:ns) = [lt|
-namespace #{n} {
-#{f ns}
-} // namespace #{n}
-|]
+    f _ = [lt|#{content}|]
 
 snoc xs x = xs ++ [x]
