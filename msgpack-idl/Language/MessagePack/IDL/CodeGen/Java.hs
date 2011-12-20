@@ -23,26 +23,30 @@ data Config
   deriving (Show, Eq)
 
 generate :: Config -> Spec -> IO()
-generate Config {..} spec = do
-  let name = capitalize $ takeBaseName configFilePath
-  LT.writeFile (name ++ "Client.java") $ templ configFilePath [lt|
-package #{configPackage};
-import java.util.ArrayList;
-import org.msgpack.rpc.Client;
-import org.msgpack.rpc.loop.EventLoop;
-#{LT.concat $ map (genImport configPackage) spec}
+generate config spec = do
 
-#{LT.concat $ map genClient spec}
-|]
+  genTuple config
+  mapM_ (genClient config) spec
+  mapM_ (genStruct $ configPackage config) spec
+  mapM_ (genException $ configPackage config) spec
 
-  mapM_ (genStruct configPackage) spec
-  mapM_ (genException configPackage) spec
-
+{--
   LT.writeFile (name ++ "Server.java") $ templ (configFilePath ++ configPackage ++"/server/")[lt|
 import org.msgpack.rpc.Server;
 package #{configPackage}
 
 #{LT.concat $ map genServer spec}
+|]
+--}
+
+genTuple :: Config -> IO()
+genTuple Config {..} = do
+  LT.writeFile("Tuple.java") $ templ (configFilePath) [lt|
+package #{configPackage};
+public class Tuple<T, U> {
+  public T a;
+  public U b;
+};
 |]
 
 genImport :: FilePath -> Decl -> LT.Text
@@ -81,9 +85,14 @@ genDecl Field {..} =
 genException :: FilePath -> Decl -> IO()
 genException _ _ = return ()
 
-genClient :: Decl -> LT.Text
-genClient MPService {..} =
-  [lt|
+genClient :: Config -> Decl -> IO()
+genClient Config {..} MPService {..} = do 
+  LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
+package #{configPackage};
+import java.util.ArrayList;
+import org.msgpack.rpc.Client;
+import org.msgpack.rpc.loop.EventLoop;
+
 public class #{className} {
   public #{className}(String host, int port, double timeout_sec) throws Exception {
     EventLoop loop = EventLoop.defaultEventLoop();
@@ -98,12 +107,12 @@ public class #{className} {
 #{LT.concat $ map genMethodCall serviceMethods}
   private Client c_;
   private RPCInterface iface_;
-}
+};
 |]
   where
   className = (capitalizeT serviceName) `mappend` "Client"
   genMethodCall Function {..} =
-    let args = T.intercalate ", " $ pack methodArgs genArgs 
+    let args = T.intercalate ", " $ map genArgs' methodArgs
         vals = T.intercalate ", " $ pack methodArgs genVal in
     case methodRetType of
       TVoid -> [lt|
@@ -120,19 +129,22 @@ public class #{className} {
       arg Field {..} = [lt|#{genType fldType} #{fldName}|]
   genMethodCall _ = ""
 
-genClient _ = ""
+genClient _ _ = return ()
 
 genSignature :: Method -> LT.Text
 genSignature Function {..} = 
-    [lt|    #{genType methodRetType} #{methodName}(#{args});
+    [lt|  #{genType methodRetType} #{methodName}(#{args});
 |]
     where
-      args = T.intercalate ", " $ pack methodArgs genArgs 
+      args = (T.intercalate ", " $ map genArgs' methodArgs)
 genSignature  _ = ""
 
 genArgs :: Maybe Field -> T.Text
-genArgs (Just ( Field {..}) ) = [st|#{genType fldType} #{fldName}|] 
-genArgs Nothing = "Object x"
+genArgs (Just field) = genArgs' field
+genArgs Nothing = ""
+
+genArgs' :: Field -> T.Text
+genArgs' Field {..} = [st|#{genType fldType} #{fldName}|]
 
 pack :: [Field] -> (Maybe Field -> T.Text) -> [T.Text]
 pack fields converter=
@@ -186,17 +198,48 @@ genType TRaw =
 genType TString =
   [lt|String|]
 genType (TList typ) =
-  [lt|ArrayList<#{genType typ} >|]
+  [lt|ArrayList<#{genWrapperType typ} >|]
 genType (TMap typ1 typ2) =
   [lt|HashMap<#{genType typ1}, #{genType typ2} >|]
 genType (TUserDef className params) =
   [lt|#{capitalizeT className} #{associateBracket $ map genType params}|]
 genType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|std::pair<#{t1}, #{t2} >|]) $ map genType ts
+  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
 genType TObject =
   [lt|org.msgpack.type.Value|]
 genType TVoid =
+  [lt|void|]
+
+genWrapperType :: Type -> LT.Text
+genWrapperType (TInt _ bits) = case bits of
+                                 8 -> [lt|Byte|]
+                                 16 -> [lt|Short|]
+                                 32 -> [lt|Integer|]
+                                 64 -> [lt|Long|]
+                                 _ -> [lt|Integer|]
+genWrapperType (TFloat False) =
+  [lt|Float|]
+genWrapperType (TFloat True) =
+  [lt|Double|]
+genWrapperType TBool =
+  [lt|Boolean|]
+genWrapperType TRaw =
+  [lt|String|]
+genWrapperType TString =
+  [lt|String|]
+genWrapperType (TList typ) =
+  [lt|ArrayList<#{genWrapperType typ} >|]
+genWrapperType (TMap typ1 typ2) =
+  [lt|HashMap<#{genWrapperType typ1}, #{genWrapperType typ2} >|]
+genWrapperType (TUserDef className params) =
+  [lt|#{capitalizeT className} #{associateBracket $ map genWrapperType params}|]
+genWrapperType (TTuple ts) =
+  -- TODO: FIX
+  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+genWrapperType TObject =
+  [lt|org.msgpack.type.Value|]
+genWrapperType TVoid =
   [lt|void|]
 
 templ :: FilePath -> LT.Text -> LT.Text
