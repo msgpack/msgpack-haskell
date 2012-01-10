@@ -44,7 +44,7 @@ generate Config {..} spec = do
         | configPFICommon =
           [lt|#include <pficommon/network/mprpc.h>|]
         | otherwise =
-          [lt|#include <msgpack/rpc/client/h>|]
+          [lt|#include <msgpack/rpc/client.h>|]
   
   LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
 #include <vector>
