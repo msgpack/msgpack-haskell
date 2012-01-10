@@ -24,10 +24,11 @@ data Config
 
 generate :: Config -> Spec -> IO()
 generate config spec = do
+  let typeAlias = map genAlias $ filter isMPType spec
 
   genTuple config
-  mapM_ (genClient config) spec
-  mapM_ (genStruct $ configPackage config) spec
+  mapM_ (genClient typeAlias config) spec
+  mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
 
 {--
@@ -55,21 +56,46 @@ genImport packageName MPMessage {..} =
 |]
 genImport _ _ = ""
 
-genStruct :: FilePath -> Decl -> IO()
-genStruct packageName MPMessage {..} = do
+genStruct :: [(T.Text, Type)] -> FilePath -> Decl -> IO()
+genStruct alias packageName MPMessage {..} = do
   let params = if null msgParam then "" else [lt|<#{T.intercalate ", " msgParam}>|]
+      resolvedMsgFields = map (resolveFieldAlias alias) msgFields
   LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
 package #{packageName};
 
 public class #{formatClassNameT msgName} #{params} {
 
-#{LT.concat $ map genDecl msgFields}
+#{LT.concat $ map genDecl resolvedMsgFields}
   public #{formatClassNameT msgName}() {
-  #{LT.concat $ map genInit msgFields}
+  #{LT.concat $ map genInit resolvedMsgFields}
   }
 };
 |]
-genStruct _ _ = return ()
+genStruct _ _ _ = return ()
+
+resolveMethodAlias :: [(T.Text, Type)] -> Method -> Method
+resolveMethodAlias alias Function {..}  = Function methodInherit methodName (resolveTypeAlias alias methodRetType) (map (resolveFieldAlias alias) methodArgs)
+resolveMethodAlias _ f = f
+
+resolveFieldAlias :: [(T.Text, Type)] -> Field -> Field
+resolveFieldAlias alias Field {..} = Field fldId (resolveTypeAlias alias fldType) fldName fldDefault
+
+resolveTypeAlias :: [(T.Text, Type)] -> Type -> Type
+resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in 
+                           case ty of
+                             TNullable t ->
+                                 TNullable $ fixedAlias t
+                             TList t ->
+                                 TList $ fixedAlias t
+                             TMap s t ->
+                                 TMap (fixedAlias s) (fixedAlias t)
+                             TTuple ts ->
+                                 TTuple $ map fixedAlias ts
+                             TUserDef className params ->
+                                 case lookup className alias of 
+                                   Just resolvedType -> resolvedType
+                                   Nothing -> TUserDef className (map fixedAlias params)
+                             otherwise -> ty
 
 genInit :: Field -> LT.Text
 genInit Field {..} = case fldDefault of
@@ -101,9 +127,11 @@ public class #{formatClassNameT excName} #{params}{
               Nothing -> ""
 genException _ _ = return ()
 
-genClient :: Config -> Decl -> IO()
-genClient Config {..} MPService {..} = do 
+genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
+genClient alias Config {..} MPService {..} = do 
+  let resolvedServiceMethods = map (resolveMethodAlias alias) serviceMethods
   LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
+
 package #{configPackage};
 import java.util.ArrayList;
 import org.msgpack.rpc.Client;
@@ -117,10 +145,10 @@ public class #{className} {
   }
 
   public static interface RPCInterface {
-  #{LT.concat $ map genSignature serviceMethods}
+#{LT.concat $ map genSignature resolvedServiceMethods}
   }
 
-#{LT.concat $ map genMethodCall serviceMethods}
+#{LT.concat $ map genMethodCall resolvedServiceMethods}
   private Client c_;
   private RPCInterface iface_;
 };
@@ -143,11 +171,11 @@ public class #{className} {
 |]
     genMethodCall _ = ""
 
-genClient _ _ = return ()
+genClient _ _ _ = return ()
 
 genSignature :: Method -> LT.Text
 genSignature Function {..} = 
-    [lt|  #{genType methodRetType} #{methodName}(#{args});
+    [lt|    #{genType methodRetType} #{methodName}(#{args});
 |]
     where
       args = (T.intercalate ", " $ map genArgs' methodArgs)
@@ -194,6 +222,7 @@ associateBracket :: [LT.Text] -> LT.Text
 associateBracket msgParam = 
   if null msgParam then "" else [lt|<#{LT.intercalate ", " msgParam}>|]
 
+
 genType :: Type -> LT.Text
 genType (TInt _ bits) = case bits of
                             8 -> [lt|byte|]
@@ -224,6 +253,27 @@ genType TObject =
   [lt|org.msgpack.type.Value|]
 genType TVoid =
   [lt|void|]
+
+genTypeWithContext :: Spec -> Type -> LT.Text
+genTypeWithContext spec t = case t of 
+                              (TUserDef className params) -> 
+                                  case lookup className $ map genAlias $ filter isMPType spec of
+                                    Just x -> genType x
+                                    Nothing -> ""
+                              otherwise -> genType t
+
+isMPType :: Decl -> Bool
+isMPType MPType {..} = True
+isMPType _ = False
+
+genAlias :: Decl -> (T.Text, Type)
+genAlias MPType {..} = (tyName, tyType)
+genAlias _ = ("", TBool)
+
+genTypeWithTypedef :: T.Text -> Decl -> Maybe Type
+genTypeWithTypedef className MPType {..} =
+  if className == tyName then Just tyType else Nothing
+genTypeWithTypedef className _ = Nothing
 
 genWrapperType :: Type -> LT.Text
 genWrapperType (TInt _ bits) = case bits of
