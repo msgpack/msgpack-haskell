@@ -29,13 +29,7 @@ generate Config {..} spec = do
       ns = LT.splitOn "::" $ LT.pack configNameSpace
 
 -- types
-  LT.writeFile (name ++ "_types.pm") $ templ configFilePath once "TYPES" [lt|
-package types;
-use strict;
-use warnings;
-
-#{LT.concat $ map (genTypeDecl name) spec }
-|]
+  mapM_ writeType spec
 
 -- clients
   LT.writeFile (name ++ "_client.pm") [lt|
@@ -46,35 +40,38 @@ use AnyEvent::MPRPC::Client;
 #{LT.concat $ map genClient spec}
 |]
 
-genTypeDecl :: String -> Decl -> LT.Text
-genTypeDecl _ MPMessage {..} =
-  genMsg msgName msgFields False
+writeType :: Decl -> IO ()
+writeType MPMessage {..} =
+  let fields = sortBy (\x y -> fldId x `compare` fldId y) msgFields
+      fieldNames = map fldName fields :: [T.Text]
+      packageName = msgName :: T.Text
+  in LT.writeFile (T.unpack packageName ++ ".pm") [lt|package #{LT.pack $ T.unpack packageName};
+sub new {
+  return bless { #{LT.concat $ map f fieldNames} };
+}
 
-genTypeDecl _ MPException {..} =
-  genMsg excName excFields True
-  
-genTypeDecl _ MPType { .. } =
-  [lt|
-typedef #{genType tyType} #{tyName};
-|]
-
-genTypeDecl _ _ = ""
-
-genMsg name flds isExc =
-  let fields = map f flds
-      fs = map (maybe undefined fldName) $ sortField flds
-  in [lt|
-struct #{name} {
-#{LT.concat fields}
-};
+1;
 |]
   where
-    f Field {..} = [lt|
-  #{genType fldType} #{fldName};|]
+    f :: T.Text -> LT.Text
+    f name = LT.append (LT.pack $ T.unpack name) $ LT.pack " => \"\","
 
-sortField flds =
-  flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->
-  find ((==ix). fldId) flds
+writeType MPException {..} =
+  let fields = sortBy (\x y -> fldId x `compare` fldId y) excFields
+      fieldNames = map fldName fields :: [T.Text]
+      packageName = excName :: T.Text
+  in LT.writeFile (T.unpack packageName ++ ".pm") [lt|package #{LT.pack $ T.unpack packageName};
+sub new {
+  return bless { #{LT.concat $ map f fieldNames} };
+}
+
+1;
+|]
+  where
+    f :: T.Text -> LT.Text
+    f name = LT.append (LT.pack $ T.unpack name) $ LT.pack " => \"\",\n"
+
+writeType _ = return ()
 
 genClient :: Decl -> LT.Text
 genClient MPService {..} = [lt|
