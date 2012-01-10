@@ -28,6 +28,7 @@ generate Config {..} spec = do
       once = map toUpper name
       ns = LT.splitOn "::" $ LT.pack configNameSpace
 
+-- types
   LT.writeFile (name ++ "_types.pm") $ templ configFilePath once "TYPES" [lt|
 package types;
 use strict;
@@ -36,6 +37,7 @@ use warnings;
 #{LT.concat $ map (genTypeDecl name) spec }
 |]
 
+-- clients
   LT.writeFile (name ++ "_client.pm") [lt|
 package #{name}_client;
 use strict;
