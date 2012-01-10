@@ -12,6 +12,7 @@ import Text.Peggy
 import Language.MessagePack.IDL
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
+import qualified Language.MessagePack.IDL.CodeGen.Java as Java
 
 import Paths_msgpack_idl
 
@@ -22,6 +23,12 @@ data MPIDL
     , namespace :: String
     , pficommon :: Bool
     , filepath :: FilePath }
+  | Java
+    {
+      output_dir :: FilePath
+    , package :: String
+    , filepath :: FilePath
+    }
   deriving (Show, Eq, Data, Typeable)
 
 main :: IO ()
@@ -33,6 +40,11 @@ main = do
                 , pficommon = False
                 , filepath = def &= argPos 0
                 }
+          , Java {
+                   output_dir = def
+                 , package = "msgpack"
+                 , filepath = def &= argPos 0
+                 }
           ]
     &= help "MessagePack RPC IDL Compiler"
     &= summary ("mpidl " ++ showVersion version)
@@ -50,6 +62,16 @@ compile Cpp {..} = do
       print spec
       withDirectory output_dir $ do
         Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+
+compile Java {..} = do
+  espec <- parseFile idl filepath
+  case espec of
+    Left err -> do
+      print err
+    Right spec -> do
+      print spec
+      withDirectory (output_dir ++ "/" ++ package) $ do
+        Java.generate (Java.Config filepath package) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do
