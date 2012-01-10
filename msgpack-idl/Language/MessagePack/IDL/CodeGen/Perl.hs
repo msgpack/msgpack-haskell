@@ -33,7 +33,7 @@ package types;
 use strict;
 use warnings;
 
-#{genNameSpace ns $ LT.concat $ map (genTypeDecl name) spec }
+#{LT.concat $ map (genTypeDecl name) spec }
 |]
 
   LT.writeFile (name ++ "_client.pm") [lt|
@@ -41,7 +41,7 @@ package #{name}_client;
 use strict;
 use warnings;
 use AnyEvent::MPRPC::Client;
-#{genNameSpace (snoc ns "client") $ LT.concat $ map genClient spec}
+#{LT.concat $ map genClient spec}
 |]
 
 genTypeDecl :: String -> Decl -> LT.Text
@@ -145,10 +145,3 @@ templ filepath once name content = [lt|
 #{content}
 
 |]
-
-genNameSpace :: [LT.Text] -> LT.Text -> LT.Text
-genNameSpace namespace content = f namespace
-  where
-    f _ = [lt|#{content}|]
-
-snoc xs x = xs ++ [x]
