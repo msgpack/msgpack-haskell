@@ -36,14 +36,6 @@ use warnings;
 #{genNameSpace ns $ LT.concat $ map (genTypeDecl name) spec }
 |]
 
-  LT.writeFile (name ++ "_server.pm") $ templ configFilePath once "SERVER" [lt|
-package server;
-use strict;
-use warnings;
-
-#{genNameSpace (snoc ns "server") $ LT.concat $ map genServer spec}
-|]
-
   LT.writeFile (name ++ "_client.pm") [lt|
 package #{name}_client;
 use strict;
@@ -81,52 +73,6 @@ struct #{name} {
 sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->
   find ((==ix). fldId) flds
-
-genServer :: Decl -> LT.Text
-genServer MPService {..} = [lt|
-template <class Impl>
-class #{serviceName} : public msgpack::rpc::server::base {
-public:
-
-  void dispatch(msgpack::rpc::request req) {
-    try {
-      std::string method;
-      req.method().convert(&method);
-#{LT.concat $ map genMethodDispatch serviceMethods}
-    } catch (const msgpack::type_error& e) {
-      req.error(msgpack::rpc::ARGUMENT_ERROR);
-    } catch (const std::exception& e) {
-      req.error(std::string(e.what()));
-    }
-  }
-};
-|]
-  where
-  genMethodDispatch Function {..} =
-    -- TODO: FIX IT!
-    let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs in
-    let params = map g methodArgs in
-    case params of
-      [] -> [lt|
-      if (method == "#{methodName}") {
-        req.result<#{genType methodRetType} >(static_cast<Impl*>(this)->#{methodName}());
-        return;
-      }
-|]
-      _ -> [lt|
-      if (method == "#{methodName}") {
-        msgpack::type::tuple<#{LT.intercalate ", " typs} > params;
-        req.params().convert(&params);
-        req.result<#{genType methodRetType} >(static_cast<Impl*>(this)->#{methodName}(#{LT.intercalate ", " params}));
-        return;
-      }
-|]
-    where
-    g fld = [lt|params.get<#{show $ fldId fld}>()|]
-
-  genMethodDispatch _ = ""
-
-genServer _ = ""
 
 genClient :: Decl -> LT.Text
 genClient MPService {..} = [lt|
