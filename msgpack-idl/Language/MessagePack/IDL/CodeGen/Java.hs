@@ -51,25 +51,24 @@ public class Tuple<T, U> {
 
 genImport :: FilePath -> Decl -> LT.Text
 genImport packageName MPMessage {..} = 
-    [lt|import #{packageName}.#{capitalizeT msgName};
+    [lt|import #{packageName}.#{formatClassNameT msgName};
 |]
 genImport _ _ = ""
 
 genStruct :: FilePath -> Decl -> IO()
 genStruct packageName MPMessage {..} = do
   let params = if null msgParam then "" else [lt|<#{T.intercalate ", " msgParam}>|]
-  LT.writeFile ( (capitalize $ T.unpack msgName) ++ ".java") [lt|
+  LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
 package #{packageName};
 
-public class #{capitalizeT msgName} #{params} {
+public class #{formatClassNameT msgName} #{params} {
 
 #{LT.concat $ map genDecl msgFields}
-  public #{capitalizeT msgName}() {
+  public #{formatClassNameT msgName}() {
   #{LT.concat $ map genInit msgFields}
   }
 };
 |]
-
 genStruct _ _ = return ()
 
 genInit :: Field -> LT.Text
@@ -83,6 +82,23 @@ genDecl Field {..} =
 |]
 
 genException :: FilePath -> Decl -> IO()
+genException packageName MPException {..} = do
+  LT.writeFile ( (formatClassName $ T.unpack excName) ++ ".java") [lt|
+package #{packageName};
+
+public class #{formatClassNameT excName} #{params}{
+
+#{LT.concat $ map genDecl excFields}
+  public #{formatClassNameT excName}() {
+  #{LT.concat $ map genInit excFields}
+  }
+};
+|]
+  where
+    params = if null excParam then "" else [lt|<#{T.intercalate ", " excParam}>|]
+    super = case excSuper of 
+              Just x -> [st|extends #{x}|]
+              Nothing -> ""
 genException _ _ = return ()
 
 genClient :: Config -> Decl -> IO()
@@ -101,7 +117,7 @@ public class #{className} {
   }
 
   public static interface RPCInterface {
-#{LT.concat $ map genSignature serviceMethods}
+  #{LT.concat $ map genSignature serviceMethods}
   }
 
 #{LT.concat $ map genMethodCall serviceMethods}
@@ -110,24 +126,22 @@ public class #{className} {
 };
 |]
   where
-  className = (capitalizeT serviceName) `mappend` "Client"
-  genMethodCall Function {..} =
-    let args = T.intercalate ", " $ map genArgs' methodArgs
-        vals = T.intercalate ", " $ pack methodArgs genVal in
-    case methodRetType of
-      TVoid -> [lt|
+    className = (formatClassNameT serviceName) `mappend` "Client"
+    genMethodCall Function {..} =
+        let args = T.intercalate ", " $ map genArgs' methodArgs
+            vals = T.intercalate ", " $ pack methodArgs genVal in
+        case methodRetType of
+          TVoid -> [lt|
   public void #{methodName}(#{args}) {
     iface_.#{methodName}(#{vals});
   }
 |]
-      _ -> [lt|
+          _ -> [lt|
   public #{genType methodRetType} #{methodName}(#{args}) {
     return iface_.#{methodName}(#{vals});
   }
 |]
-    where
-      arg Field {..} = [lt|#{genType fldType} #{fldName}|]
-  genMethodCall _ = ""
+    genMethodCall _ = ""
 
 genClient _ _ = return ()
 
@@ -160,11 +174,11 @@ genVal :: Maybe Field -> T.Text
 genVal Nothing = "null"
 genVal (Just field) = fldName field
 
-capitalizeT :: T.Text -> T.Text
-capitalizeT a = T.cons (toUpper $ T.head a) (T.tail a)
+formatClassNameT :: T.Text -> T.Text
+formatClassNameT = T.pack . formatClassName . T.unpack
 
-capitalize :: String -> String
-capitalize a = (toUpper $ head a) : (tail a)
+formatClassName :: String -> String
+formatClassName = concatMap (\(c:cs) -> toUpper c:cs) . words . map (\c -> if c=='_' then ' ' else c)
 
 genServer :: Decl -> LT.Text
 genServer _ = ""
@@ -202,7 +216,7 @@ genType (TList typ) =
 genType (TMap typ1 typ2) =
   [lt|HashMap<#{genType typ1}, #{genType typ2} >|]
 genType (TUserDef className params) =
-  [lt|#{capitalizeT className} #{associateBracket $ map genType params}|]
+  [lt|#{formatClassNameT className} #{associateBracket $ map genType params}|]
 genType (TTuple ts) =
   -- TODO: FIX
   foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
@@ -233,7 +247,7 @@ genWrapperType (TList typ) =
 genWrapperType (TMap typ1 typ2) =
   [lt|HashMap<#{genWrapperType typ1}, #{genWrapperType typ2} >|]
 genWrapperType (TUserDef className params) =
-  [lt|#{capitalizeT className} #{associateBracket $ map genWrapperType params}|]
+  [lt|#{formatClassNameT className} #{associateBracket $ map genWrapperType params}|]
 genWrapperType (TTuple ts) =
   -- TODO: FIX
   foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
