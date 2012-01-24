@@ -49,7 +49,7 @@ genTypeDecl _ MPException {..} =
 genTypeDecl _ _ = ""
 
 genMsg name flds isExc = [lt|
-class #{capitalizeT name}#{e}
+class #{capitalizeT name}#{deriveError}
   def to_msgpack(out = '')
     [#{afs}].to_msgpack(out)
   end
@@ -58,22 +58,26 @@ class #{capitalizeT name}#{e}
     #{afs} = unpacked
   end
 
-#{indent 2 $ LT.unlines $ map (maybe undefined genAttrWriter) sorted_flds}
+#{indent 2 $ LT.concat writers}
 
-#{indent 2 $ genReaders fs}
+#{indent 2 $ genAccessors sorted_flds}
 end
 |]
   where
     sorted_flds = sortField flds
     fs = map (maybe undefined fldName) sorted_flds
+    writers = map (maybe undefined genAttrWriter) sorted_flds
     afs = T.intercalate ", " $ map (mappend "@") fs
-    e  = if isExc then [lt| < Exception|] else ""
+    deriveError = if isExc then [lt| < StandardError|] else ""
 
 capitalizeT :: T.Text -> T.Text
 capitalizeT a = T.cons (toUpper $ T.head a) (T.tail a)
 
 sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix -> find ((==ix). fldId) flds
+
+indent :: Int -> LT.Text -> LT.Text
+indent ind lines = indentedConcat ind $ LT.lines lines
 
 indentedConcat :: Int -> [LT.Text] -> LT.Text
 indentedConcat ind lines =
@@ -83,80 +87,87 @@ indentLine :: Int -> LT.Text -> LT.Text
 indentLine ind "" = ""
 indentLine ind line = mappend (LT.pack $ replicate ind ' ') line
 
-indent :: Int -> LT.Text -> LT.Text
-indent ind lines = indentedConcat ind $ LT.lines lines
+extractJust :: [Maybe a] -> [a]
+extractJust [] = []
+extractJust (Nothing:xs) = extractJust xs
+extractJust (Just v:xs)  = v : extractJust xs
 
-genReaders [] = ""
-genReaders fs = [lt|attr_reader #{T.intercalate ", " $ map (mappend ":") fs}|]
+data AccessorType = Read | ReadWrite deriving Eq
 
-genAttrWriter Field {..} = [lt|
-def #{fldName}= val
-#{indent 2 $ genAttrWriter' fldType $ LT.fromStrict fldName}
-end|]
+getAccessorType :: Type -> AccessorType
+getAccessorType TBool = Read
+getAccessorType (TMap _ _) = Read
+getAccessorType (TUserDef _ _) = Read
+getAccessorType _ = ReadWrite
 
-genAttrWriter' :: Type -> LT.Text -> LT.Text
-genAttrWriter' (TInt t v) n =
-  [lt|#{genCheckingValue (TInt t v) "val"}#{genDefaultAttrWriter n}|]
--- TODO: Check if val is either single or double precision
-genAttrWriter' (TFloat _) n = genDefaultAttrWriter n
-genAttrWriter' TBool n = [lt|@#{n} = val.to_b|]
-genAttrWriter' TRaw n = genDefaultAttrWriter n
-genAttrWriter' TString n = genDefaultAttrWriter n
--- TODO: Check when val is not null
-genAttrWriter' (TNullable t) n = genDefaultAttrWriter n
-genAttrWriter' (TList t) n = [lt|#{n}.each do |i| #{genCheckingValue t "val[i]"} end
-#{genDefaultAttrWriter n}|]
-genAttrWriter' (TMap kt vt) n =
-  [lt|#{n} = {}
-val.each do |k, v|
-#{indent 2 $ convert "k" "newk" kt}
-#{indent 2 $ convert "v" "newv" vt}
-#{indent 2 $ genCheckingValue kt "newk"}
-#{indent 2 $ genCheckingValue vt "newv"}
-  #{n}[newk] = newv
-end|]
+genAccessors :: [Maybe Field] -> LT.Text
+genAccessors [] = ""
+genAccessors fs = [lt|
+#{genAccessors' Read "attr_reader" fs}#{genAccessors' ReadWrite "attr_accessor" fs}|]
+
+genAccessors' :: AccessorType -> String -> [Maybe Field] -> LT.Text
+genAccessors' at an flds = gen $ map (maybe undefined fldName) $ filter fldTypeEq flds
+  where
+    gen [] = ""
+    gen fs = [lt|
+#{an} #{T.intercalate ", " $ map (mappend ":") fs}|]
+
+    fldTypeEq (Just Field {..}) = at == getAccessorType fldType
+    fldTypeEq Nothing           = False
+
+
+-- TODO: Check when val is not null with TNullable
+-- TODO: Write single precision value on TFloat False
+genAttrWriter :: Field -> LT.Text
+genAttrWriter Field {..} = genAttrWriter' fldType fldName
+
+genAttrWriter' :: Type -> T.Text -> LT.Text
+
+genAttrWriter' TBool n = [lt|
+def #{n}=(val)
+  @#{n} = val.to_b
+end
+|]
+
+genAttrWriter' (TMap kt vt) n = [lt|
+def #{n}=(val)
+  @#{n} = {}
+  val.each do |k, v|
+#{indent 4 $ convert "k" "newk" kt}
+#{indent 4 $ convert "v" "newv" vt}
+  end
+end
+|]
   where
     convert from to (TUserDef t p) =
         genConvertingType from to (TUserDef t p)
     convert from to _ = [lt|#{to} = #{from}|]
 
-genAttrWriter' (TTuple ts) n =
-  [lt|#{genCheckingTuple ts 0 "val"}#{genDefaultAttrWriter n}|]
-genAttrWriter' (TUserDef _ _) n = genDefaultAttrWriter n
-genAttrWriter' _ n = genDefaultAttrWriter n
-
-genCheckingValue :: Type -> LT.Text -> LT.Text
-genCheckingValue (TInt True v) n =
-  [lt|raise if #{n} < -#{show (2 ^ (v - 1))} || #{n} >= #{show (2 ^ (v - 1))}
+genAttrWriter' (TUserDef name types) n = [lt|
+def #{n}=(val)
+#{indent 2 $ convert "val" atn (TUserDef name types)}
+end
 |]
-genCheckingValue (TInt False v) n =
-  [lt|raise if #{n} < 0 || #{n} >= #{show (2 ^ v)}
-|]
-genCheckingValue _ _ = ""
+  where
+    atn = [lt|@#{n}|]
+    convert from to (TUserDef t p) =
+        genConvertingType from to (TUserDef t p)
 
-genCheckingTuple :: [Type] -> Int -> LT.Text -> LT.Text
-genCheckingTuple [] _ _ = ""
-genCheckingTuple (t:ts) i n =
-  [lt|#{genCheckingValue t $ genIndexedValue i n}#{genCheckingTuple ts (i + 1) n}|]
-genIndexedValue i n = [lt|#{n}[#{show i}]|]
-
-genDefaultAttrWriter n = [lt|@#{n} = val|]
+genAttrWriter' _ _ = ""
 
 genClient :: Decl -> LT.Text
 genClient MPService {..} = [lt|
 class #{capitalizeT serviceName}
   def initialize(host, port)
     @cli = MessagePack::RPC::Client.new(host, port)
-  end
-#{LT.concat $ map genMethodCall serviceMethods}
+  end#{LT.concat $ map genMethodCall serviceMethods}
 end
 |]
   where
     genMethodCall Function {..} = [lt|
   def #{methodName}(#{defArgs})
-#{genCheckingArgs methodArgs}#{genConvertingType' callStr "v" methodRetType}
-  end
-|]
+#{indent 4 $ genConvertingType' callStr "v" methodRetType}
+  end|]
       where
         defArgs = T.intercalate ", " $ map fldName methodArgs
         callStr = [lt|@cli.call(#{callArgs})|]
@@ -165,27 +176,20 @@ end
 
 genClient _ = ""
 
-genCheckingArgs :: [Field] -> LT.Text
-genCheckingArgs [] = ""
-genCheckingArgs (f:fs) = [lt|#{genCheckingArg f}#{genCheckingArgs fs}|]
-
-genCheckingArg Field {..} = genCheckingValue fldType [lt|#{fldName}|]
-
 genConvertingType :: LT.Text -> LT.Text -> Type -> LT.Text
-genConvertingType unpacked v (TUserDef t _) =
-  [lt|#{v} = #{capitalizeT t}.new
+genConvertingType unpacked v (TUserDef t _) = [lt|
+#{v} = #{capitalizeT t}.new
 #{v}.from_unpacked(#{unpacked})|]
 genConvertingType _ _ _ = ""
 
 genConvertingType' :: LT.Text -> LT.Text -> Type -> LT.Text
-genConvertingType' unpacked v (TUserDef t p) =
-  [lt|#{genConvertingType unpacked v (TUserDef t p)}
+genConvertingType' unpacked v (TUserDef t p) = [lt|
+#{genConvertingType unpacked v (TUserDef t p)}
 return v|]
 genConvertingType' unpacked _ _ = [lt|#{unpacked}|]
 
 templ :: FilePath -> LT.Text -> LT.Text
-templ filepath content =
-  [lt|# This file is auto-generated from #{filepath}
+templ filepath content = [lt|# This file is auto-generated from #{filepath}
 # *** DO NOT EDIT ***
 #{content}
 |]
