@@ -13,6 +13,8 @@ import Language.MessagePack.IDL
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
 import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
+import qualified Language.MessagePack.IDL.CodeGen.Java as Java
+import qualified Language.MessagePack.IDL.CodeGen.Php as Php
 
 import Paths_msgpack_idl
 
@@ -27,6 +29,15 @@ data MPIDL
     { output_dir :: FilePath
     , modules :: String
     , filepath :: FilePath }
+  | Java
+    { output_dir :: FilePath
+    , package :: String
+    , filepath :: FilePath
+    }
+  | Php
+    { output_dir :: FilePath
+    , filepath :: FilePath
+    }
   deriving (Show, Eq, Data, Typeable)
 
 main :: IO ()
@@ -42,23 +53,39 @@ main = do
                  , modules = "MessagePack"
                  , filepath = def &= argPos 0
                  }
+          , Java { output_dir = def
+                 , package = "msgpack"
+                 , filepath = def &= argPos 0
+                 }
+          , Php { output_dir = def
+                , filepath = def &= argPos 0
+                }
           ]
     &= help "MessagePack RPC IDL Compiler"
     &= summary ("mpidl " ++ showVersion version)
 
-  print conf
   compile conf
-  
+
 compile :: MPIDL -> IO ()
-compile Cpp {..} = do
-  espec <- parseFile idl filepath
+compile conf = do
+  espec <- parseFile idl (filepath conf)
   case espec of
     Left err -> do
       print err
     Right spec -> do
       print spec
-      withDirectory output_dir $ do
-        Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+      case conf of
+        Cpp {..} -> do
+          withDirectory output_dir $ do
+            Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+        
+        Java {..} -> do
+          withDirectory (output_dir ++ "/" ++ package) $ do
+            Java.generate (Java.Config filepath package) spec
+
+        Php {..} -> do
+          withDirectory (output_dir) $ do
+            Php.generate (Php.Config filepath) spec
 
 compile Ruby {..} = do
   espec <- parseFile idl filepath
