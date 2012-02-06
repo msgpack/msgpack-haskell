@@ -15,6 +15,7 @@ import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
 import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
 import qualified Language.MessagePack.IDL.CodeGen.Java as Java
 import qualified Language.MessagePack.IDL.CodeGen.Php as Php
+import qualified Language.MessagePack.IDL.CodeGen.Py as Py
 
 import Paths_msgpack_idl
 
@@ -38,6 +39,10 @@ data MPIDL
     { output_dir :: FilePath
     , filepath :: FilePath
     }
+  | Py
+    { output_dir :: FilePath
+     , filepath :: FilePath
+    }
   deriving (Show, Eq, Data, Typeable)
 
 main :: IO ()
@@ -58,6 +63,9 @@ main = do
                  , filepath = def &= argPos 0
                  }
           , Php { output_dir = def
+                , filepath = def &= argPos 0
+                }
+          , Py  { output_dir = def
                 , filepath = def &= argPos 0
                 }
           ]
