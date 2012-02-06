@@ -12,6 +12,7 @@ import Text.Peggy
 import Language.MessagePack.IDL
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
+import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
 import qualified Language.MessagePack.IDL.CodeGen.Java as Java
 import qualified Language.MessagePack.IDL.CodeGen.Php as Php
 
@@ -23,6 +24,10 @@ data MPIDL
     { output_dir :: FilePath
     , namespace :: String
     , pficommon :: Bool
+    , filepath :: FilePath }
+  | Ruby
+    { output_dir :: FilePath
+    , modules :: String
     , filepath :: FilePath }
   | Java
     { output_dir :: FilePath
@@ -44,6 +49,10 @@ main = do
                 , pficommon = False
                 , filepath = def &= argPos 0
                 }
+          , Ruby { output_dir = def
+                 , modules = "MessagePack"
+                 , filepath = def &= argPos 0
+                 }
           , Java { output_dir = def
                  , package = "msgpack"
                  , filepath = def &= argPos 0
@@ -77,6 +86,16 @@ compile conf = do
         Php {..} -> do
           withDirectory (output_dir) $ do
             Php.generate (Php.Config filepath) spec
+
+compile Ruby {..} = do
+  espec <- parseFile idl filepath
+  case espec of
+    Left err -> do
+      print err
+    Right spec -> do
+      print spec
+      withDirectory output_dir $ do
+        Ruby.generate (Ruby.Config filepath modules) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do
