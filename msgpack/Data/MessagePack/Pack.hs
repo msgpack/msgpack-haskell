@@ -34,13 +34,11 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.Vector as V
-import Foreign
+import Foreign hiding (unsafeLocalState)
+import Foreign.Marshal.Unsafe
 
 import Data.MessagePack.Assoc
 import Data.MessagePack.Internal.Utf8
-
-(<>) :: Monoid m => m -> m -> m
-(<>) = mappend
 
 -- | Serializable class
 class Packable a where
@@ -102,7 +100,7 @@ instance Packable Double where
     fromWord64be (cast d)
 
 cast :: (Storable a, Storable b) => a -> b
-cast v = unsafePerformIO $ with v $ peek . castPtr
+cast v = unsafeLocalState $ with v $ peek . castPtr
 
 instance Packable String where
   from = fromString encodeUtf8 B.length fromByteString
