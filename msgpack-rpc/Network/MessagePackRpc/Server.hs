@@ -37,21 +37,18 @@ import Control.Applicative
 import Control.Concurrent
 import Control.DeepSeq
 import Control.Exception as E
-import Data.Enumerator
-import Data.Enumerator.Binary
 import Control.Monad
-import Control.Monad.IO.Class
-import Data.Attoparsec.Enumerator
+import Control.Monad.Trans
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Conduit as C
+import qualified Data.Conduit.Binary as CB
+import qualified Data.Conduit.Attoparsec as CA
 import Data.Maybe
 import Data.MessagePack
 import Network
 import System.IO
 
 import Prelude hiding (catch)
-
-bufferSize :: Integer
-bufferSize = 4096
 
 type RpcMethod = [Object] -> IO Object
 
@@ -70,8 +67,6 @@ fromObject' o =
     Left err -> error $ "argument type error: " ++ err
     Right r -> r
 
---
-
 -- | Create a RPC method from a Haskell function.
 fun :: RpcMethodType f => f -> RpcMethod
 fun = toRpcMethod
@@ -88,17 +83,17 @@ serve port methods = withSocketsDo $ do
       (processRequests h `finally` hClose h) `catches`
       [ Handler $ \e ->
          case e of
-           ParseError ["demandInput"] _ -> return ()
+           CA.ParseError ["demandInput"] _ -> return ()
            _ -> hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show e
       , Handler $ \e ->
          hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show (e :: SomeException)]
 
   where
     processRequests h =
-      run_ $ enumHandle bufferSize h $$ forever $ processRequest h
+      C.runResourceT $ CB.sourceHandle h C.$$ forever $ processRequest h
     
     processRequest h = do
-      (rtype, msgid, method, args) <- iterParser get
+      (rtype, msgid, method, args) <- CA.sinkParser get
       liftIO $ do
         resp <- try $ getResponse rtype method args
         case resp of

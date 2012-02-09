@@ -10,32 +10,28 @@ Maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
 Copyright:           Copyright (c) 2010-2011, Hideyuki Tanaka
 Category:            Network
 Stability:	     Experimental
-Cabal-version:       >=1.6
+Cabal-version:       >=1.8
 Build-type:          Simple
 
 Extra-source-files:  test/Serv.hs
                      test/Cli.hs
 
 Library
-  Build-depends:     base >= 4 && < 5
-                   , bytestring >= 0.9 && < 0.10
-                   , text >= 0.11 && < 0.12
-                   , network >= 2.2 && < 2.4
-                   , random >= 1.0 && < 1.1
-                   , data-default >= 0.3 && < 0.4
-                   , mtl >= 2.0 && < 2.1
-                   , monad-control >= 0.2 && < 0.3
-                   , BoundedChan >= 1.0 && < 1.1
-                   , enumerator >= 0.4 && < 0.5
-                   , attoparsec-enumerator >= 0.3 && < 0.4
-                   , msgpack >= 0.7 && < 0.8
-                   , transformers >= 0.2 && < 0.3
-                   , deepseq >= 1.1 && < 1.2
+  Build-depends:     base         == 4.*
+                   , bytestring   == 0.9.*
+                   , text         == 0.11.*
+                   , network      >= 2.2 && < 2.4
+                   , random       == 1.0.*
+                   , mtl          == 2.0.*
+                   , conduit      == 0.2.*
+                   , attoparsec-conduit == 0.2.*
+                   , deepseq      >= 1.1 && < 1.4
+                   , msgpack      == 0.7.*
 
   Ghc-options:       -Wall
 
-  Exposed-modules:   Network.MessagePack.Server
-                     Network.MessagePack.Client
+  Exposed-modules:   Network.MessagePackRpc.Server
+                     Network.MessagePackRpc.Client
 
 Source-repository head
   Type:              git

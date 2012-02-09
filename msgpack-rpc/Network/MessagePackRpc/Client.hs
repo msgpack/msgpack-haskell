@@ -44,19 +44,16 @@ module Network.MessagePackRpc.Client (
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
-import Data.Attoparsec.Enumerator
 import qualified Data.ByteString.Lazy as BL
-import Data.Enumerator
-import Data.Enumerator.Binary
+import qualified Data.Conduit as C
+import qualified Data.Conduit.Binary as CB
+import qualified Data.Conduit.Attoparsec as CA
 import Data.Functor
 import Data.MessagePack
 import Data.Typeable
 import Network
 import System.IO
 import System.Random
-
-bufferSize :: Integer
-bufferSize = 4096
 
 -- | RPC connection type
 data Connection
@@ -116,8 +113,8 @@ rpcCall Connection{ connHandle = mh } m args = withMVar mh $ \h -> do
   msgid <- (`mod`2^(30::Int)) <$> randomIO :: IO Int
   BL.hPutStr h $ pack (0 ::Int, msgid, m, args)
   hFlush h
-  run_ $ enumHandle bufferSize h $$ do
-    (rtype, rmsgid, rerror, rresult) <- iterParser get
+  C.runResourceT $ CB.sourceHandle h C.$$ do
+    (rtype, rmsgid, rerror, rresult) <- CA.sinkParser get
     when (rtype /= (1 :: Int)) $
       throw $ ProtocolError $ "response type is not 1 (got " ++ show rtype ++ ")"
     when (rmsgid /= msgid) $
@@ -127,8 +124,6 @@ rpcCall Connection{ connHandle = mh } m args = withMVar mh $ \h -> do
         throw $ ServerError rerror
       Right () ->
         return rresult
-
---
 
 -- | Call an RPC Method
 call :: RpcType a =>
