@@ -28,17 +28,20 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as M
 import qualified Data.IntMap as IM
-import Data.Monoid
+import qualified Data.Monoid as Monoid
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.Vector as V
-import Foreign hiding (unsafeLocalState)
-import Foreign.Marshal.Unsafe
+import Foreign
+import qualified System.IO.Unsafe as SIU
 
 import Data.MessagePack.Assoc
 import Data.MessagePack.Internal.Utf8
+
+(<>) :: Monoid.Monoid m => m -> m -> m
+(<>) = Monoid.mappend
 
 -- | Serializable class
 class Packable a where
@@ -100,7 +103,7 @@ instance Packable Double where
     fromWord64be (cast d)
 
 cast :: (Storable a, Storable b) => a -> b
-cast v = unsafeLocalState $ with v $ peek . castPtr
+cast v = SIU.unsafePerformIO $ with v $ peek . castPtr
 
 instance Packable String where
   from = fromString encodeUtf8 B.length fromByteString
@@ -132,10 +135,10 @@ fromString cnv lf pf str =
   <> pf bs
 
 instance Packable a => Packable [a] where
-  from = fromArray length (mconcat . map from)
+  from = fromArray length (Monoid.mconcat . map from)
 
 instance Packable a => Packable (V.Vector a) where
-  from = fromArray V.length (V.foldl (\a b -> a <> from b) mempty)
+  from = fromArray V.length (V.foldl (\a b -> a <> from b) Monoid.mempty)
 
 instance (Packable a1, Packable a2) => Packable (a1, a2) where
   from = fromArray (const 2) f where
@@ -183,19 +186,19 @@ fromArray lf pf arr = do
   <> pf arr
 
 instance (Packable k, Packable v) => Packable (Assoc [(k,v)]) where
-  from = fromMap length (mconcat . map fromPair) . unAssoc
+  from = fromMap length (Monoid.mconcat . map fromPair) . unAssoc
 
 instance (Packable k, Packable v) => Packable (Assoc (V.Vector (k,v))) where
-  from = fromMap V.length (V.foldl (\a b -> a <> fromPair b) mempty) . unAssoc
+  from = fromMap V.length (V.foldl (\a b -> a <> fromPair b) Monoid.mempty) . unAssoc
 
 instance (Packable k, Packable v) => Packable (M.Map k v) where
-  from = fromMap M.size (mconcat . map fromPair . M.toList)
+  from = fromMap M.size (Monoid.mconcat . map fromPair . M.toList)
 
 instance Packable v => Packable (IM.IntMap v) where
-  from = fromMap IM.size (mconcat . map fromPair . IM.toList)
+  from = fromMap IM.size (Monoid.mconcat . map fromPair . IM.toList)
 
 instance (Packable k, Packable v) => Packable (HM.HashMap k v) where
-  from = fromMap HM.size (mconcat . map fromPair . HM.toList)
+  from = fromMap HM.size (Monoid.mconcat . map fromPair . HM.toList)
 
 fromPair :: (Packable a, Packable b) => (a, b) -> Builder
 fromPair (a, b) = from a <> from b

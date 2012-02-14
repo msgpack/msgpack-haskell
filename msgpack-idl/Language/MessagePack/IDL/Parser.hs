@@ -94,5 +94,5 @@ identifier ::: T.Text
 
 skip :: () = [ \r\n\t] { () } / comment
 comment :: () = '#' _:(!'\n' . { () })* '\n' { () }
-delimiter :: () = [()[\\]{}<>;:,./?\] { () }
+delimiter :: () = [()[\]{}<>;:,./?] { () }
 |]

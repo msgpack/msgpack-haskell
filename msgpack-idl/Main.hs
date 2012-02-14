@@ -16,6 +16,7 @@ import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
 import qualified Language.MessagePack.IDL.CodeGen.Java as Java
 import qualified Language.MessagePack.IDL.CodeGen.Php as Php
 import qualified Language.MessagePack.IDL.CodeGen.Py as Py
+import qualified Language.MessagePack.IDL.CodeGen.Perl as Perl
 
 import Paths_msgpack_idl
 
@@ -43,6 +44,10 @@ data MPIDL
     { output_dir :: FilePath
      , filepath :: FilePath
     }
+  | Perl
+    { output_dir :: FilePath
+    , namespace :: String
+    , filepath :: FilePath }
   deriving (Show, Eq, Data, Typeable)
 
 main :: IO ()
@@ -66,6 +71,9 @@ main = do
                 , filepath = def &= argPos 0
                 }
           , Py  { output_dir = def
+                }
+          , Perl { output_dir = def
+                , namespace = "msgpack"
                 , filepath = def &= argPos 0
                 }
           ]
@@ -94,16 +102,14 @@ compile conf = do
         Php {..} -> do
           withDirectory (output_dir) $ do
             Php.generate (Php.Config filepath) spec
+ 
+        Ruby {..} -> do
+          withDirectory (output_dir) $ do
+            Ruby.generate (Ruby.Config filepath modules) spec
 
-compile Ruby {..} = do
-  espec <- parseFile idl filepath
-  case espec of
-    Left err -> do
-      print err
-    Right spec -> do
-      print spec
-      withDirectory output_dir $ do
-        Ruby.generate (Ruby.Config filepath modules) spec
+        Perl {..} -> do
+          withDirectory output_dir $ do
+            Perl.generate (Perl.Config filepath namespace) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do
