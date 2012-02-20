@@ -13,7 +13,7 @@ import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
 import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
 import qualified Language.MessagePack.IDL.CodeGen.Java as Java
 import qualified Language.MessagePack.IDL.CodeGen.Php as Php
-import qualified Language.MessagePack.IDL.CodeGen.Py as Py
+import qualified Language.MessagePack.IDL.CodeGen.Python as Python
 import qualified Language.MessagePack.IDL.CodeGen.Perl as Perl
 
 import Paths_msgpack_idl
@@ -38,9 +38,9 @@ data MPIDL
     { output_dir :: FilePath
     , filepath :: FilePath
     }
-  | Py
+  | Python
     { output_dir :: FilePath
-     , filepath :: FilePath
+    , filepath :: FilePath
     }
   | Perl
     { output_dir :: FilePath
@@ -68,8 +68,9 @@ main = do
           , Php { output_dir = def
                 , filepath = def &= argPos 0
                 }
-          , Py  { output_dir = def
-                }
+          , Python { output_dir = def
+                   , filepath = def &= argPos 0
+                   }
           , Perl { output_dir = def
                 , namespace = "msgpack"
                 , filepath = def &= argPos 0
@@ -97,17 +98,21 @@ compile conf = do
           withDirectory (output_dir ++ "/" ++ package) $ do
             Java.generate (Java.Config filepath package) spec
 
+        Perl {..} -> do
+          withDirectory output_dir $ do
+            Perl.generate (Perl.Config filepath namespace) spec
+
         Php {..} -> do
           withDirectory (output_dir) $ do
             Php.generate (Php.Config filepath) spec
  
+        Python {..} -> do
+          withDirectory (output_dir) $ do
+            Python.generate (Python.Config filepath) spec
+ 
         Ruby {..} -> do
           withDirectory (output_dir) $ do
             Ruby.generate (Ruby.Config filepath modules) spec
-
-        Perl {..} -> do
-          withDirectory output_dir $ do
-            Perl.generate (Perl.Config filepath namespace) spec
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir m = do

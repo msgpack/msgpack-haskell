@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes, RecordWildCards, OverloadedStrings #-}
 
-module Language.MessagePack.IDL.CodeGen.Py (
+module Language.MessagePack.IDL.CodeGen.Python (
   Config(..),
   generate,
   ) where

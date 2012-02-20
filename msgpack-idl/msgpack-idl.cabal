@@ -40,7 +40,7 @@ Library
                        Language.MessagePack.IDL.CodeGen.Java
                        Language.MessagePack.IDL.CodeGen.Perl
                        Language.MessagePack.IDL.CodeGen.Php
-                       Language.MessagePack.IDL.CodeGen.Py
+                       Language.MessagePack.IDL.CodeGen.Python
                        Language.MessagePack.IDL.CodeGen.Ruby
                        Language.MessagePack.IDL.Parser
                        Language.MessagePack.IDL.Syntax
