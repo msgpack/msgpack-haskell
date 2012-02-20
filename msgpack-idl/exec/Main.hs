@@ -1,9 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 
-import Blaze.ByteString.Builder
 import Control.Exception
-import qualified Data.ByteString as B
 import Data.Version
 import System.Console.CmdArgs
 import System.Directory
