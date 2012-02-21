@@ -20,6 +20,10 @@ import Paths_msgpack_idl
 
 data MPIDL
   = Haskell
+    { output_dir :: FilePath
+    , module_name :: String
+    , filepath :: FilePath
+    }
   | Cpp
     { output_dir :: FilePath
     , namespace :: String
@@ -52,29 +56,39 @@ main :: IO ()
 main = do
   conf <- cmdArgs $
     modes [ Haskell
-          , Cpp { output_dir = def
-                , namespace = "msgpack"
-                , pficommon = False
-                , filepath = def &= argPos 0
-                }
-          , Ruby { output_dir = def
-                 , modules = "MessagePack"
-                 , filepath = def &= argPos 0
-                 }
-          , Java { output_dir = def
-                 , package = "msgpack"
-                 , filepath = def &= argPos 0
-                 }
-          , Php { output_dir = def
-                , filepath = def &= argPos 0
-                }
-          , Python { output_dir = def
-                   , filepath = def &= argPos 0
-                   }
-          , Perl { output_dir = def
-                , namespace = "msgpack"
-                , filepath = def &= argPos 0
-                }
+            { output_dir = def
+            , module_name = ""
+            , filepath = def &= argPos 0
+            }
+          , Cpp
+            { output_dir = def
+            , namespace = "msgpack"
+            , pficommon = False
+            , filepath = def &= argPos 0
+            }
+          , Ruby
+            { output_dir = def
+            , modules = "MessagePack"
+            , filepath = def &= argPos 0
+            }
+          , Java
+            { output_dir = def
+            , package = "msgpack"
+            , filepath = def &= argPos 0
+            }
+          , Php
+            { output_dir = def
+            , filepath = def &= argPos 0
+            }
+          , Python
+            { output_dir = def
+            , filepath = def &= argPos 0
+            }
+          , Perl
+            { output_dir = def
+            , namespace = "msgpack"
+            , filepath = def &= argPos 0
+            }
           ]
     &= help "MessagePack RPC IDL Compiler"
     &= summary ("mpidl " ++ showVersion version)
@@ -89,29 +103,24 @@ compile conf = do
       print err
     Right spec -> do
       print spec
-      case conf of
-        Cpp {..} -> do
-          withDirectory output_dir $ do
+      withDirectory (output_dir conf) $ do
+        case conf of
+          Cpp {..} -> do
             Cpp.generate (Cpp.Config filepath namespace pficommon) spec
         
-        Java {..} -> do
-          withDirectory (output_dir ++ "/" ++ package) $ do
+          Java {..} -> do
             Java.generate (Java.Config filepath package) spec
 
-        Perl {..} -> do
-          withDirectory output_dir $ do
+          Perl {..} -> do
             Perl.generate (Perl.Config filepath namespace) spec
 
-        Php {..} -> do
-          withDirectory (output_dir) $ do
+          Php {..} -> do
             Php.generate (Php.Config filepath) spec
  
-        Python {..} -> do
-          withDirectory (output_dir) $ do
+          Python {..} -> do
             Python.generate (Python.Config filepath) spec
  
-        Ruby {..} -> do
-          withDirectory (output_dir) $ do
+          Ruby {..} -> do
             Ruby.generate (Ruby.Config filepath modules) spec
 
 withDirectory :: FilePath -> IO a -> IO a
