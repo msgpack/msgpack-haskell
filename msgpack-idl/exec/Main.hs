@@ -107,6 +107,9 @@ compile conf = do
         case conf of
           Cpp {..} -> do
             Cpp.generate (Cpp.Config filepath namespace pficommon) spec
+          
+          Haskell {..} -> do
+            Haskell.generate (Haskell.Config filepath) spec
         
           Java {..} -> do
             Java.generate (Java.Config filepath package) spec

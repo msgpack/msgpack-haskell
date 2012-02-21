@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Language.MessagePack.IDL.CodeGen.Haskell (
+  Config(..),
   generate,
   ) where
 
@@ -17,11 +18,13 @@ import Text.Shakespeare.Text
 
 import Language.MessagePack.IDL.Syntax as MP
 
-generate = undefined
+data Config
+  = Config
+    { configFilePath :: FilePath
+    }
 
-{-
-generate :: FilePath -> String -> Spec -> IO ()
-generate filename name spec = do
+generate :: Config -> Spec -> IO ()
+generate Config {..} spec = do
   LT.writeFile "Types.hs" [lt|
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -55,7 +58,7 @@ import Types
 |]
 
 genClient :: Decl -> LT.Text
-genClient Service {..} =
+genClient MPService {..} =
   [lt|
 newtype #{monadName} m a
   = #{monadName} { un#{monadName} :: StateT () m a }
@@ -76,7 +79,7 @@ newtype #{monadName} m a
 genClient _ = ""
 
 genTypeDecl :: Decl -> LT.Text
-genTypeDecl Message {..} =
+genTypeDecl MPMessage {..} =
   let mems = LT.intercalate "\n  , " $ map f msgFields in
   [lt|
 data #{dataName}
@@ -112,10 +115,12 @@ genType (TList typ) =
   [lt|[#{genType typ}]|]
 genType (TMap typ1 typ2) =
   [lt|Map (#{genType typ1}) (#{genType typ2})|]
-genType (TClass name) =
-  [lt|#{classize name}|]
 genType (TTuple typs) =
   [lt|(#{LT.intercalate ", " $ map genType typs})|]
+genType (TUserDef name params) =
+  [lt|#{classize name}|]
+genType (TObject) =
+  undefined
 genType (TVoid) =
   [lt|()|]
 
@@ -204,6 +209,4 @@ capital cs = cs
 
 uncapital (c:cs) = toLower c : cs
 uncapital cs = cs
--}
-
 -}
