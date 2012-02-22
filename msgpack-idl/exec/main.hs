@@ -14,6 +14,7 @@ import qualified Language.MessagePack.IDL.CodeGen.Java as Java
 import qualified Language.MessagePack.IDL.CodeGen.Php as Php
 import qualified Language.MessagePack.IDL.CodeGen.Python as Python
 import qualified Language.MessagePack.IDL.CodeGen.Perl as Perl
+import qualified Language.MessagePack.IDL.CodeGen.Erlang as Erlang
 
 import Paths_msgpack_idl
 
@@ -48,6 +49,9 @@ data MPIDL
   | Perl
     { output_dir :: FilePath
     , namespace :: String
+    , filepath :: FilePath }
+  | Erlang
+    { output_dir :: FilePath
     , filepath :: FilePath }
   deriving (Show, Eq, Data, Typeable)
 
@@ -88,6 +92,10 @@ main = do
             , namespace = "msgpack"
             , filepath = def &= argPos 0
             }
+          , Erlang
+            { output_dir = def
+            , filepath = def &= argPos 0
+            }
           ]
     &= help "MessagePack RPC IDL Compiler"
     &= summary ("mpidl " ++ showVersion version)
@@ -124,3 +132,7 @@ compile conf = do
  
           Ruby {..} -> do
             Ruby.generate (Ruby.Config filepath modules) spec
+          
+          Erlang {..} -> do
+            Erlang.generate (Erlang.Config filepath) spec
+
