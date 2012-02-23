@@ -1,8 +1,6 @@
 IDL compiler for MessagePack RPC
 ================================
 
-***CAUTION: This project is now totally underconstructions. DO NOT USE!***
-
 # Install
 
 ~~~ {.bash}
