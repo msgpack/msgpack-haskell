@@ -10,6 +10,12 @@ $ cabal update
 $ cabal install msgpack-idl
 ~~~
 
+If you use ghc <= 7.0.x, you may need to specify template-haskell's version.
+
+~~~ {.bash}
+$ cabal install msgpack-idl --constraint='template-haskell == 2.5.*'
+~~~
+
 # Usage
 
 ~~~
