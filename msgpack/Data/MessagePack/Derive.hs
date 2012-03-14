@@ -23,10 +23,10 @@ derivePack :: Bool -> Name -> Q [Dec]
 derivePack asObject tyName = do
   info <- reify tyName
   d <- case info of
-    TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) -> do
-      ds <- [d| from v = $(caseE [| v |] (map alt cons)) |]
+    TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
       instanceD (cx tyVars) (ct ''Packable name tyVars) $
-        map return ds
+        [ funD 'from [ clause [] (normalB [e| \v -> $(caseE [| v |] (map alt cons)) |]) []]
+        ]
 
     _ -> error $ "cant derive Packable: " ++ show tyName
   return [d]
@@ -61,10 +61,10 @@ deriveUnpack :: Bool -> Name -> Q [Dec]
 deriveUnpack asObject tyName = do
   info <- reify tyName
   d <- case info of
-    TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) -> do
-      ds <- [d| get = $(foldl1 (\x y -> [| $x `mplus` $y |]) $ map alt cons) |]
+    TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
       instanceD (cx tyVars) (ct ''Unpackable name tyVars) $
-        map return ds
+        [ funD 'get [ clause [] (normalB (foldl1 (\x y -> [| $x `mplus` $y |]) $ map alt cons)) []]
+        ]
 
     _ -> error $ "cant derive Unpackable: " ++ show tyName
   return [d]

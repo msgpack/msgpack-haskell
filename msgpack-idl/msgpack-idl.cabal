@@ -27,7 +27,7 @@ Library
                      , blaze-builder    == 0.3.*
                      , template-haskell >= 2.5 && < 2.8
                      , containers       == 0.4.*
-                     , filepath         >= 1.2 && < 1.4
+                     , filepath         >= 1.1 && < 1.4
                      , msgpack          == 0.7.*
                      , peggy            == 0.3.*
 
