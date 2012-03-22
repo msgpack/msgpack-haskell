@@ -1,5 +1,5 @@
 Name:                msgpack-rpc
-Version:             0.7.0
+Version:             0.7.1
 Synopsis:            A MessagePack-RPC Implementation
 Description:         A MessagePack-RPC Implementation <http://msgpack.org/>
 Homepage:            http://msgpack.org/
@@ -7,7 +7,7 @@ License:             BSD3
 License-file:        LICENSE
 Author:              Hideyuki Tanaka
 Maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
-Copyright:           Copyright (c) 2010-2011, Hideyuki Tanaka
+Copyright:           Copyright (c) 2010-2012, Hideyuki Tanaka
 Category:            Network
 Stability:	     Experimental
 Cabal-version:       >=1.8
@@ -23,8 +23,8 @@ Library
                    , network      >= 2.2 && < 2.4
                    , random       == 1.0.*
                    , mtl          == 2.0.*
-                   , conduit      == 0.2.*
-                   , attoparsec-conduit == 0.2.*
+                   , conduit      >= 0.2 && < 0.4
+                   , attoparsec-conduit >= 0.2 && < 0.4
                    , deepseq      >= 1.1 && < 1.4
                    , msgpack      == 0.7.*
 
