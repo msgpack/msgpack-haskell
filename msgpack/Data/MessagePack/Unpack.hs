@@ -119,7 +119,7 @@ instance Unpackable Int where
       0xD3 ->
         return . fromIntegral =<< parseInt64
       _ ->
-        fail $ printf "invlid integer tag: 0x%02X" c
+        fail $ printf "invalid integer tag: 0x%02X" c
 
 instance Unpackable () where
   get = do
@@ -128,7 +128,7 @@ instance Unpackable () where
       0xC0 ->
         return ()
       _ ->
-        fail $ printf "invlid nil tag: 0x%02X" c
+        fail $ printf "invalid nil tag: 0x%02X" c
 
 instance Unpackable Bool where
   get = do
@@ -139,7 +139,7 @@ instance Unpackable Bool where
       0xC2 ->
         return False
       _ ->
-        fail $ printf "invlid bool tag: 0x%02X" c
+        fail $ printf "invalid bool tag: 0x%02X" c
 
 instance Unpackable Float where
   get = do
@@ -149,7 +149,7 @@ instance Unpackable Float where
         bs <- A.take 4
         return $! SIU.unsafePerformIO $ B.useAsCString (B.reverse bs) $ peek . castPtr
       _ ->
-        fail $ printf "invlid float tag: 0x%02X" c
+        fail $ printf "invalid float tag: 0x%02X" c
 
 instance Unpackable Double where
   get = do
@@ -159,7 +159,7 @@ instance Unpackable Double where
         bs <- A.take 8
         return $! SIU.unsafePerformIO $ B.useAsCString (B.reverse bs) $ peek . castPtr
       _ ->
-        fail $ printf "invlid double tag: 0x%02X" c
+        fail $ printf "invalid double tag: 0x%02X" c
 
 instance Unpackable String where
   get = parseString (\n -> return . decodeUtf8 =<< A.take n)
@@ -187,7 +187,7 @@ parseString aget = do
     0xDB ->
       aget . fromIntegral =<< parseUint32
     _ ->
-      fail $ printf "invlid raw tag: 0x%02X" c
+      fail $ printf "invalid raw tag: 0x%02X" c
 
 instance Unpackable a => Unpackable [a] where
   get = parseArray (flip replicateM get)
@@ -198,42 +198,42 @@ instance Unpackable a => Unpackable (V.Vector a) where
 instance (Unpackable a1, Unpackable a2) => Unpackable (a1, a2) where
   get = parseArray f where
     f 2 = get >>= \a1 -> get >>= \a2 -> return (a1, a2)
-    f n = fail $ printf "wrong tupple size: expected 2 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 2 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3) => Unpackable (a1, a2, a3) where
   get = parseArray f where
     f 3 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> return (a1, a2, a3)
-    f n = fail $ printf "wrong tupple size: expected 3 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 3 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4) => Unpackable (a1, a2, a3, a4) where
   get = parseArray f where
     f 4 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> return (a1, a2, a3, a4)
-    f n = fail $ printf "wrong tupple size: expected 4 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 4 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5) => Unpackable (a1, a2, a3, a4, a5) where
   get = parseArray f where
     f 5 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> return (a1, a2, a3, a4, a5)
-    f n = fail $ printf "wrong tupple size: expected 5 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 5 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6) => Unpackable (a1, a2, a3, a4, a5, a6) where
   get = parseArray f where
     f 6 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> return (a1, a2, a3, a4, a5, a6)
-    f n = fail $ printf "wrong tupple size: expected 6 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 6 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6, Unpackable a7) => Unpackable (a1, a2, a3, a4, a5, a6, a7) where
   get = parseArray f where
     f 7 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> return (a1, a2, a3, a4, a5, a6, a7)
-    f n = fail $ printf "wrong tupple size: expected 7 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 7 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6, Unpackable a7, Unpackable a8) => Unpackable (a1, a2, a3, a4, a5, a6, a7, a8) where
   get = parseArray f where
     f 8 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> get >>= \a8 -> return (a1, a2, a3, a4, a5, a6, a7, a8)
-    f n = fail $ printf "wrong tupple size: expected 8 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 8 but got %d" n
 
 instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6, Unpackable a7, Unpackable a8, Unpackable a9) => Unpackable (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
   get = parseArray f where
     f 9 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> get >>= \a8 -> get >>= \a9 -> return (a1, a2, a3, a4, a5, a6, a7, a8, a9)
-    f n = fail $ printf "wrong tupple size: expected 9 but got %d" n
+    f n = fail $ printf "wrong tuple size: expected 9 but got %d" n
 
 parseArray :: (Int -> A.Parser a) -> A.Parser a
 parseArray aget = do
@@ -246,7 +246,7 @@ parseArray aget = do
     0xDD ->
       aget . fromIntegral =<< parseUint32
     _ ->
-      fail $ printf "invlid array tag: 0x%02X" c
+      fail $ printf "invalid array tag: 0x%02X" c
 
 instance (Unpackable k, Unpackable v) => Unpackable (Assoc [(k,v)]) where
   get = liftM Assoc $ parseMap (flip replicateM parsePair)
@@ -280,7 +280,7 @@ parseMap aget = do
     0xDF ->
       aget . fromIntegral =<< parseUint32
     _ ->
-      fail $ printf "invlid map tag: 0x%02X" c
+      fail $ printf "invalid map tag: 0x%02X" c
 
 instance Unpackable a => Unpackable (Maybe a) where
   get = 
