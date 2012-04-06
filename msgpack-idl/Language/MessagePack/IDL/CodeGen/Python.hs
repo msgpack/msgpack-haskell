@@ -6,12 +6,12 @@ module Language.MessagePack.IDL.CodeGen.Python (
   ) where
 
 import Data.List
-import Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
 import System.FilePath
 import Text.Shakespeare.Text
+import System.Directory
 
 import Language.MessagePack.IDL.Syntax
 
@@ -22,31 +22,39 @@ data Config
 
 generate:: Config -> Spec -> IO ()
 generate Config {..} spec = do
-  let name = takeBaseName configFilePath
-
-      typeHeader = [lt|import msgpack|]
-      serverHeader = [lt|import msgpackrpc|]
-      clientHeader = [lt|import msgpackrpc|]
-  
-  LT.writeFile (name ++ "_types.py") $ templ "TYPES" [lt|
+  createDirectoryIfMissing True (takeBaseName configFilePath);
+  setCurrentDirectory (takeBaseName configFilePath);
+  LT.writeFile "__init__.py" $ [lt|
+|]
+  LT.writeFile "types.py" $ templ configFilePath [lt|
 import sys
-#{typeHeader}
+import msgpack
 
-#{LT.concat $ map (genTypeDecl name) spec }
+#{LT.concat $ map (genTypeDecl "") spec }
 |]
 
-  LT.writeFile (name ++ "_server.py") $ templ "SERVER" [lt|
-import #{name}_types
-#{serverHeader}
+  LT.writeFile "server.tmpl.py" $ [lt|
+import msgpackrpc
+from types import *
+# write your server here and change file name to server.py
+
 |]
 
-  LT.writeFile (name ++ "_client.py") [lt|
-import #{name}_types
-#{clientHeader}
+  LT.writeFile "client.py" [lt|
+import msgpackrpc
+from types import *
+
 #{LT.concat $ map (genClient) spec}
 |]
 
 genTypeDecl :: String -> Decl -> LT.Text
+
+genTypeDecl _ MPType {..} = [lt|
+class #{tyName}:
+  @staticmethod
+  def from_msgpack(arg):
+    return #{fromMsgpack tyType "arg"}
+|]
 
 genTypeDecl _ MPMessage {..} =
   genMsg msgName msgFields False
@@ -56,30 +64,36 @@ genTypeDecl _ MPException {..} =
 
 genTypeDecl _ _ = ""
 
+genMsg :: ToText a => a -> [Field] -> Bool -> LT.Text
 genMsg name flds isExc =
-  let fields = map f flds
-      types = map typ flds
+  let
       fs = map (maybe undefined fldName) $ sortField flds
   in [lt|
 class #{name}#{e}:
+  def __init__(self, #{LT.intercalate ", " $ map g fs}):
+#{LT.concat $ map f flds}
+  def to_msgpack(self):
+    return (#{LT.concat $ map typ flds}
+      )
 
-  def __init__(self#{LT.concat $ map g fs}):
-#{LT.concat fields}
-  def to_array(self):
-    variables = []
-#{LT.concat types}
-    return variables
+  @staticmethod
+  def from_msgpack(arg):
+    return #{name}(
+      #{LT.intercalate ",\n      " $ map make_arg flds})
 |]
 
   where
     e = if isExc then [lt|(Exception)|] else ""
     f Field {..} = [lt|    self.#{fldName} = #{fldName}
 |]
-    typ Field {..} = let selfName = "self." `mappend` fldName
-                     in [lt|    variables.append(#{genType fldType selfName})
-|]
-    g str = [lt|, #{str}|]
+    typ Field {..} = [lt|
+      self.#{fldName},|]
+    make_arg Field {..} =
+      let fldId_str = T.concat $ map T.pack ["arg[", (show fldId), "]"] in
+      [lt|#{fromMsgpack fldType fldId_str}|]
+    g str = [lt|#{str}|]
 
+sortField :: [Field] -> [Maybe Field]
 sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->
   find ((==ix). fldId) flds
@@ -95,52 +109,64 @@ class #{serviceName}:
   where
   genMethodCall Function {..} =
     let arg_list = map (maybe undefined fldName) $ sortField methodArgs
-        args = LT.concat $ map arg arg_list
-        to_arrays = LT.concat $ map to_array methodArgs in
+        args = LT.concat $ map (\x -> [lt|, #{x}|]) arg_list
+    in
     case methodRetType of
       TVoid -> [lt|
   def #{methodName} (self#{args}):
-#{to_arrays}
     self.client.call('#{methodName}'#{args})
 |]
-      _ -> [lt|
+      ts -> [lt|
   def #{methodName} (self#{args}):
-#{to_arrays}
-    return self.client.call('#{methodName}'#{args})
-|]
-    where
-      arg str = [lt|, #{str}|]
-      to_array Field {..} = [lt|    #{fldName} = #{genType fldType fldName}
+    retval = self.client.call('#{methodName}'#{args})
+    return #{fromMsgpack ts "retval"}
 |]
 
   genMethodCall _ = ""
 
 genClient _ = ""
 
-genType :: Type -> T.Text -> LT.Text
-genType (TInt sign bits) name = [lt|#{name}|]
-genType (TFloat False) name = [lt|#{name}|]
-genType (TFloat True) name = [lt|#{name}|]
-genType TBool name = [lt|#{name}|]
-genType TRaw name = [lt|#{name}|]
-genType TString name = [lt|#{name}|]
-genType (TList typ) name =
-  [lt|[#{genType typ "elem"} for elem in #{name}]|]
-genType (TMap typ1 typ2) name =
-  [lt|{#{genType typ1 "k"} : #{genType typ2 "v"} for k,v in #{name}.items()}|]
-genType (TUserDef className params) name = [lt|#{name}.to_array()|]
-genType (TTuple ts) name = [lt|#{name}.to_array()|]
-  -- TODO: FIX
-  -- foldr1 (\t1 t2 -> [lt|std::pair<#{t1}, #{t2} >|]) $ map genType ts
-genType TObject name = [lt|#{name}.to_array()|]
-genType TVoid name = ""
+sanitize :: Char -> Char
+sanitize '[' = '_'
+sanitize ']' = '_'
+sanitize c = c
+
+fromMsgpack :: Type -> T.Text -> LT.Text
+fromMsgpack (TNullable t) name = fromMsgpack t name
+fromMsgpack (TInt _ _) name = [lt|#{name}|]
+fromMsgpack (TFloat False) name = [lt|#{name}|]
+fromMsgpack (TFloat True) name = [lt|#{name}|]
+fromMsgpack TBool name = [lt|#{name}|]
+fromMsgpack TRaw name = [lt|#{name}|]
+fromMsgpack TString name = [lt|#{name}|]
+fromMsgpack (TList typ) name =
+  let
+    varname = T.append (T.pack "elem_") (T.map sanitize name) in
+  [lt|[#{fromMsgpack typ varname} for #{varname} in #{name}]|]
+
+fromMsgpack (TMap typ1 typ2) name =
+  let
+    keyname = T.append (T.pack "k_" ) $ T.map sanitize name
+    valname = T.append (T.pack "v_" ) $ T.map sanitize name
+  in
+  [lt|{#{fromMsgpack typ1 keyname} : #{fromMsgpack typ2 valname} for #{keyname},#{valname} in #{name}.items()}|]
+
+fromMsgpack (TUserDef className _) name = [lt|#{className}.from_msgpack(#{name})|]
+            
+fromMsgpack (TTuple ts) name =
+            let elems = map (f name) (zip [0..] ts) in
+            [lt| (#{LT.concat elems}) |]
+            where
+              f :: T.Text -> (Integer, Type) -> LT.Text
+              f n (i, (TUserDef className _ )) = [lt|#{className}.from_msgpack(#{n}[#{show i}], |]
+              f n (i, _) = [lt|#{n}[#{show i}], |]
+
+fromMsgpack TObject name = [lt|#{name}|]
+fromMsgpack TVoid _ = ""
 
 
 templ :: FilePath -> LT.Text -> LT.Text
 templ filepath content = [lt|
-#/usr/bin/python
-# -*- coding:utf-8 -*-
-
 # This file is auto-generated from #{filepath}
 # *** DO NOT EDIT ***
 
