@@ -28,6 +28,7 @@ Library
                      , template-haskell >= 2.5 && < 2.8
                      , containers       == 0.4.*
                      , filepath         >= 1.1 && < 1.4
+                     , directory
                      , msgpack          == 0.7.*
                      , peggy            == 0.3.*
 
