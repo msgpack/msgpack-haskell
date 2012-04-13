@@ -43,10 +43,9 @@ Library
                        Language.MessagePack.IDL.CodeGen.Php
                        Language.MessagePack.IDL.CodeGen.Python
                        Language.MessagePack.IDL.CodeGen.Ruby
+                       Language.MessagePack.IDL.Internal
                        Language.MessagePack.IDL.Parser
                        Language.MessagePack.IDL.Syntax
-  
-  Other-modules:       
 
 Executable mpidl
   Hs-source-dirs:      exec
