@@ -1,5 +1,7 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Language.MessagePack.IDL.Syntax where
 
+import Data.Data
 import qualified Data.Text as T
 
 type Spec = [Decl]
@@ -29,7 +31,7 @@ data Decl
     , serviceVersion :: Maybe Int
     , serviceMethods :: [Method]
     }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Data, Typeable)
 
 data Field
   = Field
@@ -38,7 +40,7 @@ data Field
     , fldName :: T.Text
     , fldDefault :: Maybe Literal
     }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Data, Typeable)
 
 data Method
   = Function
@@ -49,7 +51,7 @@ data Method
     }
   | InheritName T.Text
   | InheritAll
-  deriving (Eq, Show)
+  deriving (Eq, Show, Data, Typeable)
 
 data Type
   = TInt Bool Int -- signed? bits
@@ -64,7 +66,7 @@ data Type
   | TUserDef T.Text [Type]
   | TObject
   | TVoid
-  deriving (Eq, Show)
+  deriving (Eq, Show, Data, Typeable)
 
 data Literal
   = LInt Int
@@ -72,4 +74,4 @@ data Literal
   | LBool Bool
   | LNull
   | LString T.Text
-  deriving (Eq, Show)
+  deriving (Eq, Show, Data, Typeable)
