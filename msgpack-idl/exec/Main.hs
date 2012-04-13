@@ -1,13 +1,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 
-import Control.Exception
 import Data.Version
 import System.Console.CmdArgs
-import System.Directory
 import Text.Peggy
 
 import Language.MessagePack.IDL
+import Language.MessagePack.IDL.Internal
 import qualified Language.MessagePack.IDL.CodeGen.Haskell as Haskell
 import qualified Language.MessagePack.IDL.CodeGen.Cpp as Cpp
 import qualified Language.MessagePack.IDL.CodeGen.Ruby as Ruby
@@ -125,11 +124,3 @@ compile conf = do
  
           Ruby {..} -> do
             Ruby.generate (Ruby.Config filepath modules) spec
-
-withDirectory :: FilePath -> IO a -> IO a
-withDirectory dir m = do
-  createDirectoryIfMissing True dir
-  bracket
-    getCurrentDirectory
-    setCurrentDirectory
-    (\_ -> setCurrentDirectory dir >> m)

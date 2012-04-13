@@ -23,7 +23,7 @@ Library
   Build-depends:       base             == 4.*
                      , bytestring       == 0.9.*
                      , text             == 0.11.*
-                     , shakespeare-text == 0.10.*
+                     , shakespeare-text == 1.0.*
                      , blaze-builder    == 0.3.*
                      , template-haskell >= 2.5 && < 2.8
                      , containers       == 0.4.*
@@ -43,10 +43,9 @@ Library
                        Language.MessagePack.IDL.CodeGen.Php
                        Language.MessagePack.IDL.CodeGen.Python
                        Language.MessagePack.IDL.CodeGen.Ruby
+                       Language.MessagePack.IDL.Internal
                        Language.MessagePack.IDL.Parser
                        Language.MessagePack.IDL.Syntax
-  
-  Other-modules:       
 
 Executable mpidl
   Hs-source-dirs:      exec
