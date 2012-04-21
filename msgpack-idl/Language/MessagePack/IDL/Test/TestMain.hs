@@ -6,14 +6,10 @@ import Test.Framework.Providers.QuickCheck2
 import Test.HUnit
 import Test.QuickCheck
 
-import Language.MessagePack.IDL.Test.Syntax
-import Language.MessagePack.IDL.Test.Parser
+import Language.MessagePack.IDL.Test.CodeGen.Cpp.Type
 
 main = defaultMain tests
 
-tests =  [
-            test_syntax
-          , test_sort_h
-          , test_sort_q
-        ]
+tests =  [test_cpp_type
+         ]
 

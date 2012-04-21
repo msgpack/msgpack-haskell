@@ -67,9 +67,21 @@ Executable mpidl
 Test-Suite mpidl_test
   Type:                exitcode-stdio-1.0
   Main-is:             Language/MessagePack/IDL/Test/TestMain.hs
-  Build-Depends:       base >= 3 && < 5
+  Build-Depends:       base == 4.*
                      , test-framework >= 0.6
                      , test-framework-quickcheck2 >= 0.2
                      , test-framework-hunit >= 0.2
                      , QuickCheck >= 2
                      , HUnit >= 1.2
+                     , bytestring       == 0.9.*
+                     , text             == 0.11.*
+                     , shakespeare-text == 1.0.*
+                     , blaze-builder    == 0.3.*
+                     , template-haskell >= 2.5 && < 2.8
+                     , containers       == 0.4.*
+                     , filepath         >= 1.1 && < 1.4
+                     , directory
+                     , msgpack          == 0.7.*
+                     , peggy            == 0.3.*
+                     , regex-base       >= 0.93
+                     , regex-posix      >= 0.93
