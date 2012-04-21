@@ -37,6 +37,13 @@ Library
   Exposed-modules:     Language.MessagePack.IDL
                        Language.MessagePack.IDL.Check
                        Language.MessagePack.IDL.CodeGen.Cpp
+                       Language.MessagePack.IDL.CodeGen.Cpp.Client
+                       Language.MessagePack.IDL.CodeGen.Cpp.Config
+                       Language.MessagePack.IDL.CodeGen.Cpp.NameSpace
+                       Language.MessagePack.IDL.CodeGen.Cpp.Server
+                       Language.MessagePack.IDL.CodeGen.Cpp.Type
+                       Language.MessagePack.IDL.CodeGen.Cpp.TypeDecl
+                       Language.MessagePack.IDL.CodeGen.Cpp.Util
                        Language.MessagePack.IDL.CodeGen.Haskell
                        Language.MessagePack.IDL.CodeGen.Java
                        Language.MessagePack.IDL.CodeGen.Perl
