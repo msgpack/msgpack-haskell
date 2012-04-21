@@ -56,3 +56,13 @@ Executable mpidl
                      , cmdargs   == 0.9.*
                      , peggy     == 0.3.*
                      , msgpack-idl
+
+Test-Suite mpidl_test
+  Type:                exitcode-stdio-1.0
+  Main-is:             Language/MessagePack/IDL/Test/TestMain.hs
+  Build-Depends:       base >= 3 && < 5
+                     , test-framework >= 0.6
+                     , test-framework-quickcheck2 >= 0.2
+                     , test-framework-hunit >= 0.2
+                     , QuickCheck >= 2
+                     , HUnit >= 1.2
