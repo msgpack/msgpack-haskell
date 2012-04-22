@@ -2,16 +2,11 @@
 
 module Language.MessagePack.IDL.CodeGen.Cpp.Util where
 
-import Data.Char
 import Data.List
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.Text.Lazy.IO as LT
-import System.FilePath
 import Text.Shakespeare.Text
 
 import Language.MessagePack.IDL.Syntax
-
 
 sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->

@@ -5,8 +5,6 @@ module Language.MessagePack.IDL.CodeGen.Cpp.Server (
   ) where
 
 import Data.Char
-import Data.List
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
 import System.FilePath
