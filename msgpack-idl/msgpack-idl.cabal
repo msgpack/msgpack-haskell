@@ -44,8 +44,20 @@ Library
                        Language.MessagePack.IDL.CodeGen.Cpp.Type
                        Language.MessagePack.IDL.CodeGen.Cpp.TypeDecl
                        Language.MessagePack.IDL.CodeGen.Cpp.Util
-                       Language.MessagePack.IDL.CodeGen.Haskell
                        Language.MessagePack.IDL.CodeGen.Java
+                       Language.MessagePack.IDL.CodeGen.Java.Alias
+                       Language.MessagePack.IDL.CodeGen.Java.Client
+                       Language.MessagePack.IDL.CodeGen.Java.Config
+                       Language.MessagePack.IDL.CodeGen.Java.Decl
+                       Language.MessagePack.IDL.CodeGen.Java.Exception
+                       Language.MessagePack.IDL.CodeGen.Java.Initialize
+                       Language.MessagePack.IDL.CodeGen.Java.Method
+                       Language.MessagePack.IDL.CodeGen.Java.Resolve
+                       Language.MessagePack.IDL.CodeGen.Java.Server
+                       Language.MessagePack.IDL.CodeGen.Java.Struct
+                       Language.MessagePack.IDL.CodeGen.Java.Tuple
+                       Language.MessagePack.IDL.CodeGen.Java.Util
+                       Language.MessagePack.IDL.CodeGen.Haskell
                        Language.MessagePack.IDL.CodeGen.Perl
                        Language.MessagePack.IDL.CodeGen.Php
                        Language.MessagePack.IDL.CodeGen.Python
