@@ -61,6 +61,13 @@ Library
                        Language.MessagePack.IDL.CodeGen.Perl
                        Language.MessagePack.IDL.CodeGen.Php
                        Language.MessagePack.IDL.CodeGen.Python
+                       Language.MessagePack.IDL.CodeGen.Python.Client
+                       Language.MessagePack.IDL.CodeGen.Python.Config
+                       Language.MessagePack.IDL.CodeGen.Python.Init
+                       Language.MessagePack.IDL.CodeGen.Python.Server
+                       Language.MessagePack.IDL.CodeGen.Python.Type
+                       Language.MessagePack.IDL.CodeGen.Python.TypeDecl
+                       Language.MessagePack.IDL.CodeGen.Python.Util
                        Language.MessagePack.IDL.CodeGen.Ruby
                        Language.MessagePack.IDL.Internal
                        Language.MessagePack.IDL.Parser
