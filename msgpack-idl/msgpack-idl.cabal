@@ -69,6 +69,14 @@ Library
                        Language.MessagePack.IDL.CodeGen.Python.TypeDecl
                        Language.MessagePack.IDL.CodeGen.Python.Util
                        Language.MessagePack.IDL.CodeGen.Ruby
+                       Language.MessagePack.IDL.CodeGen.Ruby.Accessor
+                       Language.MessagePack.IDL.CodeGen.Ruby.AttrWriter
+                       Language.MessagePack.IDL.CodeGen.Ruby.Client
+                       Language.MessagePack.IDL.CodeGen.Ruby.Config
+                       Language.MessagePack.IDL.CodeGen.Ruby.ConvertingType
+                       Language.MessagePack.IDL.CodeGen.Ruby.Module
+                       Language.MessagePack.IDL.CodeGen.Ruby.TypeDecl
+                       Language.MessagePack.IDL.CodeGen.Ruby.Util
                        Language.MessagePack.IDL.Internal
                        Language.MessagePack.IDL.Parser
                        Language.MessagePack.IDL.Syntax
