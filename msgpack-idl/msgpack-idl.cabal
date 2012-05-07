@@ -37,12 +37,46 @@ Library
   Exposed-modules:     Language.MessagePack.IDL
                        Language.MessagePack.IDL.Check
                        Language.MessagePack.IDL.CodeGen.Cpp
-                       Language.MessagePack.IDL.CodeGen.Haskell
+                       Language.MessagePack.IDL.CodeGen.Cpp.Client
+                       Language.MessagePack.IDL.CodeGen.Cpp.Config
+                       Language.MessagePack.IDL.CodeGen.Cpp.NameSpace
+                       Language.MessagePack.IDL.CodeGen.Cpp.Server
+                       Language.MessagePack.IDL.CodeGen.Cpp.Type
+                       Language.MessagePack.IDL.CodeGen.Cpp.TypeDecl
+                       Language.MessagePack.IDL.CodeGen.Cpp.Util
                        Language.MessagePack.IDL.CodeGen.Java
+                       Language.MessagePack.IDL.CodeGen.Java.Alias
+                       Language.MessagePack.IDL.CodeGen.Java.Client
+                       Language.MessagePack.IDL.CodeGen.Java.Config
+                       Language.MessagePack.IDL.CodeGen.Java.Decl
+                       Language.MessagePack.IDL.CodeGen.Java.Exception
+                       Language.MessagePack.IDL.CodeGen.Java.Initialize
+                       Language.MessagePack.IDL.CodeGen.Java.Method
+                       Language.MessagePack.IDL.CodeGen.Java.Resolve
+                       Language.MessagePack.IDL.CodeGen.Java.Server
+                       Language.MessagePack.IDL.CodeGen.Java.Struct
+                       Language.MessagePack.IDL.CodeGen.Java.Tuple
+                       Language.MessagePack.IDL.CodeGen.Java.Util
+                       Language.MessagePack.IDL.CodeGen.Haskell
                        Language.MessagePack.IDL.CodeGen.Perl
                        Language.MessagePack.IDL.CodeGen.Php
                        Language.MessagePack.IDL.CodeGen.Python
+                       Language.MessagePack.IDL.CodeGen.Python.Client
+                       Language.MessagePack.IDL.CodeGen.Python.Config
+                       Language.MessagePack.IDL.CodeGen.Python.Init
+                       Language.MessagePack.IDL.CodeGen.Python.Server
+                       Language.MessagePack.IDL.CodeGen.Python.Type
+                       Language.MessagePack.IDL.CodeGen.Python.TypeDecl
+                       Language.MessagePack.IDL.CodeGen.Python.Util
                        Language.MessagePack.IDL.CodeGen.Ruby
+                       Language.MessagePack.IDL.CodeGen.Ruby.Accessor
+                       Language.MessagePack.IDL.CodeGen.Ruby.AttrWriter
+                       Language.MessagePack.IDL.CodeGen.Ruby.Client
+                       Language.MessagePack.IDL.CodeGen.Ruby.Config
+                       Language.MessagePack.IDL.CodeGen.Ruby.ConvertingType
+                       Language.MessagePack.IDL.CodeGen.Ruby.Module
+                       Language.MessagePack.IDL.CodeGen.Ruby.TypeDecl
+                       Language.MessagePack.IDL.CodeGen.Ruby.Util
                        Language.MessagePack.IDL.Internal
                        Language.MessagePack.IDL.Parser
                        Language.MessagePack.IDL.Syntax
@@ -56,3 +90,25 @@ Executable mpidl
                      , cmdargs   == 0.9.*
                      , peggy     == 0.3.*
                      , msgpack-idl
+
+Test-Suite mpidl_test
+  Type:                exitcode-stdio-1.0
+  Main-is:             Language/MessagePack/IDL/Test/TestMain.hs
+  Build-Depends:       base == 4.*
+                     , test-framework >= 0.6
+                     , test-framework-quickcheck2 >= 0.2
+                     , test-framework-hunit >= 0.2
+                     , QuickCheck >= 2
+                     , HUnit >= 1.2
+                     , bytestring       == 0.9.*
+                     , text             == 0.11.*
+                     , shakespeare-text == 1.0.*
+                     , blaze-builder    == 0.3.*
+                     , template-haskell >= 2.5 && < 2.8
+                     , containers       == 0.4.*
+                     , filepath         >= 1.1 && < 1.4
+                     , directory
+                     , msgpack          == 0.7.*
+                     , peggy            == 0.3.*
+                     , regex-base       >= 0.93
+                     , regex-posix      >= 0.93
