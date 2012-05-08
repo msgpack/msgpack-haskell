@@ -5,4 +5,4 @@
 *.a
 cabal-dev/
 dist/
-test/
+attic/
