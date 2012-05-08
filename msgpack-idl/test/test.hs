@@ -7,7 +7,7 @@ main = hspecX $ do
       pending
 
   describe "checker" $ do
-    it "can parse xxx..." $ do
+    it "can check xxx..." $ do
       pending
 
   describe "generator" $ do
