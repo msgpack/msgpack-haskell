@@ -1,26 +1,26 @@
-Name:                msgpack-idl
-Version:             0.1.0
-Synopsis:            An IDL Compiler for MessagePack
-Description:         An IDL Compiler for MessagePack <http://msgpack.org/>
-Homepage:            http://msgpack.org/
-License:             BSD3
-License-file:        LICENSE
-Author:              Hideyuki Tanaka
-Maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
-Copyright:           Copyright (c) 2011, Hideyuki Tanaka
-Category:            Language
-Stability:           Experimental
-Cabal-version:       >=1.8
-Build-type:          Simple
+name:                msgpack-idl
+version:             0.1.0
+synopsis:            An IDL Compiler for MessagePack
+description:         An IDL Compiler for MessagePack <http://msgpack.org/>
+homepage:            http://msgpack.org/
+license:             BSD3
+license-file:        LICENSE
+author:              Hideyuki Tanaka
+maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
+copyright:           Copyright (c) 2011, Hideyuki Tanaka
+category:            Language
+stability:           Experimental
+cabal-version:       >=1.8
+build-type:          Simple
 
-Extra-source-files:  mpidl.peggy
+extra-source-files:  mpidl.peggy
 
-Source-repository head
-  Type:                git
-  Location:            git://github.com/msgpack/msgpack-haskell.git
+source-repository head
+  type:                git
+  location:            git://github.com/msgpack/msgpack-haskell.git
 
-Library
-  Build-depends:       base             == 4.*
+library
+  build-depends:       base             == 4.*
                      , bytestring       == 0.9.*
                      , text             == 0.11.*
                      , shakespeare-text == 1.0.*
@@ -32,9 +32,9 @@ Library
                      , msgpack          == 0.7.*
                      , peggy            == 0.3.*
 
-  Ghc-options:         -Wall
+  ghc-options:         -Wall
   
-  Exposed-modules:     Language.MessagePack.IDL
+  exposed-modules:     Language.MessagePack.IDL
                        Language.MessagePack.IDL.Check
                        Language.MessagePack.IDL.CodeGen.Cpp
                        Language.MessagePack.IDL.CodeGen.Haskell
@@ -47,11 +47,11 @@ Library
                        Language.MessagePack.IDL.Parser
                        Language.MessagePack.IDL.Syntax
 
-Executable mpidl
-  Hs-source-dirs:      exec
-  Main-is:             Main.hs
+executable mpidl
+  hs-source-dirs:      exec
+  main-is:             Main.hs
 
-  Build-depends:       base      == 4.*
+  build-depends:       base      == 4.*
                      , directory >= 1.0 && < 1.2
                      , cmdargs   == 0.9.*
                      , peggy     == 0.3.*
