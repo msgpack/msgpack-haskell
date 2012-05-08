@@ -60,8 +60,16 @@ genStruct :: [(T.Text, Type)] -> FilePath -> Decl -> IO()
 genStruct alias packageName MPMessage {..} = do
   let params = if null msgParam then "" else [lt|<#{T.intercalate ", " msgParam}>|]
       resolvedMsgFields = map (resolveFieldAlias alias) msgFields
+      hashMapImport | not $ null [() | TMap _ _ <- map fldType resolvedMsgFields] = [lt|import java.util.HashMap;|]
+                    | otherwise = ""
+      arrayListImport | not $ null [() | TList _ <- map fldType resolvedMsgFields] = [lt|import java.util.ArrayList;|]
+                      | otherwise = ""
+
   LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
 package #{packageName};
+
+#{hashMapImport}
+#{arrayListImport}
 
 public class #{formatClassNameT msgName} #{params} {
 
@@ -130,10 +138,16 @@ genException _ _ = return ()
 genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
 genClient alias Config {..} MPService {..} = do 
   let resolvedServiceMethods = map (resolveMethodAlias alias) serviceMethods
-  LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
+      hashMapImport | not $ null [() | TMap _ _ <- map methodRetType resolvedServiceMethods ] = [lt|import java.util.HashMap;|]
+                    | otherwise = ""
+      arrayListImport | not $ null [() | TList _ <- map methodRetType resolvedServiceMethods] = [lt|import java.util.ArrayList;|]
+                      | otherwise = ""
 
+  LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
 package #{configPackage};
-import java.util.ArrayList;
+
+#{hashMapImport}
+#{arrayListImport}
 import org.msgpack.rpc.Client;
 import org.msgpack.rpc.loop.EventLoop;
 
