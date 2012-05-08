@@ -49,10 +49,17 @@ library
 
 executable mpidl
   hs-source-dirs:      exec
-  main-is:             Main.hs
+  main-is:             main.hs
 
   build-depends:       base      == 4.*
                      , directory >= 1.0 && < 1.2
                      , cmdargs   == 0.9.*
                      , peggy     == 0.3.*
                      , msgpack-idl
+
+test-suite mpidl-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             test.hs
+
+  build-depends:       base      == 4.*
