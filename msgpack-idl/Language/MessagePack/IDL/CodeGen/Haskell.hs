@@ -10,10 +10,8 @@ module Language.MessagePack.IDL.CodeGen.Haskell (
 import Data.Char
 import Data.Monoid
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
--- import Language.Haskell.TH as TH
 import Text.Shakespeare.Text
 
 import Language.MessagePack.IDL.Syntax as MP
