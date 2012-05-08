@@ -63,3 +63,5 @@ test-suite mpidl-test
   main-is:             test.hs
 
   build-depends:       base      == 4.*
+                     , hspec     >= 1.1
+                     , msgpack-idl
