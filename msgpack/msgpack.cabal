@@ -19,7 +19,7 @@ Source-repository head
 
 Library
   Build-depends:    base          == 4.*
-                  , mtl           == 2.0.*
+                  , mtl           >= 2.0 && < 2.2
                   , bytestring    == 0.9.*
                   , text          == 0.11.*
                   , containers    == 0.4.*
