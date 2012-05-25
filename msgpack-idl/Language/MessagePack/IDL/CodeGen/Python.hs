@@ -6,6 +6,7 @@ module Language.MessagePack.IDL.CodeGen.Python (
   ) where
 
 import Data.List
+import Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
@@ -66,8 +67,7 @@ genTypeDecl _ _ = ""
 
 genMsg :: ToText a => a -> [Field] -> Bool -> LT.Text
 genMsg name flds isExc =
-  let
-      fs = map (maybe undefined fldName) $ sortField flds
+  let fs = zipWith (\ix -> maybe ("_UNUSED" `mappend` T.pack (show ix)) fldName) [0 .. ] (sortField flds)
   in [lt|
 class #{name}#{e}:
   def __init__(self, #{LT.intercalate ", " $ map g fs}):
@@ -108,7 +108,7 @@ class #{serviceName}:
 |]
   where
   genMethodCall Function {..} =
-    let arg_list = map (maybe undefined fldName) $ sortField methodArgs
+    let arg_list = zipWith (\ix -> maybe ("_UNUSED" `mappend` T.pack (show ix)) fldName) [0 .. ] $ sortField methodArgs
         args = LT.concat $ map (\x -> [lt|, #{x}|]) arg_list
     in
     case methodRetType of
