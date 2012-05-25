@@ -24,7 +24,7 @@ generate:: Config -> Spec -> IO ()
 generate Config {..} spec = do
   createDirectoryIfMissing True (takeBaseName configFilePath);
   setCurrentDirectory (takeBaseName configFilePath);
-  LT.writeFile "__init__.py" $ [lt|
+  LT.writeFile "__init__.py" $ templ configFilePath [lt|
 |]
   LT.writeFile "types.py" $ templ configFilePath [lt|
 import sys
@@ -33,14 +33,14 @@ import msgpack
 #{LT.concat $ map (genTypeDecl "") spec }
 |]
 
-  LT.writeFile "server.tmpl.py" $ [lt|
+  LT.writeFile "server.tmpl.py" $ templ configFilePath [lt|
 import msgpackrpc
 from types import *
 # write your server here and change file name to server.py
 
 |]
 
-  LT.writeFile "client.py" [lt|
+  LT.writeFile "client.py" $ templ configFilePath [lt|
 import msgpackrpc
 from types import *
 
