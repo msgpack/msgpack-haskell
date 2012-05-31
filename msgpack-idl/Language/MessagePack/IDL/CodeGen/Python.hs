@@ -155,11 +155,11 @@ fromMsgpack (TUserDef className _) name = [lt|#{className}.from_msgpack(#{name})
             
 fromMsgpack (TTuple ts) name =
             let elems = map (f name) (zip [0..] ts) in
-            [lt| (#{LT.concat elems}) |]
+            [lt| (#{LT.intercalate ", " elems}) |]
             where
               f :: T.Text -> (Integer, Type) -> LT.Text
-              f n (i, (TUserDef className _ )) = [lt|#{className}.from_msgpack(#{n}[#{show i}], |]
-              f n (i, _) = [lt|#{n}[#{show i}], |]
+              f n (i, (TUserDef className _ )) = [lt|#{className}.from_msgpack(#{n}[#{show i}]) |]
+              f n (i, _) = [lt|#{n}[#{show i}]|]
 
 fromMsgpack TObject name = [lt|#{name}|]
 fromMsgpack TVoid _ = ""

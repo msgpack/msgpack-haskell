@@ -136,11 +136,11 @@ fromTuple (TUserDef className _) name = [lt|#{capitalizeT className}.from_tuple(
 
 fromTuple (TTuple ts) name =
   let elems = map (f name) (zip [0..] ts) in
-  [lt| [#{LT.concat elems}] |]
+  [lt| [#{LT.intercalate ", " elems}] |]
     where
       f :: T.Text -> (Integer, Type) -> LT.Text
-      f n (i, (TUserDef className _ )) = [lt|#{capitalizeT className}.from_tuple(#{n}[#{show i}], |]
-      f n (i, _) = [lt|#{n}[#{show i}], |]
+      f n (i, (TUserDef className _ )) = [lt|#{capitalizeT className}.from_tuple(#{n}[#{show i}]) |]
+      f n (i, _) = [lt|#{n}[#{show i}] |]
 
 fromTuple (TObject) name = [lt|#{name}|]
 fromTuple TVoid _ = ""
