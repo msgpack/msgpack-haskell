@@ -32,11 +32,13 @@ generate Config {..} spec = do
         mods = LT.splitOn "::" $ LT.pack configModule
         
   LT.writeFile "types.rb" $ [lt|
+require 'rubygems'
 require 'msgpack/rpc'
 #{genModule mods $ LT.concat $ map (genTypeDecl "") spec }
 |]
   
   LT.writeFile ("client.rb") $ templ configFilePath [lt|
+require 'rubygems'
 require 'msgpack/rpc'
 require './types'
 
