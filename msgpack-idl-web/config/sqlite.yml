@@ -1,0 +1,20 @@
+Default: &defaults
+  database: mpidl-web.sqlite3
+  poolsize: 10
+
+Development:
+  <<: *defaults
+
+Testing:
+  database: mpidl-web_test.sqlite3
+  <<: *defaults
+
+Staging:
+  database: mpidl-web_staging.sqlite3
+  poolsize: 100
+  <<: *defaults
+
+Production:
+  database: mpidl-web_production.sqlite3
+  poolsize: 100
+  <<: *defaults

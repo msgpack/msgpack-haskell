@@ -1,0 +1,20 @@
+<h1>MessagePack IDL Code Generator
+
+<form.well method=post action=@{HomeR}>
+  <label>IDL Name
+    <input type="text" name="name">
+  <label>IDL Source
+    <textarea.input-xxlarge rows="20" name="source">
+      #{defaultCode}
+
+  <label>Language to Generate
+    <select name="lang">
+      <option value="cpp">C++
+      <option value="java">Java
+      <option value="python">Python
+      <option value="ruby">Ruby
+
+  <label>Namespace / Package name / Module name
+    <input type="text" name="namespace">
+  
+  <button.btn type="submit">Generate
