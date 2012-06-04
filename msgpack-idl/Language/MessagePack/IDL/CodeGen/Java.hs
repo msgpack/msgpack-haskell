@@ -112,7 +112,7 @@ genInit Field {..} = case fldDefault of
 
 genDecl :: Field -> LT.Text
 genDecl Field {..} = 
-    [lt|  public #{genType fldType} #{fldName};
+    [lt|  public #{genType fldType} #{fldName} = #{genValue fldType};
 |]
 
 genException :: FilePath -> Decl -> IO()
@@ -267,6 +267,26 @@ genType TObject =
   [lt|org.msgpack.type.Value|]
 genType TVoid =
   [lt|void|]
+  
+genValue :: Type -> LT.Text
+genValue (TInt _ bits) = [lt|0|]
+genValue (TFloat _) = [lt|0.0|]
+genValue TBool = [lt|false|]
+genValue TRaw = [lt|""|]
+genValue (TList typ) =
+  [lt|new ArrayList<#{genWrapperType typ} >()|]
+genValue (TMap typ1 typ2) =
+  [lt|new HashMap<#{genType typ1}, #{genType typ2} >()|]
+genValue (TUserDef className params) =
+  [lt|new #{formatClassNameT className} #{associateBracket $ map genType params}()|]
+genValue (TTuple ts) =
+  foldr1 (\t1 t2 -> [lt|new Tuple<#{t1}, #{t2} >()|]) $ map genWrapperType ts
+genValue TObject =
+  [lt|org.msgpack.type.NilValue.getInstance()|]
+genValue (TNullable _) =
+  [lt|null|] 
+genValue TString = [lt|""|]
+  
 
 genTypeWithContext :: Spec -> Type -> LT.Text
 genTypeWithContext spec t = case t of 
