@@ -6,3 +6,5 @@
 cabal-dev/
 dist/
 attic/
+tmp/
+*.aes
