@@ -40,7 +40,7 @@ require 'msgpack/rpc'
   LT.writeFile ("client.rb") $ templ configFilePath [lt|
 require 'rubygems'
 require 'msgpack/rpc'
-require './types'
+require File.join(File.dirname(__FILE__), 'types')
 
 #{genModule (snoc mods "Client") $ LT.concat $ map genClient spec}|]
 
