@@ -1,5 +1,5 @@
 Name:               msgpack
-Version:            0.7.1.4
+Version:            0.7.1.5
 Synopsis:           A Haskell implementation of MessagePack
 Description:        A Haskell implementation of MessagePack <http://msgpack.org/>
 Homepage:           http://msgpack.org/
@@ -20,16 +20,16 @@ Source-repository head
 Library
   Build-depends:    base          == 4.*
                   , ghc-prim      >= 0.2
-                  , mtl           >= 2.0 && < 2.2
+                  , mtl           >= 2.0
                   , bytestring    == 0.9.*
                   , text          == 0.11.*
-                  , containers    == 0.4.*
+                  , containers    >= 0.4
                   , unordered-containers >= 0.1 && < 0.3
                   , hashable
                   , vector        >= 0.7 && < 0.10
                   , attoparsec    >= 0.8 && < 0.11
                   , blaze-builder >= 0.3 && < 0.4
-                  , deepseq       >= 1.1 && <1.4
+                  , deepseq       >= 1.1 && < 1.4
                   , template-haskell >= 2.4 && < 2.8
 
   Ghc-options:      -Wall
@@ -50,6 +50,6 @@ Test-suite msgpack-tests
   Build-depends:    base           == 4.*
                   , bytestring     == 0.9.*
                   , QuickCheck     == 2.4.*
-                  , test-framework == 0.5.*
-                  , test-framework-quickcheck2 == 0.2.*
+                  , test-framework >= 0.5
+                  , test-framework-quickcheck2 >= 0.2.12
                   , msgpack
