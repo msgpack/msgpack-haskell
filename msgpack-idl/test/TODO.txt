@@ -1,0 +1,19 @@
+
+[ ] empty
+    [ ] message
+    [ ] exception
+    [ ] service
+
+[ ] swap order of
+    [ ] message
+    [ ] argument
+
+[ ] including support
+
+[ ] versioning
+    [ ] inherit
+
+[ ] type-check
+    [ ] Python
+    [ ] Ruby
+    [ ] (Java)

@@ -1,0 +1,8 @@
+message empty_message {
+}
+
+exception empty_error {
+}
+
+service empty_service {
+}
