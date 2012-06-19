@@ -88,7 +88,7 @@ genTuple _ _ = return ()
 
 genImport :: FilePath -> Decl -> LT.Text
 genImport packageName MPMessage {..} = 
-    [lt|import #{packageName}.#{formatClassNameT msgName};
+    [lt|import #{packageName}.#{toClassName msgName};
 |]
 genImport _ _ = ""
 
@@ -101,16 +101,16 @@ genStruct alias packageName MPMessage {..} = do
       arrayListImport | not $ null [() | TList _ <- map fldType resolvedMsgFields] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
 
-  LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
+  LT.writeFile ( (T.unpack $ toClassName msgName) ++ ".java") [lt|
 package #{packageName};
 
 #{hashMapImport}
 #{arrayListImport}
 
-public class #{formatClassNameT msgName} #{params} {
+public class #{toClassName msgName} #{params} {
 
 #{LT.concat $ map genDecl resolvedMsgFields}
-  public #{formatClassNameT msgName}() {
+  public #{toClassName msgName}() {
   #{LT.concat $ map genInit resolvedMsgFields}
   }
 };
@@ -153,13 +153,13 @@ genDecl Field {..} =
 
 genException :: FilePath -> Decl -> IO()
 genException packageName MPException {..} = do
-  LT.writeFile ( (formatClassName $ T.unpack excName) ++ ".java") [lt|
+  LT.writeFile ( (T.unpack $ toClassName excName) ++ ".java") [lt|
 package #{packageName};
 
-public class #{formatClassNameT excName} #{params}{
+public class #{toClassName excName} #{params}{
 
 #{LT.concat $ map genDecl excFields}
-  public #{formatClassNameT excName}() {
+  public #{toClassName excName}() {
   #{LT.concat $ map genInit excFields}
   }
 };
@@ -204,7 +204,7 @@ public class #{className} {
 };
 |]
   where
-    className = (formatClassNameT serviceName) `mappend` "Client"
+    className = (toClassName serviceName) `mappend` "Client"
     genMethodCall Function {..} =
         let args = T.intercalate ", " $ map genArgs' methodArgs
             vals = T.intercalate ", " $ pack methodArgs genVal in
@@ -252,12 +252,6 @@ genVal :: Maybe Field -> T.Text
 genVal Nothing = "null"
 genVal (Just field) = fldName field
 
-formatClassNameT :: T.Text -> T.Text
-formatClassNameT = T.pack . formatClassName . T.unpack
-
-formatClassName :: String -> String
-formatClassName = concatMap (\(c:cs) -> toUpper c:cs) . words . map (\c -> if c=='_' then ' ' else c)
-
 genServer :: Decl -> LT.Text
 genServer _ = ""
 
@@ -295,7 +289,7 @@ genType (TList typ) =
 genType (TMap typ1 typ2) =
   [lt|HashMap<#{genType typ1}, #{genType typ2} >|]
 genType (TUserDef className params) =
-  [lt|#{formatClassNameT className} #{associateBracket $ map genType params}|]
+  [lt|#{toClassName className} #{associateBracket $ map genType params}|]
 genType (TTuple ts) =
   -- TODO: FIX
   foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
@@ -347,7 +341,7 @@ genWrapperType (TList typ) =
 genWrapperType (TMap typ1 typ2) =
   [lt|HashMap<#{genWrapperType typ1}, #{genWrapperType typ2} >|]
 genWrapperType (TUserDef className params) =
-  [lt|#{formatClassNameT className} #{associateBracket $ map genWrapperType params}|]
+  [lt|#{toClassName className} #{associateBracket $ map genWrapperType params}|]
 genWrapperType (TTuple ts) =
   -- TODO: FIX
   foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
