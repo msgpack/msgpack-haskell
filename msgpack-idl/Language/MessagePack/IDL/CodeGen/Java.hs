@@ -28,8 +28,8 @@ generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
       dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack $ configPackage config
 
-  genTuple config
   createDirectoryIfMissing True dirName
+  mapM_ (genTuple config) $ filter isTuple $ concat $ map extractType spec 
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
@@ -43,15 +43,48 @@ package #{configPackage}
 |]
 --}
 
-genTuple :: Config -> IO()
-genTuple Config {..} = do
-  LT.writeFile("Tuple.java") $ templ (configFilePath) [lt|
+toClassName :: T.Text -> T.Text
+toClassName name = T.replace " " "" $ foldr1 mappend $ map capitalizeT $ T.split (== '_') name
+
+toClassNameLT :: LT.Text -> LT.Text
+toClassNameLT name = LT.replace " " "" $ foldr1 mappend $ map capitalizeLT $ LT.split (== '_') name
+
+extractType :: Decl -> [Type]
+extractType MPMessage {..} = map fldType msgFields
+extractType MPException {..} = map fldType excFields
+extractType MPType {..} = [tyType]
+extractType MPEnum {..} = []
+extractType MPService {..} = concat $ map extractTypeFromMethod serviceMethods
+
+extractTypeFromMethod :: Method -> [Type]
+extractTypeFromMethod Function {..} = [methodRetType] ++ map fldType methodArgs
+
+isTuple :: Type -> Bool
+isTuple (TTuple _) = True
+isTuple _          = False
+
+capitalizeLT :: LT.Text -> LT.Text
+capitalizeLT a = LT.cons (toUpper $ LT.head a) (LT.tail a)
+
+capitalizeT :: T.Text -> T.Text
+capitalizeT a = T.cons (toUpper $ T.head a) (T.tail a)
+
+genTuple :: Config -> Type -> IO()
+genTuple Config{..} (TTuple typeList ) = do
+        let first  = genType $ typeList!!0
+            second = genType $ typeList!!1
+            className = LT.unpack $ (LT.pack "Tuple") `mappend` toClassNameLT first `mappend` toClassNameLT second
+            dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+            fileName =  dirName ++ "/" ++ className ++ ".java"
+        LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
-public class Tuple<T, U> {
-  public T a;
-  public U b;
+public class #{className} {
+  public #{first} first;
+  public #{second} second;
 };
 |]
+
+genTuple _ _ = return ()
 
 genImport :: FilePath -> Decl -> LT.Text
 genImport packageName MPMessage {..} = 
