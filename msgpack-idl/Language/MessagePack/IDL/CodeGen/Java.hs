@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
 import System.FilePath
+import System.Directory
 import Text.Shakespeare.Text
 
 import Language.MessagePack.IDL.Syntax
@@ -25,8 +26,10 @@ data Config
 generate :: Config -> Spec -> IO()
 generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack $ configPackage config
 
   genTuple config
+  createDirectoryIfMissing True dirName
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
