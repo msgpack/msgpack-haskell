@@ -30,6 +30,7 @@ generate config spec = do
 
   createDirectoryIfMissing True dirName
   mapM_ (genTuple config) $ filter isTuple $ concat $ map extractType spec 
+  mapM_ (genAliasClass config) $ typeAlias
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
@@ -48,6 +49,19 @@ toClassName name = T.replace " " "" $ foldr1 mappend $ map capitalizeT $ T.split
 
 toClassNameLT :: LT.Text -> LT.Text
 toClassNameLT name = LT.replace " " "" $ foldr1 mappend $ map capitalizeLT $ LT.split (== '_') name
+
+genAliasClass :: Config -> (T.Text, Type) -> IO()
+genAliasClass Config{..} alias = do
+  let typeName = toClassName $ fst alias
+      actualType = snd alias
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack typeName) ++ ".java"
+  LT.writeFile fileName $ templ configFilePath [lt|
+package #{configPackage};
+public class #{typeName} {
+  #{genType actualType} impl;
+};
+|]
 
 extractType :: Decl -> [Type]
 extractType MPMessage {..} = map fldType msgFields
