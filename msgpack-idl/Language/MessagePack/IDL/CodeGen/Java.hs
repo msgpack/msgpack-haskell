@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
 import System.FilePath
+import System.Directory
 import Text.Shakespeare.Text
 
 import Language.MessagePack.IDL.Syntax
@@ -25,10 +26,12 @@ data Config
 generate :: Config -> Spec -> IO()
 generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack $ configPackage config
 
   genTuple config
+  createDirectoryIfMissing True dirName
   mapM_ (genClient typeAlias config) spec
-  mapM_ (genStruct typeAlias $ configPackage config) spec
+  mapM_ (genStruct typeAlias config) spec
   mapM_ (genException $ configPackage config) spec
 
 {--
@@ -56,17 +59,19 @@ genImport packageName MPMessage {..} =
 |]
 genImport _ _ = ""
 
-genStruct :: [(T.Text, Type)] -> FilePath -> Decl -> IO()
-genStruct alias packageName MPMessage {..} = do
+genStruct :: [(T.Text, Type)] -> Config -> Decl -> IO()
+genStruct alias Config{..} MPMessage {..} = do
   let params = if null msgParam then "" else [lt|<#{T.intercalate ", " msgParam}>|]
       resolvedMsgFields = map (resolveFieldAlias alias) msgFields
       hashMapImport | not $ null [() | TMap _ _ <- map fldType resolvedMsgFields] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
       arrayListImport | not $ null [() | TList _ <- map fldType resolvedMsgFields] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack $ formatClassNameT msgName) ++ ".java"
 
-  LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
-package #{packageName};
+  LT.writeFile fileName [lt|
+package #{configPackage};
 
 #{hashMapImport}
 #{arrayListImport}
@@ -142,8 +147,10 @@ genClient alias Config {..} MPService {..} = do
                     | otherwise = ""
       arrayListImport | not $ null [() | TList _ <- map methodRetType resolvedServiceMethods] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack className) ++ ".java"
 
-  LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
+  LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
 
 #{hashMapImport}
