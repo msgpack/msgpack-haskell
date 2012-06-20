@@ -50,6 +50,10 @@ public class Tuple<T, U> {
 };
 |]
 
+isTuple :: Type -> Bool
+isTuple (TTuple _) = True
+isTuple _          = False
+
 extractType :: Decl -> [Type]
 extractType MPMessage {..} = map fldType msgFields
 extractType MPException {..} = map fldType excFields
