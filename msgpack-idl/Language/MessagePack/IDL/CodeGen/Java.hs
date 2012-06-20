@@ -26,7 +26,7 @@ generate :: Config -> Spec -> IO()
 generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
 
-  genTuple config
+  mapM_ (genTuple config) $ filter isTuple $ concat $ map extractType spec 
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
@@ -40,15 +40,51 @@ package #{configPackage}
 |]
 --}
 
-genTuple :: Config -> IO()
-genTuple Config {..} = do
-  LT.writeFile("Tuple.java") $ templ (configFilePath) [lt|
+
+genTuple :: Config -> Type -> IO()
+genTuple Config{..} (TTuple typeList ) = do
+        let first  = genType $ typeList!!0
+            second = genType $ typeList!!1
+            className = LT.unpack $ (LT.pack "Tuple") `mappend` formatClassNameLT first `mappend` formatClassNameLT second
+            dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+            fileName =  dirName ++ "/" ++ className ++ ".java"
+        LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
-public class Tuple<T, U> {
-  public T a;
-  public U b;
+
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
+public class #{className} {
+  public #{first} first;
+  public #{second} second;
 };
-|]
+ |]
+
+genTuple _ _ = return ()
+
+isTuple :: Type -> Bool
+isTuple (TTuple _) = True
+isTuple _          = False
+
+extractType :: Decl -> [Type]
+extractType MPMessage {..} = map fldType msgFields
+extractType MPException {..} = map fldType excFields
+extractType MPType {..} = [tyType]
+extractType MPEnum {..} = []
+extractType MPService {..} = concat $ map extractTypeFromMethod serviceMethods
+
+extractTypeFromMethod :: Method -> [Type]
+extractTypeFromMethod Function {..} = [methodRetType] ++ map fldType methodArgs
+
+extractTypeFromType :: Type -> [Type]
+extractTypeFromType x@(TNullable t) = [x] ++ extractTypeFromType t
+extractTypeFromType x@(TList t)     = [x] ++ extractTypeFromType t
+extractTypeFromType x@(TMap s t)    = [x] ++ extractTypeFromType s ++ extractTypeFromType t
+extractTypeFromType x@(TTuple ts)   = [x] ++ Prelude.concatMap extractTypeFromType ts
+extractTypeFromType x@(TUserDef _ ts) = [x] ++ Prelude.concatMap extractTypeFromType ts
+extractTypeFromType x = [x]
+
 
 genImport :: FilePath -> Decl -> LT.Text
 genImport packageName MPMessage {..} = 
@@ -216,6 +252,9 @@ genVal :: Maybe Field -> T.Text
 genVal Nothing = "null"
 genVal (Just field) = fldName field
 
+formatClassNameLT :: LT.Text -> LT.Text
+formatClassNameLT = LT.pack . formatClassName . LT.unpack
+
 formatClassNameT :: T.Text -> T.Text
 formatClassNameT = T.pack . formatClassName . T.unpack
 
@@ -262,7 +301,7 @@ genType (TUserDef className params) =
   [lt|#{formatClassNameT className} #{associateBracket $ map genType params}|]
 genType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+  foldr1 (\t1 t2 -> [lt|Tuple#{formatClassNameLT t1}#{formatClassNameLT t2}|]) $ map genWrapperType ts
 genType TObject =
   [lt|org.msgpack.type.Value|]
 genType TVoid =
@@ -314,7 +353,7 @@ genWrapperType (TUserDef className params) =
   [lt|#{formatClassNameT className} #{associateBracket $ map genWrapperType params}|]
 genWrapperType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+  foldr1 (\t1 t2 -> [lt|Tuple#{formatClassNameLT t1}#{formatClassNameLT t2}|]) $ map genWrapperType ts
 genWrapperType TObject =
   [lt|org.msgpack.type.Value|]
 genWrapperType TVoid =
