@@ -29,7 +29,7 @@ generate config spec = do
       dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack $ configPackage config
 
   createDirectoryIfMissing True dirName
-  mapM_ (genTuple config) $ filter isTuple $ concat $ map extractType spec 
+  mapM_ (genTuple config) $ filter isTuple $ Prelude.concatMap extractTypeFromType $ Prelude.concatMap extractType spec 
   mapM_ (genAliasClass config) $ typeAlias
   mapM_ (genClient config) spec
   mapM_ (genStruct config $ configPackage config) spec
@@ -68,7 +68,7 @@ extractType MPMessage {..} = map fldType msgFields
 extractType MPException {..} = map fldType excFields
 extractType MPType {..} = [tyType]
 extractType MPEnum {..} = []
-extractType MPService {..} = concat $ map extractTypeFromMethod serviceMethods
+extractType MPService {..} = Prelude.concatMap extractTypeFromMethod serviceMethods
 
 extractTypeFromMethod :: Method -> [Type]
 extractTypeFromMethod Function {..} = [methodRetType] ++ map fldType methodArgs
