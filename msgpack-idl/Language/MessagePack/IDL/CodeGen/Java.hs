@@ -239,6 +239,9 @@ genVal :: Maybe Field -> T.Text
 genVal Nothing = "null"
 genVal (Just field) = fldName field
 
+formatClassNameLT :: LT.Text -> LT.Text
+formatClassNameLT = LT.pack . formatClassName . LT.unpack
+
 formatClassNameT :: T.Text -> T.Text
 formatClassNameT = T.pack . formatClassName . T.unpack
 
