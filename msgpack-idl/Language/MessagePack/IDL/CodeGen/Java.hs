@@ -26,7 +26,7 @@ generate :: Config -> Spec -> IO()
 generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
 
-  genTuple config
+  mapM_ (genTuple config) $ filter isTuple $ concat $ map extractType spec 
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
@@ -40,15 +40,28 @@ package #{configPackage}
 |]
 --}
 
-genTuple :: Config -> IO()
-genTuple Config {..} = do
-  LT.writeFile("Tuple.java") $ templ (configFilePath) [lt|
+
+genTuple :: Config -> Type -> IO()
+genTuple Config{..} (TTuple typeList ) = do
+        let first  = genType $ typeList!!0
+            second = genType $ typeList!!1
+            className = LT.unpack $ (LT.pack "Tuple") `mappend` formatClassNameLT first `mappend` formatClassNameLT second
+            dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+            fileName =  dirName ++ "/" ++ className ++ ".java"
+        LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
-public class Tuple<T, U> {
-  public T a;
-  public U b;
+
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
+public class #{className} {
+  public #{first} first;
+  public #{second} second;
 };
-|]
+ |]
+
+genTuple _ _ = return ()
 
 isTuple :: Type -> Bool
 isTuple (TTuple _) = True
