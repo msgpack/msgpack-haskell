@@ -17,12 +17,23 @@ main = hspec $ do
       pending
 
   describe "checker" $ do
-    it "find multiple decl of types" $
-      let res = check (parseIDL [st|
+    it "find multiple decl of types" $ do
+      checkIDL "multiple msg" [st|
 message hoge {}
 message hoge {}
-|])
-      in isLeft res
+|]
+      checkIDL "mixed" [st|
+message hoge {}
+exception hoge {}
+|]
+
+    it "find nub id" $
+      checkIDL "message ids" [st|
+message hoge {
+  0: string hoge
+  0: string moge
+}
+|]
 
   describe "generator" $ do
     describe "haskell" $ do
@@ -30,6 +41,9 @@ message hoge {}
         pending
       it "can communicate reference server" $ do
         pending
+
+checkIDL :: String -> T.Text -> Assertion
+checkIDL msg = assertBool msg . isLeft . check . parseIDL
 
 -- Currently, peggy's QQ generator seems not to work correctly.
 -- So impl parse function.

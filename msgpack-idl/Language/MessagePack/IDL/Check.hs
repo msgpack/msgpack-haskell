@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Language.MessagePack.IDL.Check (
@@ -12,6 +12,7 @@ import Control.Monad.Error
 import Data.Data
 import Data.Lens.Lazy
 import Data.Lens.Template
+import Data.List
 import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.Text as T
@@ -39,20 +40,59 @@ instance Error TcError where
 type TcM = StateT TcEnv (Either TcError)
 
 check :: Spec -> Either TcError ()
-check decls =
-  case execStateT (mapM_ genTypes decls) emptyEnv of
-    Left err -> Left err
-    Right ts -> Right ()
+check decls = evalStateT (check' decls) emptyEnv
 
-genTypes :: Decl -> TcM ()
-genTypes decl = case decl of
+check' :: Spec -> TcM ()
+check' decls = do
+  mapM_ getTypes decls
+  mapM_ typeCheck decls
+
+getTypes :: Decl -> TcM ()
+getTypes decl = case decl of
   MPMessage {..} ->
-    focus envTypes $ do
-      mb <- access $ mapLens msgName
-      when (isJust mb) $
-        throwError $ TcError [st|message "#{msgName}" is already defined|]
-      mapLens msgName ~= Just undefined
-      return ()
+    addType msgName undefined
 
-  _ -> do
+  MPException {..} ->
+    undefined
+
+  MPType {..} ->
+    addType tyName tyType
+
+  MPEnum {..} ->
+    undefined
+
+  MPService {..} ->
     return ()
+
+addType :: T.Text -> Type -> TcM ()
+addType name typ = do
+  focus envTypes $ do
+    mb <- access $ mapLens name
+    when (isJust mb) $
+      throwError $ TcError [st|message "#{name}" is already defined|]
+    mapLens name ~= Just typ
+    return ()
+
+typeCheck :: Decl -> TcM ()
+typeCheck decl = case decl of
+  MPMessage {..} -> do
+    -- Check each field
+    mapM_ (checkField msgParam) msgFields
+    -- Are ids unique?
+    checkIf "field ids are not unique" (checkUnique $ map fldId msgFields)
+    -- Are names unique?
+    checkIf "field names are not unique" (checkUnique $ map fldName msgFields)
+    -- TODO: type check literal
+    return ()
+
+  _ -> undefined
+
+checkUnique :: Eq a => [a] -> Bool
+checkUnique ls = length ls == length (nub ls)
+
+checkField :: [T.Text] -> Field -> TcM ()
+checkField = undefined
+
+checkIf :: T.Text -> Bool -> TcM ()
+checkIf msg b =
+  when (not b) $ throwError $ TcError msg
