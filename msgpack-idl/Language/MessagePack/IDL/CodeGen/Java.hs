@@ -73,6 +73,14 @@ extractType MPService {..} = Prelude.concatMap extractTypeFromMethod serviceMeth
 extractTypeFromMethod :: Method -> [Type]
 extractTypeFromMethod Function {..} = [methodRetType] ++ map fldType methodArgs
 
+extractTypeFromType :: Type -> [Type]
+extractTypeFromType x@(TNullable t) = [x] ++ extractTypeFromType t
+extractTypeFromType x@(TList t)     = [x] ++ extractTypeFromType t
+extractTypeFromType x@(TMap s t)    = [x] ++ extractTypeFromType s ++ extractTypeFromType t
+extractTypeFromType x@(TTuple ts)   = [x] ++ Prelude.concatMap extractTypeFromType ts
+extractTypeFromType x@(TUserDef _ ts) = [x] ++ Prelude.concatMap extractTypeFromType ts
+extractTypeFromType x = [x]
+
 isTuple :: Type -> Bool
 isTuple (TTuple _) = True
 isTuple _          = False
