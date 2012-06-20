@@ -38,10 +38,11 @@ instance Error TcError where
 
 type TcM = StateT TcEnv (Either TcError)
 
-check :: Spec -> Bool
+check :: Spec -> Either TcError ()
 check decls =
-  let types = execStateT (mapM_ genTypes decls) emptyEnv
-  in False
+  case execStateT (mapM_ genTypes decls) emptyEnv of
+    Left err -> Left err
+    Right ts -> Right ()
 
 genTypes :: Decl -> TcM ()
 genTypes decl = case decl of
@@ -50,6 +51,8 @@ genTypes decl = case decl of
       mb <- access $ mapLens msgName
       when (isJust mb) $
         throwError $ TcError [st|message "#{msgName}" is already defined|]
+      mapLens msgName ~= Just undefined
+      return ()
 
   _ -> do
     return ()
