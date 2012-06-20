@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
 import System.FilePath
+import System.Directory
 import Text.Shakespeare.Text
 
 import Language.MessagePack.IDL.Syntax
@@ -25,10 +26,13 @@ data Config
 generate :: Config -> Spec -> IO()
 generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack $ configPackage config
 
-  genTuple config
-  mapM_ (genClient typeAlias config) spec
-  mapM_ (genStruct typeAlias $ configPackage config) spec
+  createDirectoryIfMissing True dirName
+  mapM_ (genTuple config) $ filter isTuple $ Prelude.concatMap extractTypeFromType $ Prelude.concatMap extractType spec 
+  mapM_ (genAliasClass config) $ typeAlias
+  mapM_ (genClient config) spec
+  mapM_ (genStruct config $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
 
 {--
@@ -40,42 +44,107 @@ package #{configPackage}
 |]
 --}
 
-genTuple :: Config -> IO()
-genTuple Config {..} = do
-  LT.writeFile("Tuple.java") $ templ (configFilePath) [lt|
+toClassName :: T.Text -> T.Text
+toClassName name = T.replace " " "" $ foldr1 mappend $ map capitalizeT $ T.split (== '_') name
+
+toClassNameLT :: LT.Text -> LT.Text
+toClassNameLT name = LT.replace " " "" $ foldr1 mappend $ map capitalizeLT $ LT.split (== '_') name
+
+genAliasClass :: Config -> (T.Text, Type) -> IO()
+genAliasClass Config{..} alias = do
+  let typeName = toClassName $ fst alias
+      actualType = snd alias
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack typeName) ++ ".java"
+  LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
-public class Tuple<T, U> {
-  public T a;
-  public U b;
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
+public class #{typeName} {
+  #{genType actualType} impl;
 };
 |]
 
+extractType :: Decl -> [Type]
+extractType MPMessage {..} = map fldType msgFields
+extractType MPException {..} = map fldType excFields
+extractType MPType {..} = [tyType]
+extractType MPEnum {..} = []
+extractType MPService {..} = Prelude.concatMap extractTypeFromMethod serviceMethods
+
+extractTypeFromMethod :: Method -> [Type]
+extractTypeFromMethod Function {..} = [methodRetType] ++ map fldType methodArgs
+
+extractTypeFromType :: Type -> [Type]
+extractTypeFromType x@(TNullable t) = [x] ++ extractTypeFromType t
+extractTypeFromType x@(TList t)     = [x] ++ extractTypeFromType t
+extractTypeFromType x@(TMap s t)    = [x] ++ extractTypeFromType s ++ extractTypeFromType t
+extractTypeFromType x@(TTuple ts)   = [x] ++ Prelude.concatMap extractTypeFromType ts
+extractTypeFromType x@(TUserDef _ ts) = [x] ++ Prelude.concatMap extractTypeFromType ts
+extractTypeFromType x = [x]
+
+isTuple :: Type -> Bool
+isTuple (TTuple _) = True
+isTuple _          = False
+
+capitalizeLT :: LT.Text -> LT.Text
+capitalizeLT a = LT.cons (toUpper $ LT.head a) (LT.tail a)
+
+capitalizeT :: T.Text -> T.Text
+capitalizeT a = T.cons (toUpper $ T.head a) (T.tail a)
+
+genTuple :: Config -> Type -> IO()
+genTuple Config{..} (TTuple typeList ) = do
+        let first  = genType $ typeList!!0
+            second = genType $ typeList!!1
+            className = LT.unpack $ (LT.pack "Tuple") `mappend` toClassNameLT first `mappend` toClassNameLT second
+            dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+            fileName =  dirName ++ "/" ++ className ++ ".java"
+        LT.writeFile fileName $ templ configFilePath [lt|
+
+package #{configPackage};
+
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
+public class #{className} {
+  public #{first} first;
+  public #{second} second;
+};
+|]
+
+genTuple _ _ = return ()
+
 genImport :: FilePath -> Decl -> LT.Text
 genImport packageName MPMessage {..} = 
-    [lt|import #{packageName}.#{formatClassNameT msgName};
+    [lt|import #{packageName}.#{toClassName msgName};
 |]
 genImport _ _ = ""
 
-genStruct :: [(T.Text, Type)] -> FilePath -> Decl -> IO()
-genStruct alias packageName MPMessage {..} = do
+genStruct :: Config -> FilePath -> Decl -> IO()
+genStruct Config{..} packageName MPMessage {..} = do
   let params = if null msgParam then "" else [lt|<#{T.intercalate ", " msgParam}>|]
-      resolvedMsgFields = map (resolveFieldAlias alias) msgFields
-      hashMapImport | not $ null [() | TMap _ _ <- map fldType resolvedMsgFields] = [lt|import java.util.HashMap;|]
+      hashMapImport | not $ null [() | TMap _ _ <- map fldType msgFields] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
-      arrayListImport | not $ null [() | TList _ <- map fldType resolvedMsgFields] = [lt|import java.util.ArrayList;|]
+      arrayListImport | not $ null [() | TList _ <- map fldType msgFields] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack $ toClassName msgName) ++ ".java"
 
-  LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
+  LT.writeFile fileName [lt|
 package #{packageName};
 
 #{hashMapImport}
 #{arrayListImport}
 
-public class #{formatClassNameT msgName} #{params} {
+public class #{toClassName msgName} #{params} {
 
-#{LT.concat $ map genDecl resolvedMsgFields}
-  public #{formatClassNameT msgName}() {
-  #{LT.concat $ map genInit resolvedMsgFields}
+#{LT.concat $ map genDecl msgFields}
+  public #{toClassName msgName}() {
+  #{LT.concat $ map genInit msgFields}
   }
 };
 |]
@@ -117,13 +186,13 @@ genDecl Field {..} =
 
 genException :: FilePath -> Decl -> IO()
 genException packageName MPException {..} = do
-  LT.writeFile ( (formatClassName $ T.unpack excName) ++ ".java") [lt|
+  LT.writeFile ( (T.unpack $ toClassName excName) ++ ".java") [lt|
 package #{packageName};
 
-public class #{formatClassNameT excName} #{params}{
+public class #{toClassName excName} #{params}{
 
 #{LT.concat $ map genDecl excFields}
-  public #{formatClassNameT excName}() {
+  public #{toClassName excName}() {
   #{LT.concat $ map genInit excFields}
   }
 };
@@ -135,15 +204,16 @@ public class #{formatClassNameT excName} #{params}{
               Nothing -> ""
 genException _ _ = return ()
 
-genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
-genClient alias Config {..} MPService {..} = do 
-  let resolvedServiceMethods = map (resolveMethodAlias alias) serviceMethods
-      hashMapImport | not $ null [() | TMap _ _ <- map methodRetType resolvedServiceMethods ] = [lt|import java.util.HashMap;|]
+genClient :: Config -> Decl -> IO()
+genClient Config {..} MPService {..} = do 
+  let hashMapImport | not $ null [() | TMap _ _ <- map methodRetType serviceMethods] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
-      arrayListImport | not $ null [() | TList _ <- map methodRetType resolvedServiceMethods] = [lt|import java.util.ArrayList;|]
+      arrayListImport | not $ null [() | TList _ <- map methodRetType serviceMethods] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack className) ++ ".java"
 
-  LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
+  LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
 
 #{hashMapImport}
@@ -159,16 +229,16 @@ public class #{className} {
   }
 
   public static interface RPCInterface {
-#{LT.concat $ map genSignature resolvedServiceMethods}
+#{LT.concat $ map genSignature serviceMethods}
   }
 
-#{LT.concat $ map genMethodCall resolvedServiceMethods}
+#{LT.concat $ map genMethodCall serviceMethods}
   private Client c_;
   private RPCInterface iface_;
 };
 |]
   where
-    className = (formatClassNameT serviceName) `mappend` "Client"
+    className = (toClassName serviceName) `mappend` "Client"
     genMethodCall Function {..} =
         let args = T.intercalate ", " $ map genArgs' methodArgs
             vals = T.intercalate ", " $ pack methodArgs genVal in
@@ -185,7 +255,7 @@ public class #{className} {
 |]
     genMethodCall _ = ""
 
-genClient _ _ _ = return ()
+genClient _ _ = return ()
 
 genSignature :: Method -> LT.Text
 genSignature Function {..} = 
@@ -215,12 +285,6 @@ pack fields converter=
 genVal :: Maybe Field -> T.Text
 genVal Nothing = "null"
 genVal (Just field) = fldName field
-
-formatClassNameT :: T.Text -> T.Text
-formatClassNameT = T.pack . formatClassName . T.unpack
-
-formatClassName :: String -> String
-formatClassName = concatMap (\(c:cs) -> toUpper c:cs) . words . map (\c -> if c=='_' then ' ' else c)
 
 genServer :: Decl -> LT.Text
 genServer _ = ""
@@ -259,10 +323,10 @@ genType (TList typ) =
 genType (TMap typ1 typ2) =
   [lt|HashMap<#{genType typ1}, #{genType typ2} >|]
 genType (TUserDef className params) =
-  [lt|#{formatClassNameT className} #{associateBracket $ map genType params}|]
+  [lt|#{toClassName className} #{associateBracket $ map genType params}|]
 genType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+  foldr1 (\t1 t2 -> [lt|Tuple#{toClassNameLT t1}#{toClassNameLT t2}|]) $ map genWrapperType ts
 genType TObject =
   [lt|org.msgpack.type.Value|]
 genType TVoid =
@@ -311,10 +375,10 @@ genWrapperType (TList typ) =
 genWrapperType (TMap typ1 typ2) =
   [lt|HashMap<#{genWrapperType typ1}, #{genWrapperType typ2} >|]
 genWrapperType (TUserDef className params) =
-  [lt|#{formatClassNameT className} #{associateBracket $ map genWrapperType params}|]
+  [lt|#{toClassName className} #{associateBracket $ map genWrapperType params}|]
 genWrapperType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+  foldr1 (\t1 t2 -> [lt|Tuple#{toClassNameLT t1}#{toClassNameLT t2}|]) $ map genWrapperType ts
 genWrapperType TObject =
   [lt|org.msgpack.type.Value|]
 genWrapperType TVoid =
