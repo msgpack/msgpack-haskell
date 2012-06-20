@@ -113,8 +113,10 @@ genStruct Config{..} packageName MPMessage {..} = do
                     | otherwise = ""
       arrayListImport | not $ null [() | TList _ <- map fldType msgFields] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack $ toClassName msgName) ++ ".java"
 
-  LT.writeFile ( (T.unpack $ toClassName msgName) ++ ".java") [lt|
+  LT.writeFile fileName [lt|
 package #{packageName};
 
 #{hashMapImport}
@@ -190,8 +192,10 @@ genClient Config {..} MPService {..} = do
                     | otherwise = ""
       arrayListImport | not $ null [() | TList _ <- map methodRetType serviceMethods] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack className) ++ ".java"
 
-  LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
+  LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
 
 #{hashMapImport}
