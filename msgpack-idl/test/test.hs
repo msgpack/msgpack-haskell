@@ -27,11 +27,17 @@ message hoge {}
 exception hoge {}
 |]
 
-    it "find nub id" $
-      checkIDL "message ids" [st|
+    it "find nub id" $ do
+      checkIDL "conflict ids" [st|
 message hoge {
   0: string hoge
   0: string moge
+}
+|]
+      checkIDL "conflict names" [st|
+message hoge {
+  0: string hoge
+  2: string hoge
 }
 |]
 

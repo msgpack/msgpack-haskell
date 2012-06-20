@@ -53,7 +53,7 @@ getTypes decl = case decl of
     addType msgName undefined
 
   MPException {..} ->
-    undefined
+    addType excName undefined
 
   MPType {..} ->
     addType tyName tyType
@@ -82,16 +82,34 @@ typeCheck decl = case decl of
     checkIf "field ids are not unique" (checkUnique $ map fldId msgFields)
     -- Are names unique?
     checkIf "field names are not unique" (checkUnique $ map fldName msgFields)
-    -- TODO: type check literal
+    -- TODO: check type of literal
     return ()
 
-  _ -> undefined
+  MPException {..} -> do
+    -- Check each field
+    mapM_ (checkField excParam) excFields
+    -- Are ids unique?
+    checkIf "field ids are not unique" (checkUnique $ map fldId excFields)
+    -- Are names unique?
+    checkIf "field names are not unique" (checkUnique $ map fldName excFields)
+    -- TODO: check type of literal
+    return ()
+
+  MPType {..} ->
+    return ()
+
+  MPEnum {..} ->
+    undefined
+
+  MPService {..} -> do
+    -- TODO:
+    undefined
 
 checkUnique :: Eq a => [a] -> Bool
 checkUnique ls = length ls == length (nub ls)
 
 checkField :: [T.Text] -> Field -> TcM ()
-checkField = undefined
+checkField _ _ = return ()
 
 checkIf :: T.Text -> Bool -> TcM ()
 checkIf msg b =
