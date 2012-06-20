@@ -28,8 +28,8 @@ generate config spec = do
 
   genTuple config
   mapM_ (genAliasClass config) $ typeAlias
-  mapM_ (genClient typeAlias config) spec
-  mapM_ (genStruct typeAlias $ configPackage config) spec
+  mapM_ (genClient config) spec
+  mapM_ (genStruct config) spec
   mapM_ (genException $ configPackage config) spec
 
 {--
@@ -75,30 +75,29 @@ genImport packageName MPMessage {..} =
 |]
 genImport _ _ = ""
 
-genStruct :: [(T.Text, Type)] -> FilePath -> Decl -> IO()
-genStruct alias packageName MPMessage {..} = do
+genStruct :: Config -> Decl -> IO()
+genStruct Config {..} MPMessage {..} = do
   let params = if null msgParam then "" else [lt|<#{T.intercalate ", " msgParam}>|]
-      resolvedMsgFields = map (resolveFieldAlias alias) msgFields
-      hashMapImport | not $ null [() | TMap _ _ <- map fldType resolvedMsgFields] = [lt|import java.util.HashMap;|]
+      hashMapImport | not $ null [() | TMap _ _ <- map fldType msgFields] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
-      arrayListImport | not $ null [() | TList _ <- map fldType resolvedMsgFields] = [lt|import java.util.ArrayList;|]
+      arrayListImport | not $ null [() | TList _ <- map fldType msgFields] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
 
   LT.writeFile ( (formatClassName $ T.unpack msgName) ++ ".java") [lt|
-package #{packageName};
+package #{configPackage};
 
 #{hashMapImport}
 #{arrayListImport}
 
 public class #{formatClassNameT msgName} #{params} {
 
-#{LT.concat $ map genDecl resolvedMsgFields}
+#{LT.concat $ map genDecl msgFields}
   public #{formatClassNameT msgName}() {
-  #{LT.concat $ map genInit resolvedMsgFields}
+  #{LT.concat $ map genInit msgFields}
   }
 };
 |]
-genStruct _ _ _ = return ()
+genStruct _ _ = return ()
 
 resolveMethodAlias :: [(T.Text, Type)] -> Method -> Method
 resolveMethodAlias alias Function {..}  = Function methodInherit methodName (resolveTypeAlias alias methodRetType) (map (resolveFieldAlias alias) methodArgs)
@@ -154,12 +153,11 @@ public class #{formatClassNameT excName} #{params}{
               Nothing -> ""
 genException _ _ = return ()
 
-genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
-genClient alias Config {..} MPService {..} = do 
-  let resolvedServiceMethods = map (resolveMethodAlias alias) serviceMethods
-      hashMapImport | not $ null [() | TMap _ _ <- map methodRetType resolvedServiceMethods ] = [lt|import java.util.HashMap;|]
+genClient :: Config -> Decl -> IO()
+genClient Config {..} MPService {..} = do 
+  let hashMapImport | not $ null [() | TMap _ _ <- map methodRetType serviceMethods ] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
-      arrayListImport | not $ null [() | TList _ <- map methodRetType resolvedServiceMethods] = [lt|import java.util.ArrayList;|]
+      arrayListImport | not $ null [() | TList _ <- map methodRetType serviceMethods] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
 
   LT.writeFile (T.unpack className ++ ".java") $ templ configFilePath [lt|
@@ -178,10 +176,10 @@ public class #{className} {
   }
 
   public static interface RPCInterface {
-#{LT.concat $ map genSignature resolvedServiceMethods}
+#{LT.concat $ map genSignature serviceMethods}
   }
 
-#{LT.concat $ map genMethodCall resolvedServiceMethods}
+#{LT.concat $ map genMethodCall serviceMethods}
   private Client c_;
   private RPCInterface iface_;
 };
@@ -204,7 +202,7 @@ public class #{className} {
 |]
     genMethodCall _ = ""
 
-genClient _ _ _ = return ()
+genClient _ _ = return ()
 
 genSignature :: Method -> LT.Text
 genSignature Function {..} = 
