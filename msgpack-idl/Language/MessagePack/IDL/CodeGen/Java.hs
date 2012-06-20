@@ -27,6 +27,7 @@ generate config spec = do
   let typeAlias = map genAlias $ filter isMPType spec
 
   genTuple config
+  mapM_ (genAliasClass config) $ typeAlias
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias $ configPackage config) spec
   mapM_ (genException $ configPackage config) spec
@@ -39,6 +40,24 @@ package #{configPackage}
 #{LT.concat $ map genServer spec}
 |]
 --}
+
+genAliasClass :: Config -> (T.Text, Type) -> IO()
+genAliasClass Config{..} alias = do
+  let typeName = formatClassNameT $ fst alias
+      actualType = snd alias
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      fileName =  dirName ++ "/" ++ (T.unpack typeName) ++ ".java"
+  LT.writeFile fileName $ templ configFilePath [lt|
+package #{configPackage};
+
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
+public class #{typeName} {
+  #{genType actualType} impl;
+};
+|]
 
 genTuple :: Config -> IO()
 genTuple Config {..} = do
