@@ -58,6 +58,10 @@ genAliasClass Config{..} alias = do
       fileName =  dirName ++ "/" ++ (T.unpack typeName) ++ ".java"
   LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
 public class #{typeName} {
   #{genType actualType} impl;
 };
@@ -99,7 +103,13 @@ genTuple Config{..} (TTuple typeList ) = do
             dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
             fileName =  dirName ++ "/" ++ className ++ ".java"
         LT.writeFile fileName $ templ configFilePath [lt|
+
 package #{configPackage};
+
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+
+@Message
 public class #{className} {
   public #{first} first;
   public #{second} second;
