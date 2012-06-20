@@ -31,6 +31,8 @@ library
                      , directory
                      , msgpack          == 0.7.*
                      , peggy            == 0.3.*
+                     , data-lens        >= 2.10
+                     , data-lens-template >= 2.1
 
   ghc-options:         -Wall
   
