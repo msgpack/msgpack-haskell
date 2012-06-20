@@ -1,7 +1,7 @@
 import Test.Hspec.Monadic
 
 main :: IO ()
-main = hspecX $ do
+main = hspec $ do
   describe "parser" $ do
     it "can parse xxx..." $ do
       pending
