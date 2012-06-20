@@ -316,7 +316,7 @@ genType (TUserDef className params) =
   [lt|#{toClassName className} #{associateBracket $ map genType params}|]
 genType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+  foldr1 (\t1 t2 -> [lt|Tuple#{toClassNameLT t1}#{toClassNameLT t2}|]) $ map genWrapperType ts
 genType TObject =
   [lt|org.msgpack.type.Value|]
 genType TVoid =
@@ -368,7 +368,7 @@ genWrapperType (TUserDef className params) =
   [lt|#{toClassName className} #{associateBracket $ map genWrapperType params}|]
 genWrapperType (TTuple ts) =
   -- TODO: FIX
-  foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
+  foldr1 (\t1 t2 -> [lt|Tuple#{toClassNameLT t1}#{toClassNameLT t2}|]) $ map genWrapperType ts
 genWrapperType TObject =
   [lt|org.msgpack.type.Value|]
 genWrapperType TVoid =
