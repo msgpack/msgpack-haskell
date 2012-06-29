@@ -93,6 +93,7 @@ typeCheck decl = case decl of
     -- Are names unique?
     checkIf "field names are not unique" (checkUnique $ map fldName excFields)
     -- TODO: check type of literal
+    -- TODO: check super type is also an exception, and do not loop.
     return ()
 
   MPType {..} ->

@@ -31,6 +31,9 @@ data Decl
     , serviceVersion :: Maybe Int
     , serviceMethods :: [Method]
     }
+  | MPImport
+    { importFile :: T.Text
+    }
   deriving (Eq, Show, Data, Typeable)
 
 data Field
