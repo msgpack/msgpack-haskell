@@ -23,7 +23,7 @@
 -- > add = call "add"
 -- >
 -- > main = runMPRPC "localhost" 5000 $ do
--- >   liftIO . print =<< add conn 123 456
+-- >   liftIO . print =<< add 123 456
 --
 --------------------------------------------------------------------
 
@@ -97,7 +97,6 @@ instance (OBJECT o, RpcType r) => RpcType (o -> r) where
 rpcCall :: (MonadIO m, MonadThrow m) => String -> [Object] -> MPRPCT m Object
 rpcCall methodName args = MPRPCT $ do
   Connection rsrc sink msgid <- CMS.get
-
   (rsrc', (rtype, rmsgid, rerror, rresult)) <- lift $ do
     CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
     rsrc $$++ CA.sinkParser M.get
