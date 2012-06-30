@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes, FlexibleContexts #-}
 
 -------------------------------------------------------------------
 -- |
@@ -17,14 +17,13 @@
 --
 -- A simple example:
 --
--- >import Network.MessagePackRpc.Client
+-- > import Network.MessagePackRpc.Client
 -- >
--- >add :: RpcMethod (Int -> Int -> IO Int)
--- >add = method "add"
+-- > add :: Int -> Int -> MPRPC Int
+-- > add = call "add"
 -- >
--- >main = do
--- >  conn <- connect "127.0.0.1" 1234
--- >  print =<< add conn 123 456
+-- > main = runMPRPC "localhost" 5000 $ do
+-- >   liftIO . print =<< add conn 123 456
 --
 --------------------------------------------------------------------
 
@@ -56,7 +55,7 @@ type MPRPC = MPRPCT IO
 
 newtype MPRPCT m a
   = MPRPCT { unMPRPCT :: StateT (Connection m) m a }
-  deriving (Monad, MonadIO)
+  deriving (Monad, MonadIO, MonadThrow)
 
 -- | RPC connection type
 data Connection m
@@ -71,8 +70,7 @@ runMPRPCClient :: (MonadIO m, MonadBaseControl IO m)
 runMPRPCClient host port m = do
   runTCPClient (ClientSettings port host) $ \src sink -> do
     (rsrc, _) <- src $$+ return ()
-    evalStateT (unMPRPCT m) (Connection rsrc sink 0)
-    return ()
+    void $ evalStateT (unMPRPCT m) (Connection rsrc sink 0)
 
 -- | RPC error type
 data RpcError
@@ -86,14 +84,12 @@ instance Exception RpcError
 class RpcType r where
   rpcc :: String -> [Object] -> r
 
-fromObject' :: OBJECT o => Object -> o
-fromObject' o =
-  case tryFromObject o of
-    Left err -> throw $ ResultTypeError err
-    Right r -> r
-
 instance (MonadIO m, MonadThrow m, OBJECT o) => RpcType (MPRPCT m o) where
-  rpcc m args = return . fromObject' =<< rpcCall m (reverse args)
+  rpcc m args = do
+    res <- rpcCall m (reverse args)
+    case tryFromObject res of
+      Left err -> monadThrow $ ResultTypeError err
+      Right r  -> return r
 
 instance (OBJECT o, RpcType r) => RpcType (o -> r) where
   rpcc m args arg = rpcc m (toObject arg:args)
@@ -101,24 +97,25 @@ instance (OBJECT o, RpcType r) => RpcType (o -> r) where
 rpcCall :: (MonadIO m, MonadThrow m) => String -> [Object] -> MPRPCT m Object
 rpcCall methodName args = MPRPCT $ do
   Connection rsrc sink msgid <- CMS.get
-  lift $ CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
-  (rsrc', ret) <- lift $ rsrc $$++ do
-    (rtype, rmsgid, rerror, rresult) <- CA.sinkParser M.get
-    when (rtype /= (1 :: Int)) $
-      throw $ ProtocolError $
-        "invalid response type (expect 1, but got " ++ show rtype ++ ")"
-    when (rmsgid /= msgid) $
-      throw $ ProtocolError $
-        "message id mismatch: expect "
-        ++ show msgid ++ ", but got "
-        ++ show rmsgid
-    case tryFromObject rerror of
-      Left _ ->
-        throw $ ServerError rerror
-      Right () ->
-        return rresult
+
+  (rsrc', (rtype, rmsgid, rerror, rresult)) <- lift $ do
+    CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
+    rsrc $$++ CA.sinkParser M.get
   CMS.put $ Connection rsrc' sink (msgid + 1)
-  return ret
+
+  when (rtype /= (1 :: Int)) $
+    monadThrow $ ProtocolError $
+      "invalid response type (expect 1, but got " ++ show rtype ++ ")"
+  when (rmsgid /= msgid) $
+    monadThrow $ ProtocolError $
+      "message id mismatch: expect "
+      ++ show msgid ++ ", but got "
+      ++ show rmsgid
+  case tryFromObject rerror of
+    Left _ ->
+      monadThrow $ ServerError rerror
+    Right () ->
+      return rresult
 
 -- | Call an RPC Method
 call :: RpcType a
