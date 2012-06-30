@@ -1,17 +1,19 @@
-{-# Language DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -------------------------------------------------------------------
 -- |
 -- Module    : Network.MessagePackRpc.Client
--- Copyright : (c) Hideyuki Tanaka, 2010
+-- Copyright : (c) Hideyuki Tanaka, 2010-2012
 -- License   : BSD3
 --
--- Maintainer:  tanaka.hideyuki@gmail.com
+-- Maintainer:  Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
 -- Stability :  experimental
 -- Portability: portable
 --
 -- This module is client library of MessagePack-RPC.
--- The specification of MessagePack-RPC is at <http://redmine.msgpack.org/projects/msgpack/wiki/RPCProtocolSpec>.
+-- The specification of MessagePack-RPC is at
+-- <http://redmine.msgpack.org/projects/msgpack/wiki/RPCProtocolSpec>.
 --
 -- A simple example:
 --
@@ -27,74 +29,68 @@
 --------------------------------------------------------------------
 
 module Network.MessagePackRpc.Client (
-  -- * RPC connection
-  Connection,
-  connect,
-  disconnect,
-  
+  -- * MPRPC type
+  MPRPCT, MPRPC,
+  runMPRPCClient,
+
+  -- * Call RPC method
+  call,
+
   -- * RPC error
   RpcError(..),
-  
-  -- * Call RPC method
-  RpcMethod,
-  call,
-  method,
   ) where
 
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Conduit as C
-import qualified Data.Conduit.Binary as CB
+import Control.Monad.Trans.Control
+import Control.Monad.State as CMS
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Lazy as L
+import Data.Conduit
 import qualified Data.Conduit.Attoparsec as CA
+import qualified Data.Conduit.Binary as CB
+import Data.Conduit.Network
 import Data.Functor
-import Data.MessagePack
+import Data.MessagePack as M
 import Data.Typeable
 import Network
 import System.IO
 import System.Random
 
--- | RPC connection type
-data Connection
-  = Connection
-    { connHandle :: MVar Handle }
+type MPRPC = MPRPCT IO
 
--- | Connect to RPC server
-connect :: String -- ^ Host name
-           -> Int -- ^ Port number
-           -> IO Connection -- ^ Connection
-connect addr port = withSocketsDo $ do
-  h <- connectTo addr (PortNumber $ fromIntegral port)
-  mh <- newMVar h
-  return $ Connection
-    { connHandle = mh
+newtype MPRPCT m a
+  = MPRPCT { unMPRPCT :: StateT (Connection m) m a }
+  deriving (Monad, MonadIO)
+
+-- | RPC connection type
+data Connection m
+  = Connection
+    { connSource :: !(ResumableSource m S.ByteString)
+    , connSink   :: !(Sink S.ByteString m ())
+    , connCnt    :: !Int
     }
 
--- | Disconnect a connection
-disconnect :: Connection -> IO ()
-disconnect Connection { connHandle = mh } =
-  hClose =<< takeMVar mh
+runMPRPCClient :: (MonadIO m, MonadBaseControl IO m)
+                  => String -> Int -> MPRPCT m a -> m ()
+runMPRPCClient host port m = do
+  runTCPClient (ClientSettings port host) $ \src sink -> do
+    (rsrc, _) <- src $$+ return ()
+    evalStateT (unMPRPCT m) (Connection rsrc sink 0)
+    return ()
 
 -- | RPC error type
 data RpcError
-  = ServerError Object -- ^ Server error
+  = ServerError Object     -- ^ Server error
   | ResultTypeError String -- ^ Result type mismatch
-  | ProtocolError String -- ^ Protocol error
-  deriving (Eq, Ord, Typeable)
+  | ProtocolError String   -- ^ Protocol error
+  deriving (Show, Eq, Ord, Typeable)
 
 instance Exception RpcError
 
-instance Show RpcError where
-  show (ServerError err) =
-    "server error: " ++ show err
-  show (ResultTypeError err) =
-    "result type error: " ++ err
-  show (ProtocolError err) =
-    "protocol error: " ++ err
-
 class RpcType r where
-  rpcc :: Connection -> String -> [Object] -> r
+  rpcc :: String -> [Object] -> r
 
 fromObject' :: OBJECT o => Object -> o
 fromObject' o =
@@ -102,12 +98,35 @@ fromObject' o =
     Left err -> throw $ ResultTypeError err
     Right r -> r
 
-instance OBJECT o => RpcType (IO o) where
-  rpcc c m args = return . fromObject' =<< rpcCall c m (reverse args)
+instance (MonadIO m, MonadThrow m, OBJECT o) => RpcType (MPRPCT m o) where
+  rpcc m args = return . fromObject' =<< rpcCall m (reverse args)
 
 instance (OBJECT o, RpcType r) => RpcType (o -> r) where
-  rpcc c m args arg = rpcc c m (toObject arg:args)
+  rpcc m args arg = rpcc m (toObject arg:args)
 
+rpcCall :: (MonadIO m, MonadThrow m) => String -> [Object] -> MPRPCT m Object
+rpcCall methodName args = MPRPCT $ do
+  Connection rsrc sink msgid <- CMS.get
+  lift $ CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
+  (rsrc', ret) <- lift $ rsrc $$++ do
+    (rtype, rmsgid, rerror, rresult) <- CA.sinkParser M.get
+    when (rtype /= (1 :: Int)) $
+      throw $ ProtocolError $
+        "invalid response type (expect 1, but got " ++ show rtype ++ ")"
+    when (rmsgid /= msgid) $
+      throw $ ProtocolError $
+        "message id mismatch: expect "
+        ++ show msgid ++ ", but got "
+        ++ show rmsgid
+    case tryFromObject rerror of
+      Left _ ->
+        throw $ ServerError rerror
+      Right () ->
+        return rresult
+  CMS.put $ Connection rsrc' sink (msgid + 1)
+  return ret
+
+{-
 rpcCall :: Connection -> String -> [Object] -> IO Object
 rpcCall Connection{ connHandle = mh } m args = withMVar mh $ \h -> do
   msgid <- (`mod`2^(30::Int)) <$> randomIO :: IO Int
@@ -124,16 +143,10 @@ rpcCall Connection{ connHandle = mh } m args = withMVar mh $ \h -> do
         throw $ ServerError rerror
       Right () ->
         return rresult
+-}
 
 -- | Call an RPC Method
-call :: RpcType a =>
-        Connection -- ^ Connection
-        -> String -- ^ Method name
+call :: RpcType a
+        => String -- ^ Method name
         -> a
-call c m = rpcc c m []
-
--- | Create an RPC Method (call c m == method m c)
-method :: RpcType a => String -> RpcMethod a
-method c m = call m c
-
-type RpcMethod a = Connection -> a
+call m = rpcc m []

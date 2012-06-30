@@ -3,6 +3,7 @@
 *.o
 *.hi
 *.a
+*.exe
 cabal-dev/
 dist/
 attic/

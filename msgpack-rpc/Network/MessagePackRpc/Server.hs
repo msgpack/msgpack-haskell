@@ -83,7 +83,7 @@ serve port methods = withSocketsDo $ do
       (processRequests h `finally` hClose h) `catches`
       [ Handler $ \e ->
          case e of
-           CA.ParseError ["demandInput"] _ -> return ()
+           CA.ParseError ["demandInput"] _ _ -> return ()
            _ -> hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show e
       , Handler $ \e ->
          hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show (e :: SomeException)]
@@ -91,7 +91,7 @@ serve port methods = withSocketsDo $ do
   where
     processRequests h =
       C.runResourceT $ CB.sourceHandle h C.$$ forever $ processRequest h
-    
+
     processRequest h = do
       (rtype, msgid, method, args) <- CA.sinkParser get
       liftIO $ do
@@ -106,10 +106,10 @@ serve port methods = withSocketsDo $ do
     getResponse rtype method args = do
       when (rtype /= (0 :: Int)) $
         fail "request type is not 0"
-      
+
       r <- callMethod (method :: String) (args :: [Object])
       r `deepseq` return r
-    
+
     callMethod methodName args =
       case lookup methodName methods of
         Nothing ->
