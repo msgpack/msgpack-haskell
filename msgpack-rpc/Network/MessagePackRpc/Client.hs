@@ -40,23 +40,17 @@ module Network.MessagePackRpc.Client (
   RpcError(..),
   ) where
 
-import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Control.Monad.Trans.Control
-import Control.Monad.State as CMS
+import Control.Monad.State.Strict as CMS
 import qualified Data.ByteString as S
-import qualified Data.ByteString.Lazy as L
 import Data.Conduit
 import qualified Data.Conduit.Attoparsec as CA
 import qualified Data.Conduit.Binary as CB
 import Data.Conduit.Network
-import Data.Functor
 import Data.MessagePack as M
 import Data.Typeable
-import Network
-import System.IO
-import System.Random
 
 type MPRPC = MPRPCT IO
 
@@ -125,25 +119,6 @@ rpcCall methodName args = MPRPCT $ do
         return rresult
   CMS.put $ Connection rsrc' sink (msgid + 1)
   return ret
-
-{-
-rpcCall :: Connection -> String -> [Object] -> IO Object
-rpcCall Connection{ connHandle = mh } m args = withMVar mh $ \h -> do
-  msgid <- (`mod`2^(30::Int)) <$> randomIO :: IO Int
-  BL.hPutStr h $ pack (0 ::Int, msgid, m, args)
-  hFlush h
-  C.runResourceT $ CB.sourceHandle h C.$$ do
-    (rtype, rmsgid, rerror, rresult) <- CA.sinkParser get
-    when (rtype /= (1 :: Int)) $
-      throw $ ProtocolError $ "response type is not 1 (got " ++ show rtype ++ ")"
-    when (rmsgid /= msgid) $
-      throw $ ProtocolError $ "message id mismatch: expect " ++ show msgid ++ ", but got " ++ show rmsgid
-    case tryFromObject rerror of
-      Left _ ->
-        throw $ ServerError rerror
-      Right () ->
-        return rresult
--}
 
 -- | Call an RPC Method
 call :: RpcType a
