@@ -32,7 +32,7 @@ generate config spec = do
   createDirectoryIfMissing True dirName
   mapM_ (genClient typeAlias config) spec
   mapM_ (genStruct typeAlias config) spec
-  mapM_ (genException $ configPackage config) spec
+  mapM_ (genException typeAlias config) spec
 
 {--
   LT.writeFile (name ++ "Server.java") $ templ (configFilePath ++ configPackage ++"/server/")[lt|
@@ -70,7 +70,7 @@ genStruct alias Config{..} MPMessage {..} = do
       dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
       fileName =  dirName ++ "/" ++ (T.unpack $ formatClassNameT msgName) ++ ".java"
 
-  LT.writeFile fileName [lt|
+  LT.writeFile fileName $ templ configFilePath [lt|
 package #{configPackage};
 
 #{hashMapImport}
@@ -120,10 +120,10 @@ genDecl Field {..} =
     [lt|  public #{genType fldType} #{fldName};
 |]
 
-genException :: FilePath -> Decl -> IO()
-genException packageName MPException {..} = do
-  LT.writeFile ( (formatClassName $ T.unpack excName) ++ ".java") [lt|
-package #{packageName};
+genException :: [(T.Text, Type)] -> Config -> Decl -> IO()
+genException alias Config{..} MPException{..} = do
+  LT.writeFile ( (formatClassName $ T.unpack excName) ++ ".java") $ templ configFilePath [lt|
+package #{configPackage};
 
 public class #{formatClassNameT excName} #{params}{
 
@@ -138,7 +138,7 @@ public class #{formatClassNameT excName} #{params}{
     super = case excSuper of 
               Just x -> [st|extends #{x}|]
               Nothing -> ""
-genException _ _ = return ()
+genException _ _ _  = return ()
 
 genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
 genClient alias Config {..} MPService {..} = do 
