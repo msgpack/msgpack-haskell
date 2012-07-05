@@ -84,6 +84,26 @@ public class #{formatClassNameT msgName} #{params} {
   }
 };
 |]
+
+genStruct alias Config{..} MPType {..} = do
+  let hashMapImport | not $ null [() | TMap _ _ <- getTypes tyType] = [lt|import java.util.HashMap;|]
+                    | otherwise = ""
+      arrayListImport | not $ null [() | TList _ <- getTypes tyType] = [lt|import java.util.ArrayList;|]
+                      | otherwise = ""
+      dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
+      className = formatClassNameT tyName
+      fileName =  dirName ++ "/" ++ (T.unpack className) ++ ".java"
+
+  LT.writeFile fileName [lt|
+package #{configPackage};
+
+#{hashMapImport}
+#{arrayListImport}
+
+public class #{className} extends #{genWrapperType tyType} {
+};
+|]
+
 genStruct _ _ _ = return ()
 
 resolveMethodAlias :: [(T.Text, Type)] -> Method -> Method
@@ -243,6 +263,13 @@ associateBracket :: [LT.Text] -> LT.Text
 associateBracket msgParam = 
   if null msgParam then "" else [lt|<#{LT.intercalate ", " msgParam}>|]
 
+getTypes :: Type -> [Type]
+getTypes t@(TNullable s) = [t] ++ getTypes s
+getTypes t@(TList s) = [t] ++ getTypes s
+getTypes t@(TMap v w) = [t] ++ getTypes v ++ getTypes w
+getTypes t@(TTuple ts) = [t] ++ Prelude.concatMap getTypes ts
+getTypes t@(TUserDef _ ts) = [t] ++ Prelude.concatMap getTypes ts
+getTypes t = [t]
 
 genType :: Type -> LT.Text
 genType (TInt _ bits) = case bits of
