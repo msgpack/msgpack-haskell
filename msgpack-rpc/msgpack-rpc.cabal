@@ -13,12 +13,12 @@ stability:	     Experimental
 cabal-version:       >=1.8
 build-type:          Simple
 
+extra-source-files:  test/Serv.hs
+                     test/Cli.hs
+
 source-repository head
   type:              git
   location:          git://github.com/msgpack/msgpack-haskell.git
-
-extra-source-files:  test/Serv.hs
-                     test/Cli.hs
 
 library
   build-depends:     base         == 4.*
