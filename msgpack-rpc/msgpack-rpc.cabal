@@ -27,7 +27,9 @@ library
                    , network      >= 2.2 && < 2.4
                    , random       == 1.0.*
                    , mtl          >= 2.0
+                   , monad-control >= 0.3
                    , conduit      >= 0.5
+                   , network-conduit >= 0.5
                    , attoparsec-conduit >= 0.5
                    , deepseq      >= 1.1 && < 1.4
                    , msgpack      == 0.7.*
@@ -36,3 +38,16 @@ library
 
   exposed-modules:   Network.MessagePackRpc.Server
                      Network.MessagePackRpc.Client
+
+test-suite msgpack-rpc-test
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    dist
+  main-is:           ../test.hs
+
+  build-depends:     base
+                   , mtl
+                   , network
+                   , async >= 2.0
+                   , hspec >= 1.2
+                   , HUnit >= 1.2
+                   , msgpack-rpc

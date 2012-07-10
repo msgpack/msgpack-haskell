@@ -34,6 +34,7 @@ module Network.MessagePackRpc.Server (
   -- * RPC method types
   RpcMethod,
   RpcMethodType(..),
+  MethodT(..),
   -- * Create RPC method
   fun,
   -- * Start RPC server
