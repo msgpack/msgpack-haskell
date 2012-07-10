@@ -1,3 +1,9 @@
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TypeFamilies, KindSignatures #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -------------------------------------------------------------------
 -- |
 -- Module    : Network.MessagePackRpc.Server
@@ -9,17 +15,18 @@
 -- Portability: portable
 --
 -- This module is server library of MessagePack-RPC.
--- The specification of MessagePack-RPC is at <http://redmine.msgpack.org/projects/msgpack/wiki/RPCProtocolSpec>.
+-- The specification of MessagePack-RPC is at
+-- <http://redmine.msgpack.org/projects/msgpack/wiki/RPCProtocolSpec>.
 --
 -- A simple example:
 --
--- >import Network.MessagePackRpc.Server
+-- > import Network.MessagePackRpc.Server
 -- >
--- >add :: Int -> Int -> IO Int
--- >add x y = return $ x + y
+-- > add :: Int -> Int -> IO Int
+-- > add x y = return $ x + y
 -- >
--- >main =
--- >  serve 1234 [("add", fun add)]
+-- > main =
+-- >   serve 1234 [("add", fun add)]
 --
 --------------------------------------------------------------------
 
@@ -39,26 +46,43 @@ import Control.DeepSeq
 import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Conduit as C
+import Control.Monad.Trans.Control
+import Data.Conduit
+import Data.Conduit.Network
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.Attoparsec as CA
+import Data.Data
 import Data.Maybe
 import Data.MessagePack
-import Network
 import System.IO
 
 import Prelude hiding (catch)
 
-type RpcMethod = [Object] -> IO Object
+type RpcMethod m = [Object] -> m Object
+
+type Request  = (Int, Int, String, [Object])
+type Response = (Int, Int, Object, Object)
+
+data ServerError = ServerError String
+  deriving (Show, Typeable)
+
+instance Exception ServerError
+
+newtype MethodT m a = MethodT { unMethodT :: m a }
 
 class RpcMethodType f where
-  toRpcMethod :: f -> RpcMethod
+  type BaseM f :: * -> *
+  toRpcMethod :: f -> RpcMethod (BaseM f)
 
-instance OBJECT o => RpcMethodType (IO o) where
-  toRpcMethod m = \[] -> toObject <$> m
+instance (MonadThrow m, MonadBaseControl IO m, OBJECT o)
+         => RpcMethodType (MethodT m o) where
+  type BaseM (MethodT m o) = m
+  toRpcMethod m ls = case ls of
+    [] -> toObject <$> unMethodT m
+    _ -> monadThrow $ ServerError "argument error"
 
 instance (OBJECT o, RpcMethodType r) => RpcMethodType (o -> r) where
+  type BaseM (o -> r) = BaseM r
   toRpcMethod f = \(x:xs) -> toRpcMethod (f $! fromObject' x) xs
 
 fromObject' :: OBJECT o => Object -> o
@@ -68,30 +92,41 @@ fromObject' o =
     Right r -> r
 
 -- | Create a RPC method from a Haskell function.
-fun :: RpcMethodType f => f -> RpcMethod
+fun :: RpcMethodType f => f -> RpcMethod (BaseM f)
 fun = toRpcMethod
 
 -- | Start RPC server with a set of RPC methods.
-serve :: Int -- ^ Port number
-         -> [(String, RpcMethod)] -- ^ list of (method name, RPC method)
-         -> IO ()
-serve port methods = withSocketsDo $ do
-  sock <- listenOn (PortNumber $ fromIntegral port)
-  forever $ do
-    (h, host, hostport) <- accept sock
-    forkIO $
-      (processRequests h `finally` hClose h) `catches`
-      [ Handler $ \e ->
-         case e of
-           CA.ParseError ["demandInput"] _ _ -> return ()
-           _ -> hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show e
-      , Handler $ \e ->
-         hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show (e :: SomeException)]
-
+serve :: forall m . (MonadIO m, MonadThrow m, MonadBaseControl IO m)
+         => Int                     -- ^ Port number
+         -> [(String, RpcMethod m)] -- ^ list of (method name, RPC method)
+         -> m ()
+serve port methods = runTCPServer (ServerSettings port "*") $ \src sink -> do
+  (rsrc, _) <- src $$+ return ()
+  processRequests rsrc sink
   where
-    processRequests h =
-      C.runResourceT $ CB.sourceHandle h C.$$ forever $ processRequest h
+    processRequests rsrc sink = do
+      (rsrc', res) <- rsrc $$++ do
+        req <- CA.sinkParser get
+        lift $ getResponse req
+      CB.sourceLbs (pack res) $$ sink
+      processRequests rsrc' sink
 
+    getResponse :: Request -> m Response
+    getResponse (rtype, msgid, methodName, args) = do
+      when (rtype /= 0) $
+        monadThrow $ ServerError $ "request type is not 0, got " ++ show rtype
+      ret <- callMethod methodName args
+      return (1, msgid, toObject (), ret)
+
+    callMethod :: String -> [Object] -> m Object
+    callMethod methodName args =
+      case lookup methodName methods of
+        Nothing ->
+          monadThrow $ ServerError $ "method '" ++ methodName ++ "' not found"
+        Just method ->
+          method args
+
+{-
     processRequest h = do
       (rtype, msgid, method, args) <- CA.sinkParser get
       liftIO $ do
@@ -116,3 +151,4 @@ serve port methods = withSocketsDo $ do
           fail $ "method '" ++ methodName ++ "' not found"
         Just method ->
           method args
+-}

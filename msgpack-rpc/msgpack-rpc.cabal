@@ -24,7 +24,7 @@ Library
                    , random       == 1.0.*
                    , mtl          >= 2.0
                    , conduit      >= 0.5
-                   , attoparsec-conduit
+                   , attoparsec-conduit >= 0.5
                    , deepseq      >= 1.1 && < 1.4
                    , msgpack      == 0.7.*
 
