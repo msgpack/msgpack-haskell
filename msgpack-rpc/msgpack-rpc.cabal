@@ -1,23 +1,27 @@
-Name:                msgpack-rpc
-Version:             0.7.1.2
-Synopsis:            A MessagePack-RPC Implementation
-Description:         A MessagePack-RPC Implementation <http://msgpack.org/>
-Homepage:            http://msgpack.org/
-License:             BSD3
-License-file:        LICENSE
-Author:              Hideyuki Tanaka
-Maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
-Copyright:           Copyright (c) 2010-2012, Hideyuki Tanaka
-Category:            Network
-Stability:	     Experimental
-Cabal-version:       >=1.8
-Build-type:          Simple
+name:                msgpack-rpc
+version:             0.7.1.2
+synopsis:            A MessagePack-RPC Implementation
+description:         A MessagePack-RPC Implementation <http://msgpack.org/>
+homepage:            http://msgpack.org/
+license:             BSD3
+license-file:        LICENSE
+author:              Hideyuki Tanaka
+maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
+copyright:           Copyright (c) 2010-2012, Hideyuki Tanaka
+category:            Network
+stability:	     Experimental
+cabal-version:       >=1.8
+build-type:          Simple
 
-Extra-source-files:  test/Serv.hs
+source-repository head
+  type:              git
+  location:          git://github.com/msgpack/msgpack-haskell.git
+
+extra-source-files:  test/Serv.hs
                      test/Cli.hs
 
-Library
-  Build-depends:     base         == 4.*
+library
+  build-depends:     base         == 4.*
                    , bytestring   == 0.9.*
                    , text         == 0.11.*
                    , network      >= 2.2 && < 2.4
@@ -28,11 +32,7 @@ Library
                    , deepseq      >= 1.1 && < 1.4
                    , msgpack      == 0.7.*
 
-  Ghc-options:       -Wall
+  ghc-options:       -Wall
 
-  Exposed-modules:   Network.MessagePackRpc.Server
+  exposed-modules:   Network.MessagePackRpc.Server
                      Network.MessagePackRpc.Client
-
-Source-repository head
-  Type:              git
-  Location:          git://github.com/msgpack/msgpack-haskell.git
