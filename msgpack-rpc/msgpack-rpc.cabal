@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Hideyuki Tanaka
 maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
-copyright:           Copyright (c) 2010-2012, Hideyuki Tanaka
+copyright:           (c) 2010-2012, Hideyuki Tanaka
 category:            Network
 stability:	     Experimental
 cabal-version:       >=1.8
