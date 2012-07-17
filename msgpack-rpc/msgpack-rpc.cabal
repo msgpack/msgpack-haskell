@@ -24,9 +24,11 @@ Library
                    , random       == 1.0.*
                    , mtl          == 2.0.*
                    , conduit      >= 0.5
+                   , attoparsec
                    , attoparsec-conduit
                    , deepseq      >= 1.1 && < 1.4
                    , msgpack      == 0.7.*
+                   , zeromq-haskell >= 0.8.4
 
   Ghc-options:       -Wall
 
