@@ -27,6 +27,7 @@ module Network.MessagePackRpc.Server (
   -- * RPC method types
   RpcMethod,
   RpcMethodType(..),
+  Endpoint(..),
   -- * Create RPC method
   fun,
   -- * Start RPC server
@@ -39,14 +40,17 @@ import Control.DeepSeq
 import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Conduit as C
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.Attoparsec as CA
+import qualified Data.Attoparsec as A
 import Data.Maybe
 import Data.MessagePack
 import Network
 import System.IO
+import System.ZMQ
 
 import Prelude hiding (catch)
 
@@ -71,11 +75,16 @@ fromObject' o =
 fun :: RpcMethodType f => f -> RpcMethod
 fun = toRpcMethod
 
+data Endpoint = TCP Int
+              | ZeroMQ [String]
+              deriving Show
+
 -- | Start RPC server with a set of RPC methods.
-serve :: Int -- ^ Port number
+serve :: Endpoint -- ^ listen on this endpoint 
          -> [(String, RpcMethod)] -- ^ list of (method name, RPC method)
          -> IO ()
-serve port methods = withSocketsDo $ do
+
+serve (TCP port) methods = withSocketsDo $ do
   sock <- listenOn (PortNumber $ fromIntegral port)
   forever $ do
     (h, host, hostport) <- accept sock
@@ -83,7 +92,7 @@ serve port methods = withSocketsDo $ do
       (processRequests h `finally` hClose h) `catches`
       [ Handler $ \e ->
          case e of
-           CA.ParseError ["demandInput"] _ -> return ()
+           CA.ParseError ["demandInput"] _ _ -> return ()
            _ -> hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show e
       , Handler $ \e ->
          hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show (e :: SomeException)]
@@ -110,6 +119,39 @@ serve port methods = withSocketsDo $ do
       r <- callMethod (method :: String) (args :: [Object])
       r `deepseq` return r
     
+    callMethod methodName args =
+      case lookup methodName methods of
+        Nothing ->
+          fail $ "method '" ++ methodName ++ "' not found"
+        Just method ->
+          method args
+
+serve (ZeroMQ endpoints) methods =
+  withContext 1 $ \ctx ->
+    withSocket ctx Rep $ \s -> do
+      mapM_ (bind s) endpoints
+      forever $ do
+        req  <- receive s []
+        resp <- processRequest req
+        send s ((B.concat . BL.toChunks) resp) []
+  where
+    processRequest req = 
+      case A.parseOnly get req of
+        Left _                             -> fail "Parsing failed."
+        Right (rtype, msgid, method, args) -> do
+          resp <- try $ getResponse rtype method args
+          case resp of
+            Left err ->
+              return $ pack (1 :: Int, msgid :: Int, show (err :: SomeException), ())
+            Right ret ->
+              return $ pack (1 :: Int, msgid :: Int, (), ret)
+
+    getResponse rtype method args = do
+      when (rtype /= (0 :: Int)) $
+        fail "request type is not 0"
+      r <- callMethod (method :: String) (args :: [Object])
+      r `deepseq` return r
+
     callMethod methodName args =
       case lookup methodName methods of
         Nothing ->

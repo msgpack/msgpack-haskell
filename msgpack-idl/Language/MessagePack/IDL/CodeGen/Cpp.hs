@@ -83,7 +83,18 @@ genTypeDecl _ MPType { .. } =
 typedef #{genType tyType} #{tyName};
 |]
 
+genTypeDecl _ MPEnum { ..} =
+  [lt|
+enum #{enumName} {
+    #{genEnum enumMem}
+};|]
+
+
 genTypeDecl _ _ = ""
+
+genEnum :: [(Int, T.Text)] -> LT.Text
+genEnum entries = LT.intercalate ",\n    " $ map enumEntry entries
+                where enumEntry (val, name) = [lt|#{name} = #{show val}|]
 
 genMsg name flds isExc =
   let fields = map f flds
