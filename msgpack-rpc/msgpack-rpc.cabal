@@ -23,7 +23,7 @@ Library
                    , network      >= 2.2 && < 2.4
                    , random       == 1.0.*
                    , mtl          == 2.0.*
-                   , conduit      >= 0.2 && < 0.5
+                   , conduit      >= 0.5
                    , attoparsec-conduit
                    , deepseq      >= 1.1 && < 1.4
                    , msgpack      == 0.7.*

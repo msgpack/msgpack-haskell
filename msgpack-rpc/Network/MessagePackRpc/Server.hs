@@ -83,7 +83,7 @@ serve port methods = withSocketsDo $ do
       (processRequests h `finally` hClose h) `catches`
       [ Handler $ \e ->
          case e of
-           CA.ParseError ["demandInput"] _ -> return ()
+           CA.ParseError ["demandInput"] _ _ -> return ()
            _ -> hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show e
       , Handler $ \e ->
          hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show (e :: SomeException)]
