@@ -1,4 +1,7 @@
 module Language.MessagePack.IDL.Desugar (
+  CoreDecl(..),
+  CoreMethod(..),
+  CoreType(..),
   desugar,
   ) where
 
