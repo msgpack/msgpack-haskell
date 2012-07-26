@@ -30,7 +30,7 @@
 module Network.MessagePackRpc.Client (
   -- * MPRPC type
   MPRPCT, MPRPC,
-  runMPRPCClient,
+  runClient,
 
   -- * Call RPC method
   call,
@@ -65,9 +65,9 @@ data Connection m
     , connCnt    :: !Int
     }
 
-runMPRPCClient :: (MonadIO m, MonadBaseControl IO m)
-                  => String -> Int -> MPRPCT m a -> m ()
-runMPRPCClient host port m = do
+runClient :: (MonadIO m, MonadBaseControl IO m)
+             => String -> Int -> MPRPCT m a -> m ()
+runClient host port m = do
   runTCPClient (ClientSettings port host) $ \src sink -> do
     (rsrc, _) <- src $$+ return ()
     void $ evalStateT (unMPRPCT m) (Connection rsrc sink 0)

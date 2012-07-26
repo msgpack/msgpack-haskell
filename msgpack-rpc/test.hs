@@ -8,20 +8,22 @@ import Network (withSocketsDo)
 import Network.MessagePackRpc.Server
 import Network.MessagePackRpc.Client
 
+port = 5000
+
 main :: IO ()
-main = hspec $ do
+main = withSocketsDo $ hspec $ do
   describe "add service" $ do
-    it "correct" $ withSocketsDo $ do
+    it "correct" $ do
       server `race_` client
 
 server :: IO ()
-server = serve 5000 [("add", fun add)]
+server = serve port [("add", fun add)]
   where
     add :: Int -> Int -> MethodT IO Int
     add x y = MethodT $ return $ x + y
 
 client :: IO ()
-client = runMPRPCClient "localhost" 5000 $ do
+client = runMPRPCClient "localhost" port $ do
   ret <- add 123 456
   liftIO $ ret `shouldBe` 123 + 456
   where

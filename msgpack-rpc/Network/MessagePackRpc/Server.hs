@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeFamilies, KindSignatures #-}
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -43,8 +42,6 @@ module Network.MessagePackRpc.Server (
   ) where
 
 import Control.Applicative
-import Control.Concurrent
-import Control.DeepSeq
 import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
