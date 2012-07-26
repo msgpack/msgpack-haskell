@@ -23,7 +23,7 @@ server = serve port [("add", fun add)]
     add x y = MethodT $ return $ x + y
 
 client :: IO ()
-client = runMPRPCClient "localhost" port $ do
+client = runClient "localhost" port $ do
   ret <- add 123 456
   liftIO $ ret `shouldBe` 123 + 456
   where

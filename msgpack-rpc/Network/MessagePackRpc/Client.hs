@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
-{-# LANGUAGE RankNTypes, FlexibleContexts #-}
+{-# LANGUAGE GADTs, FlexibleContexts #-}
 
 -------------------------------------------------------------------
 -- |
@@ -57,13 +57,17 @@ newtype MPRPCT m a
   = MPRPCT { unMPRPCT :: StateT (Connection m) m a }
   deriving (Monad, MonadIO, MonadThrow)
 
+-- It can't derive by newtype deriving...
+instance MonadTrans MPRPCT where
+  lift = MPRPCT . lift
+
 -- | RPC connection type
-data Connection m
-  = Connection
-    { connSource :: !(ResumableSource m S.ByteString)
-    , connSink   :: !(Sink S.ByteString m ())
-    , connCnt    :: !Int
-    }
+data Connection m where
+  Connection ::
+    !(ResumableSource m S.ByteString)
+    -> !(Sink S.ByteString m ())
+    -> !Int
+    -> Connection m
 
 runClient :: (MonadIO m, MonadBaseControl IO m)
              => String -> Int -> MPRPCT m a -> m ()

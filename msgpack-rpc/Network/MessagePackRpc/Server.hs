@@ -51,11 +51,7 @@ import Data.Conduit.Network
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.Attoparsec as CA
 import Data.Data
-import Data.Maybe
 import Data.MessagePack
-import System.IO
-
-import Prelude hiding (catch)
 
 type RpcMethod m = [Object] -> m Object
 
