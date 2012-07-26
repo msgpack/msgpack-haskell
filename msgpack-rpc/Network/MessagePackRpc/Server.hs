@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TypeFamilies, KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -------------------------------------------------------------------
@@ -71,19 +72,16 @@ instance Exception ServerError
 
 newtype MethodT m a = MethodT { unMethodT :: m a }
 
-class RpcMethodType f where
-  type BaseM f :: * -> *
-  toRpcMethod :: f -> RpcMethod (BaseM f)
+class RpcMethodType f m | f -> m where
+  toRpcMethod :: f -> RpcMethod m
 
 instance (MonadThrow m, MonadBaseControl IO m, OBJECT o)
-         => RpcMethodType (MethodT m o) where
-  type BaseM (MethodT m o) = m
+         => RpcMethodType (MethodT m o) m where
   toRpcMethod m ls = case ls of
     [] -> toObject <$> unMethodT m
     _ -> monadThrow $ ServerError "argument error"
 
-instance (OBJECT o, RpcMethodType r) => RpcMethodType (o -> r) where
-  type BaseM (o -> r) = BaseM r
+instance (OBJECT o, RpcMethodType r m) => RpcMethodType (o -> r) m where
   toRpcMethod f = \(x:xs) -> toRpcMethod (f $! fromObject' x) xs
 
 fromObject' :: OBJECT o => Object -> o
@@ -93,7 +91,7 @@ fromObject' o =
     Right r -> r
 
 -- | Create a RPC method from a Haskell function.
-fun :: RpcMethodType f => f -> RpcMethod (BaseM f)
+fun :: RpcMethodType f m => f -> RpcMethod m
 fun = toRpcMethod
 
 -- | Start RPC server with a set of RPC methods.
