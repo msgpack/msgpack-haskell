@@ -1,5 +1,5 @@
 name:                msgpack-rpc
-version:             0.7.1.2
+version:             0.8.0
 synopsis:            A MessagePack-RPC Implementation
 description:         A MessagePack-RPC Implementation <http://msgpack.org/>
 homepage:            http://msgpack.org/
@@ -13,28 +13,22 @@ stability:	     Experimental
 cabal-version:       >=1.8
 build-type:          Simple
 
-extra-source-files:  test/Serv.hs
-                     test/Cli.hs
-
 source-repository head
   type:              git
   location:          git://github.com/msgpack/msgpack-haskell.git
 
 library
-  build-depends:     base          == 4.*
-                   , bytestring    == 0.9.*
-                   , text          == 0.11.*
-                   , network       >= 2.2 && < 2.4
-                   , random        == 1.0.*
-                   , mtl           >= 2.0
-                   , monad-control >= 0.3
-                   , conduit       >= 0.5
-                   , network-conduit >= 0.5
+  build-depends:     base               == 4.*
+                   , bytestring         == 0.9.*
+                   , text               == 0.11.*
+                   , network            >= 2.2 && < 2.4
+                   , random             == 1.0.*
+                   , mtl                >= 2.0
+                   , monad-control      >= 0.3
+                   , conduit            >= 0.5
+                   , network-conduit    >= 0.5
                    , attoparsec-conduit >= 0.5
-                   , deepseq       >= 1.1 && < 1.4
-                   , msgpack       == 0.7.*
-
-  ghc-options:       -Wall
+                   , msgpack            == 0.7.*
 
   exposed-modules:   Network.MessagePackRpc.Server
                      Network.MessagePackRpc.Client
