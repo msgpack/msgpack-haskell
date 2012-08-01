@@ -32,11 +32,8 @@
 
 module Network.MessagePackRpc.Server (
   -- * RPC method types
-  RpcMethod,
-  RpcMethodType(..),
-  MethodT(..),
-  -- * Create RPC method
-  fun,
+  RpcMethod, MethodType(..),
+  MethodT(..), Method,
   -- * Start RPC server
   serve,
   ) where
@@ -63,29 +60,32 @@ data ServerError = ServerError String
 
 instance Exception ServerError
 
-newtype MethodT m a = MethodT { unMethodT :: m a }
+type Method = MethodT IO
 
-class RpcMethodType f m | f -> m where
-  toRpcMethod :: f -> RpcMethod m
+newtype MethodT m a = MethodT { unMethodT :: m a }
+  deriving (Functor, Applicative, Monad, MonadIO)
+
+instance MonadTrans MethodT where
+  lift = MethodT
+
+class MethodType f m | f -> m where
+  -- | Create a RPC method from a Hakell function
+  toMethod :: f -> RpcMethod m
 
 instance (MonadThrow m, MonadBaseControl IO m, OBJECT o)
-         => RpcMethodType (MethodT m o) m where
-  toRpcMethod m ls = case ls of
+         => MethodType (MethodT m o) m where
+  toMethod m ls = case ls of
     [] -> toObject <$> unMethodT m
     _ -> monadThrow $ ServerError "argument error"
 
-instance (OBJECT o, RpcMethodType r m) => RpcMethodType (o -> r) m where
-  toRpcMethod f = \(x:xs) -> toRpcMethod (f $! fromObject' x) xs
+instance (OBJECT o, MethodType r m) => MethodType (o -> r) m where
+  toMethod f = \(x:xs) -> toMethod (f $! fromObject' x) xs
 
 fromObject' :: OBJECT o => Object -> o
 fromObject' o =
   case tryFromObject o of
     Left err -> error $ "argument type error: " ++ err
     Right r -> r
-
--- | Create a RPC method from a Haskell function.
-fun :: RpcMethodType f m => f -> RpcMethod m
-fun = toRpcMethod
 
 -- | Start RPC server with a set of RPC methods.
 serve :: forall m . (MonadIO m, MonadThrow m, MonadBaseControl IO m)
@@ -100,7 +100,7 @@ serve port methods = runTCPServer (ServerSettings port "*") $ \src sink -> do
       (rsrc', res) <- rsrc $$++ do
         req <- CA.sinkParser get
         lift $ getResponse req
-      CB.sourceLbs (pack res) $$ sink
+      _ <- CB.sourceLbs (pack res) $$ sink
       processRequests rsrc' sink
 
     getResponse :: Request -> m Response
@@ -117,30 +117,3 @@ serve port methods = runTCPServer (ServerSettings port "*") $ \src sink -> do
           monadThrow $ ServerError $ "method '" ++ methodName ++ "' not found"
         Just method ->
           method args
-
-{-
-    processRequest h = do
-      (rtype, msgid, method, args) <- CA.sinkParser get
-      liftIO $ do
-        resp <- try $ getResponse rtype method args
-        case resp of
-          Left err ->
-            BL.hPutStr h $ pack (1 :: Int, msgid :: Int, show (err :: SomeException), ())
-          Right ret ->
-            BL.hPutStr h $ pack (1 :: Int, msgid :: Int, (), ret)
-        hFlush h
-
-    getResponse rtype method args = do
-      when (rtype /= (0 :: Int)) $
-        fail "request type is not 0"
-
-      r <- callMethod (method :: String) (args :: [Object])
-      r `deepseq` return r
-
-    callMethod methodName args =
-      case lookup methodName methods of
-        Nothing ->
-          fail $ "method '" ++ methodName ++ "' not found"
-        Just method ->
-          method args
--}

@@ -29,7 +29,7 @@
 
 module Network.MessagePackRpc.Client (
   -- * MPRPC type
-  MPRPCT, MPRPC,
+  ClientT, Client,
   runClient,
 
   -- * Call RPC method
@@ -51,15 +51,15 @@ import Data.Conduit.Network
 import Data.MessagePack as M
 import Data.Typeable
 
-type MPRPC = MPRPCT IO
+type Client = ClientT IO
 
-newtype MPRPCT m a
-  = MPRPCT { unMPRPCT :: StateT (Connection m) m a }
+newtype ClientT m a
+  = ClientT { unClientT :: StateT (Connection m) m a }
   deriving (Monad, MonadIO, MonadThrow)
 
 -- It can't derive by newtype deriving...
-instance MonadTrans MPRPCT where
-  lift = MPRPCT . lift
+instance MonadTrans ClientT where
+  lift = ClientT . lift
 
 -- | RPC connection type
 data Connection m where
@@ -70,11 +70,11 @@ data Connection m where
     -> Connection m
 
 runClient :: (MonadIO m, MonadBaseControl IO m)
-             => String -> Int -> MPRPCT m a -> m ()
+             => String -> Int -> ClientT m a -> m ()
 runClient host port m = do
   runTCPClient (ClientSettings port host) $ \src sink -> do
     (rsrc, _) <- src $$+ return ()
-    void $ evalStateT (unMPRPCT m) (Connection rsrc sink 0)
+    void $ evalStateT (unClientT m) (Connection rsrc sink 0)
 
 -- | RPC error type
 data RpcError
@@ -88,7 +88,7 @@ instance Exception RpcError
 class RpcType r where
   rpcc :: String -> [Object] -> r
 
-instance (MonadIO m, MonadThrow m, OBJECT o) => RpcType (MPRPCT m o) where
+instance (MonadIO m, MonadThrow m, OBJECT o) => RpcType (ClientT m o) where
   rpcc m args = do
     res <- rpcCall m (reverse args)
     case tryFromObject res of
@@ -98,8 +98,8 @@ instance (MonadIO m, MonadThrow m, OBJECT o) => RpcType (MPRPCT m o) where
 instance (OBJECT o, RpcType r) => RpcType (o -> r) where
   rpcc m args arg = rpcc m (toObject arg:args)
 
-rpcCall :: (MonadIO m, MonadThrow m) => String -> [Object] -> MPRPCT m Object
-rpcCall methodName args = MPRPCT $ do
+rpcCall :: (MonadIO m, MonadThrow m) => String -> [Object] -> ClientT m Object
+rpcCall methodName args = ClientT $ do
   Connection rsrc sink msgid <- CMS.get
   (rsrc', (rtype, rmsgid, rerror, rresult)) <- lift $ do
     CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
