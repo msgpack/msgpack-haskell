@@ -19,16 +19,17 @@
 --
 -- > import Network.MessagePackRpc.Client
 -- >
--- > add :: Int -> Int -> MPRPC Int
+-- > add :: Int -> Int -> Client Int
 -- > add = call "add"
 -- >
--- > main = runMPRPC "localhost" 5000 $ do
--- >   liftIO . print =<< add 123 456
+-- > main = runClient "localhost" 5000 $ do
+-- >   ret <- add 123 456
+-- >   liftIO $ print ret
 --
 --------------------------------------------------------------------
 
 module Network.MessagePackRpc.Client (
-  -- * MPRPC type
+  -- * MessagePack Client type
   ClientT, Client,
   runClient,
 

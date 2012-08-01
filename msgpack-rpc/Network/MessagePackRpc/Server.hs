@@ -7,7 +7,7 @@
 -------------------------------------------------------------------
 -- |
 -- Module    : Network.MessagePackRpc.Server
--- Copyright : (c) Hideyuki Tanaka, 2010
+-- Copyright : (c) Hideyuki Tanaka, 2010-2012
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com
@@ -22,11 +22,10 @@
 --
 -- > import Network.MessagePackRpc.Server
 -- >
--- > add :: Int -> Int -> IO Int
+-- > add :: Int -> Int -> Method Int
 -- > add x y = return $ x + y
 -- >
--- > main =
--- >   serve 1234 [("add", fun add)]
+-- > main = serve 1234 [("add", toMethod add)]
 --
 --------------------------------------------------------------------
 
