@@ -41,4 +41,4 @@ client = runClient "localhost" port $ do
     add = call "add"
 
     echo :: String -> Client String
-    echo = call "string"
+    echo = call "echo"
