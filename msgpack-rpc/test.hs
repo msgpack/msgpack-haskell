@@ -8,6 +8,7 @@ import Network (withSocketsDo)
 import Network.MessagePackRpc.Server
 import Network.MessagePackRpc.Client
 
+port :: Int
 port = 5000
 
 main :: IO ()
