@@ -42,12 +42,10 @@ generate Config {..} spec = do
   LT.writeFile (name ++ "_server.tmpl.erl") $ templ configFilePath once "SERVER" [lt|
 
 -module(#{name}_server).
--author(@msgpack-idl).
+-author('@msgpack-idl').
 
 -include("#{headerFile}").
--behaviour(gen_msgpack_rpc_srv).
 
--record(state, {}).
 #{LT.concat $ map genServer spec}
 |]
 
@@ -57,7 +55,7 @@ generate Config {..} spec = do
 -author('@msgpack-idl').
 
 -include("#{headerFile}").
--export([connect/3, connect/4, close/0, close/1]).
+-export([connect/3, close/1]).
 
 #{LT.concat $ map genClient spec}
 |]
@@ -91,14 +89,14 @@ sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->
   find ((==ix). fldId) flds
 
-makeExport Function {..} = [lt|#{methodName}/#{show $ length methodArgs}|]
-makeExport _ = ""
+makeExport i Function {..} = [lt|#{methodName}/#{show $ i + length methodArgs}|]
+makeExport _ _ = ""
 
 
 genServer :: Decl -> LT.Text
 genServer MPService {..} = [lt|
 
--export([#{LT.intercalate ", " $ map makeExport serviceMethods}]).
+-export([#{LT.intercalate ", " $ map (makeExport 0) serviceMethods}]).
 
 #{LT.concat $ map genSetMethod serviceMethods}
 
@@ -113,8 +111,8 @@ genServer MPService {..} = [lt|
       in [lt|
 -spec #{methodName}(#{LT.intercalate ", " typs}) -> #{genType methodRetType}.
 #{methodName}(#{LT.intercalate ", " args}) ->
-  Reply = ok,  % write your code here
-  {reply, Reply}.
+  Reply = <<"ok">>,  % write your code here
+  Reply.
 |]
     genSetMethod _ = ""
 
@@ -123,19 +121,15 @@ genServer _ = ""
 genClient :: Decl -> LT.Text
 genClient MPService {..} = [lt|
 
--export([#{LT.intercalate ", " $ map makeExport serviceMethods}]).  
-  
+-export([#{LT.intercalate ", " $ map (makeExport 1) serviceMethods}]).
+
+-spec connect(inet:ip_address(), inet:port_number(), [proplists:property()]) -> {ok, pid()} | {error, any()}.
 connect(Host,Port,Options)->
-    connect(?MODULE ,Host,Port,Options).
+    msgpack_rpc_client:connect(tcp,Host,Port,Options).
 
-connect(Id, Host,Port,Options)->
-    gen_msgpack_rpc:start_link({local,Id},?MODULE,Host,Port,Options).
-
-close(Id)->
-    gen_msgpack_rpc:stop(Id).
-
-close()->
-    gen_msgpack_rpc:stop(?MODULE).
+-spec close(pid())-> ok.
+close(Pid)->
+    msgpack_rpc_client:close(Pid).
 
 #{LT.concat $ map genMethodCall serviceMethods}
 |]
@@ -146,9 +140,9 @@ close()->
           f Field {..} = [lt|#{capitalize0 fldName}|]
           capitalize0 str = T.cons (toUpper $ T.head str) (T.tail str)
       in [lt|
--spec #{methodName}(#{LT.intercalate ", " typs}) -> #{genType methodRetType}.
-#{methodName}(#{LT.intercalate ", " args}) ->
-    gen_msgpack_rpc:call(?MODULE, #{methodName}, [#{LT.intercalate ", " args}]).
+-spec #{methodName}(pid(), #{LT.intercalate ", " typs}) -> #{genType methodRetType}.
+#{methodName}(Pid, #{LT.intercalate ", " args}) ->
+    msgpack_rpc_client:call(Pid, #{methodName}, [#{LT.intercalate ", " args}]).
 |]
     where
       arg Field {..} = [lt|#{genType fldType} #{fldName}|]
@@ -187,8 +181,5 @@ genType TVoid =
 templ :: FilePath -> String -> String -> LT.Text -> LT.Text
 templ filepath once name content = [lt|
 % This file is auto-generated from #{filepath}
-% *** DO NOT EDIT ***
 
-#{content}
-
-|]
+#{content}|]
