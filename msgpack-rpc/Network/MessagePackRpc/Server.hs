@@ -1,7 +1,13 @@
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -------------------------------------------------------------------
 -- |
 -- Module    : Network.MessagePackRpc.Server
--- Copyright : (c) Hideyuki Tanaka, 2010
+-- Copyright : (c) Hideyuki Tanaka, 2010-2012
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com
@@ -9,57 +15,70 @@
 -- Portability: portable
 --
 -- This module is server library of MessagePack-RPC.
--- The specification of MessagePack-RPC is at <http://redmine.msgpack.org/projects/msgpack/wiki/RPCProtocolSpec>.
+-- The specification of MessagePack-RPC is at
+-- <http://redmine.msgpack.org/projects/msgpack/wiki/RPCProtocolSpec>.
 --
 -- A simple example:
 --
--- >import Network.MessagePackRpc.Server
+-- > import Network.MessagePackRpc.Server
 -- >
--- >add :: Int -> Int -> IO Int
--- >add x y = return $ x + y
+-- > add :: Int -> Int -> Method Int
+-- > add x y = return $ x + y
 -- >
--- >main =
--- >  serve 1234 [("add", fun add)]
+-- > main = serve 1234 [("add", toMethod add)]
 --
 --------------------------------------------------------------------
 
 module Network.MessagePackRpc.Server (
   -- * RPC method types
-  RpcMethod,
-  RpcMethodType(..),
-  -- * Create RPC method
-  fun,
+  RpcMethod, MethodType(..),
+  MethodT(..), Method,
   -- * Start RPC server
   serve,
   ) where
 
 import Control.Applicative
-import Control.Concurrent
-import Control.DeepSeq
 import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Conduit as C
+import Control.Monad.Trans.Control
+import Data.Conduit
+import Data.Conduit.Network
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.Attoparsec as CA
-import Data.Maybe
+import Data.Data
 import Data.MessagePack
-import Network
-import System.IO
 
-import Prelude hiding (catch)
+type RpcMethod m = [Object] -> m Object
 
-type RpcMethod = [Object] -> IO Object
+type Request  = (Int, Int, String, [Object])
+type Response = (Int, Int, Object, Object)
 
-class RpcMethodType f where
-  toRpcMethod :: f -> RpcMethod
+data ServerError = ServerError String
+  deriving (Show, Typeable)
 
-instance OBJECT o => RpcMethodType (IO o) where
-  toRpcMethod m = \[] -> toObject <$> m
+instance Exception ServerError
 
-instance (OBJECT o, RpcMethodType r) => RpcMethodType (o -> r) where
-  toRpcMethod f = \(x:xs) -> toRpcMethod (f $! fromObject' x) xs
+type Method = MethodT IO
+
+newtype MethodT m a = MethodT { unMethodT :: m a }
+  deriving (Functor, Applicative, Monad, MonadIO)
+
+instance MonadTrans MethodT where
+  lift = MethodT
+
+class MethodType f m | f -> m where
+  -- | Create a RPC method from a Hakell function
+  toMethod :: f -> RpcMethod m
+
+instance (MonadThrow m, MonadBaseControl IO m, OBJECT o)
+         => MethodType (MethodT m o) m where
+  toMethod m ls = case ls of
+    [] -> toObject <$> unMethodT m
+    _ -> monadThrow $ ServerError "argument error"
+
+instance (OBJECT o, MethodType r m) => MethodType (o -> r) m where
+  toMethod f = \(x:xs) -> toMethod (f $! fromObject' x) xs
 
 fromObject' :: OBJECT o => Object -> o
 fromObject' o =
@@ -67,52 +86,33 @@ fromObject' o =
     Left err -> error $ "argument type error: " ++ err
     Right r -> r
 
--- | Create a RPC method from a Haskell function.
-fun :: RpcMethodType f => f -> RpcMethod
-fun = toRpcMethod
-
 -- | Start RPC server with a set of RPC methods.
-serve :: Int -- ^ Port number
-         -> [(String, RpcMethod)] -- ^ list of (method name, RPC method)
-         -> IO ()
-serve port methods = withSocketsDo $ do
-  sock <- listenOn (PortNumber $ fromIntegral port)
-  forever $ do
-    (h, host, hostport) <- accept sock
-    forkIO $
-      (processRequests h `finally` hClose h) `catches`
-      [ Handler $ \e ->
-         case e of
-           CA.ParseError ["demandInput"] _ -> return ()
-           _ -> hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show e
-      , Handler $ \e ->
-         hPutStrLn stderr $ host ++ ":" ++ show hostport ++ ": " ++ show (e :: SomeException)]
-
+serve :: forall m . (MonadIO m, MonadThrow m, MonadBaseControl IO m)
+         => Int                     -- ^ Port number
+         -> [(String, RpcMethod m)] -- ^ list of (method name, RPC method)
+         -> m ()
+serve port methods = runTCPServer (ServerSettings port "*") $ \src sink -> do
+  (rsrc, _) <- src $$+ return ()
+  processRequests rsrc sink
   where
-    processRequests h =
-      C.runResourceT $ CB.sourceHandle h C.$$ forever $ processRequest h
-    
-    processRequest h = do
-      (rtype, msgid, method, args) <- CA.sinkParser get
-      liftIO $ do
-        resp <- try $ getResponse rtype method args
-        case resp of
-          Left err ->
-            BL.hPutStr h $ pack (1 :: Int, msgid :: Int, show (err :: SomeException), ())
-          Right ret ->
-            BL.hPutStr h $ pack (1 :: Int, msgid :: Int, (), ret)
-        hFlush h
+    processRequests rsrc sink = do
+      (rsrc', res) <- rsrc $$++ do
+        req <- CA.sinkParser get
+        lift $ getResponse req
+      _ <- CB.sourceLbs (pack res) $$ sink
+      processRequests rsrc' sink
 
-    getResponse rtype method args = do
-      when (rtype /= (0 :: Int)) $
-        fail "request type is not 0"
-      
-      r <- callMethod (method :: String) (args :: [Object])
-      r `deepseq` return r
-    
+    getResponse :: Request -> m Response
+    getResponse (rtype, msgid, methodName, args) = do
+      when (rtype /= 0) $
+        monadThrow $ ServerError $ "request type is not 0, got " ++ show rtype
+      ret <- callMethod methodName args
+      return (1, msgid, toObject (), ret)
+
+    callMethod :: String -> [Object] -> m Object
     callMethod methodName args =
       case lookup methodName methods of
         Nothing ->
-          fail $ "method '" ++ methodName ++ "' not found"
+          monadThrow $ ServerError $ "method '" ++ methodName ++ "' not found"
         Just method ->
           method args

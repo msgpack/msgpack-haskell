@@ -1,38 +1,46 @@
-Name:                msgpack-rpc
-Version:             0.7.1.1
-Synopsis:            A MessagePack-RPC Implementation
-Description:         A MessagePack-RPC Implementation <http://msgpack.org/>
-Homepage:            http://msgpack.org/
-License:             BSD3
-License-file:        LICENSE
-Author:              Hideyuki Tanaka
-Maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
-Copyright:           Copyright (c) 2010-2012, Hideyuki Tanaka
-Category:            Network
-Stability:	     Experimental
-Cabal-version:       >=1.8
-Build-type:          Simple
+name:                msgpack-rpc
+version:             0.8.0
+synopsis:            A MessagePack-RPC Implementation
+description:         A MessagePack-RPC Implementation <http://msgpack.org/>
+homepage:            http://msgpack.org/
+license:             BSD3
+license-file:        LICENSE
+author:              Hideyuki Tanaka
+maintainer:          Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
+copyright:           (c) 2010-2012, Hideyuki Tanaka
+category:            Network
+stability:	     Experimental
+cabal-version:       >=1.8
+build-type:          Simple
 
-Extra-source-files:  test/Serv.hs
-                     test/Cli.hs
+source-repository head
+  type:              git
+  location:          git://github.com/msgpack/msgpack-haskell.git
 
-Library
-  Build-depends:     base         == 4.*
-                   , bytestring   == 0.9.*
-                   , text         == 0.11.*
-                   , network      >= 2.2 && < 2.4
-                   , random       == 1.0.*
-                   , mtl          == 2.0.*
-                   , conduit      >= 0.2 && < 0.5
-                   , attoparsec-conduit
-                   , deepseq      >= 1.1 && < 1.4
-                   , msgpack      == 0.7.*
+library
+  build-depends:     base               == 4.*
+                   , bytestring         == 0.9.*
+                   , text               == 0.11.*
+                   , network            >= 2.2 && < 2.4
+                   , random             == 1.0.*
+                   , mtl                >= 2.0
+                   , monad-control      >= 0.3
+                   , conduit            >= 0.5
+                   , network-conduit    >= 0.5
+                   , attoparsec-conduit >= 0.5
+                   , msgpack            == 0.7.*
 
-  Ghc-options:       -Wall
-
-  Exposed-modules:   Network.MessagePackRpc.Server
+  exposed-modules:   Network.MessagePackRpc.Server
                      Network.MessagePackRpc.Client
 
-Source-repository head
-  Type:              git
-  Location:          git://github.com/msgpack/msgpack-haskell.git
+test-suite msgpack-rpc-test
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    dist
+  main-is:           ../test.hs
+
+  build-depends:     base
+                   , mtl
+                   , network
+                   , async >= 2.0
+                   , hspec >= 1.3
+                   , msgpack-rpc
