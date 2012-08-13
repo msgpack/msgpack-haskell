@@ -54,7 +54,7 @@ executable mpidl
 
   build-depends:       base      == 4.*
                      , directory >= 1.0 && < 1.2
-                     , cmdargs   == 0.9.*
+                     , cmdargs   == 0.10.*
                      , peggy     == 0.3.*
                      , msgpack-idl
 
