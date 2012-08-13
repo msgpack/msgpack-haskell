@@ -27,7 +27,7 @@ generate Config {..} spec = do
       once = map toUpper name
 
       headerFile = name ++ "_types.hrl"
-  
+
   LT.writeFile (headerFile) $ templ configFilePath once "TYPES" [lt|
 -ifndef(#{once}).
 -define(#{once}, 1).
@@ -66,7 +66,7 @@ genTypeDecl _ MPMessage {..} =
 
 genTypeDecl _ MPException {..} =
   genMsg excName excFields True
-  
+
 genTypeDecl _ MPType { .. } =
   [lt|
 -type #{tyName}() :: #{genType tyType}.
@@ -89,7 +89,9 @@ sortField flds =
   flip map [0 .. maximum $ [-1] ++ map fldId flds] $ \ix ->
   find ((==ix). fldId) flds
 
-makeExport i Function {..} = [lt|#{methodName}/#{show $ i + length methodArgs}|]
+makeExport i Function {..} =
+  let j = i + length methodArgs in
+  [lt|#{methodName}/#{show j}|]
 makeExport _ _ = ""
 
 
