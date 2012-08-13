@@ -64,7 +64,7 @@ generate Config {..} spec = do
 #{genNameSpace (snoc ns "server") $ LT.concat $ map (genServer configPFICommon) spec}
 |]
 
-  LT.writeFile (name ++ "_client.hpp") [lt|
+  LT.writeFile (name ++ "_client.hpp") $ templ configFilePath once "CLIENT" [lt|
 #include "#{name}_types.hpp"
 #{clientHeader}
 
