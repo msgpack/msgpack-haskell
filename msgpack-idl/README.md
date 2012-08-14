@@ -36,7 +36,7 @@ Common flags:
 message UserInfo {
   1: int uid
   2: string name
-  3: optional int flags = 1
+  3: int? flags = 1
 }
 
 enum Sites {
