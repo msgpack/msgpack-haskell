@@ -30,13 +30,13 @@ generate Config {..} spec = do
   setCurrentDirectory (takeBaseName configFilePath);
   let
         mods = LT.splitOn "::" $ LT.pack configModule
-        
+
   LT.writeFile "types.rb" $ [lt|
 require 'rubygems'
 require 'msgpack/rpc'
 #{genModule mods $ LT.concat $ map (genTypeDecl "") spec }
 |]
-  
+
   LT.writeFile ("client.rb") $ templ configFilePath [lt|
 require 'rubygems'
 require 'msgpack/rpc'
@@ -61,7 +61,7 @@ genTypeDecl _ MPMessage {..} =
 
 genTypeDecl _ MPException {..} =
   genMsg excName excFields True
-  
+
 genTypeDecl _ _ = ""
 
 genMsg :: T.Text -> [Field] -> Bool -> LT.Text
@@ -70,7 +70,7 @@ class #{capitalizeT name}#{deriveError}
   def initialize(#{T.intercalate ", " fs})
     #{LT.intercalate "\n    " $ map makeSubst fs}
   end
-  def to_tuple    
+  def to_tuple
     [#{LT.intercalate ",\n     " $ map make_tuple flds}]
   end
   def to_msgpack(out = '')
@@ -88,7 +88,7 @@ end
     sorted_flds = sortField flds
     fs = map (maybe undefined fldName) sorted_flds
 --    afs = LT.intercalate ",\n     " $ map make_tuple flds
-    make_tuple Field {..} = 
+    make_tuple Field {..} =
       [lt|#{toTuple True fldType fldName}|]
     deriveError = if isExc then [lt| < StandardError|] else ""
     make_arg Field {..} =
@@ -99,7 +99,7 @@ makeSubst :: T.Text -> LT.Text
 makeSubst fld = [lt| @#{fld} = #{fld} |]
 
 toTuple :: Bool -> Type -> T.Text -> LT.Text
-toTuple _ (TTuple ts) name = 
+toTuple _ (TTuple ts) name =
   let elems = map (f name) (zip [0..] ts) in
   [lt| [#{LT.concat elems}] |]
     where
@@ -130,7 +130,7 @@ fromTuple TRaw name          = [lt|#{name}|]
 fromTuple TString name       = [lt|#{name}|]
 fromTuple (TList typ) name =
   [lt|#{name}.map { |x| #{fromTuple typ "x"} }|]
-  
+
 fromTuple (TMap typ1 typ2) name =
   [lt|#{name}.each_with_object({}) {|(k,v),h| h[#{fromTuple typ1 "k"}] = #{fromTuple typ2 "v"} }|]
 

@@ -51,7 +51,7 @@ public class Tuple<T, U> {
 |]
 
 genImport :: FilePath -> Decl -> LT.Text
-genImport packageName MPMessage {..} = 
+genImport packageName MPMessage {..} =
     [lt|import #{packageName}.#{formatClassNameT msgName};
 |]
 genImport _ _ = ""
@@ -89,7 +89,7 @@ resolveFieldAlias :: [(T.Text, Type)] -> Field -> Field
 resolveFieldAlias alias Field {..} = Field fldId (resolveTypeAlias alias fldType) fldName fldDefault
 
 resolveTypeAlias :: [(T.Text, Type)] -> Type -> Type
-resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in 
+resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in
                            case ty of
                              TNullable t ->
                                  TNullable $ fixedAlias t
@@ -100,7 +100,7 @@ resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in
                              TTuple ts ->
                                  TTuple $ map fixedAlias ts
                              TUserDef className params ->
-                                 case lookup className alias of 
+                                 case lookup className alias of
                                    Just resolvedType -> resolvedType
                                    Nothing -> TUserDef className (map fixedAlias params)
                              otherwise -> ty
@@ -111,7 +111,7 @@ genInit Field {..} = case fldDefault of
                       Just defaultVal -> [lt| #{fldName} = #{genLiteral defaultVal};|]
 
 genDecl :: Field -> LT.Text
-genDecl Field {..} = 
+genDecl Field {..} =
     [lt|  public #{genType fldType} #{fldName};
 |]
 
@@ -130,13 +130,13 @@ public class #{formatClassNameT excName} #{params}{
 |]
   where
     params = if null excParam then "" else [lt|<#{T.intercalate ", " excParam}>|]
-    super = case excSuper of 
+    super = case excSuper of
               Just x -> [st|extends #{x}|]
               Nothing -> ""
 genException _ _ = return ()
 
 genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
-genClient alias Config {..} MPService {..} = do 
+genClient alias Config {..} MPService {..} = do
   let resolvedServiceMethods = map (resolveMethodAlias alias) serviceMethods
       hashMapImport | not $ null [() | TMap _ _ <- map methodRetType resolvedServiceMethods ] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
@@ -188,7 +188,7 @@ public class #{className} {
 genClient _ _ _ = return ()
 
 genSignature :: Method -> LT.Text
-genSignature Function {..} = 
+genSignature Function {..} =
     [lt|    #{genType methodRetType} #{methodName}(#{args});
 |]
     where
@@ -208,8 +208,8 @@ pack fields converter=
       dic = zip ixs [0..]
       m = maximum (-1 :ixs)
       sortedIxs = [ lookup ix dic | ix <- [0..m]] :: [Maybe Int] in
-  map (\sIx -> case sIx of 
-                 Nothing -> converter Nothing 
+  map (\sIx -> case sIx of
+                 Nothing -> converter Nothing
                  Just i  -> converter $ Just (fields!!i) ) sortedIxs
 
 genVal :: Maybe Field -> T.Text
@@ -233,7 +233,7 @@ genLiteral LNull = [lt|null|]
 genLiteral (LString s) = [lt|#{show s}|]
 
 associateBracket :: [LT.Text] -> LT.Text
-associateBracket msgParam = 
+associateBracket msgParam =
   if null msgParam then "" else [lt|<#{LT.intercalate ", " msgParam}>|]
 
 
@@ -269,8 +269,8 @@ genType TVoid =
   [lt|void|]
 
 genTypeWithContext :: Spec -> Type -> LT.Text
-genTypeWithContext spec t = case t of 
-                              (TUserDef className params) -> 
+genTypeWithContext spec t = case t of
+                              (TUserDef className params) ->
                                   case lookup className $ map genAlias $ filter isMPType spec of
                                     Just x -> genType x
                                     Nothing -> ""

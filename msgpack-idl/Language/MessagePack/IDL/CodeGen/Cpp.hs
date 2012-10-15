@@ -45,7 +45,7 @@ generate Config {..} spec = do
           [lt|#include <pficommon/network/mprpc.h>|]
         | otherwise =
           [lt|#include <msgpack/rpc/client.h>|]
-  
+
   LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
 #include <vector>
 #include <map>
@@ -77,7 +77,7 @@ genTypeDecl _ MPMessage {..} =
 
 genTypeDecl _ MPException {..} =
   genMsg excName excFields True
-  
+
 genTypeDecl _ MPType { .. } =
   [lt|
 typedef #{genType tyType} #{tyName};
@@ -93,7 +93,7 @@ struct #{name}#{e} {
 public:
 
   #{destructor}
-  MSGPACK_DEFINE(#{T.intercalate ", " fs});  
+  MSGPACK_DEFINE(#{T.intercalate ", " fs});
 #{LT.concat fields}
 };
 |]
