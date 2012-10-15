@@ -1,4 +1,6 @@
-import Control.Applicative
+{-# LANGUAGE OverloadedStrings #-}
+
+import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Monad.Trans
 
@@ -15,7 +17,7 @@ main :: IO ()
 main = withSocketsDo $ hspec $ do
   describe "add service" $ do
     it "correct" $ do
-      server `race_` client
+      server `race_` (threadDelay 1000 >> client)
 
 server :: IO ()
 server =

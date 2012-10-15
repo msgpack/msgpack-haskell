@@ -71,11 +71,11 @@ data Connection m where
     -> Connection m
 
 runClient :: (MonadIO m, MonadBaseControl IO m)
-             => String -> Int -> ClientT m a -> m ()
+             => S.ByteString -> Int -> ClientT m a -> m ()
 runClient host port m = do
-  runTCPClient (ClientSettings port host) $ \src sink -> do
-    (rsrc, _) <- src $$+ return ()
-    void $ evalStateT (unClientT m) (Connection rsrc sink 0)
+  runTCPClient (clientSettings port host) $ \ad -> do
+    (rsrc, _) <- appSource ad $$+ return ()
+    void $ evalStateT (unClientT m) (Connection rsrc (appSink ad) 0)
 
 -- | RPC error type
 data RpcError

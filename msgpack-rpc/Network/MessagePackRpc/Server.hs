@@ -91,9 +91,9 @@ serve :: forall m . (MonadIO m, MonadThrow m, MonadBaseControl IO m)
          => Int                     -- ^ Port number
          -> [(String, RpcMethod m)] -- ^ list of (method name, RPC method)
          -> m ()
-serve port methods = runTCPServer (ServerSettings port "*") $ \src sink -> do
-  (rsrc, _) <- src $$+ return ()
-  processRequests rsrc sink
+serve port methods = runTCPServer (serverSettings port "*") $ \ad -> do
+  (rsrc, _) <- appSource ad $$+ return ()
+  processRequests rsrc (appSink ad)
   where
     processRequests rsrc sink = do
       (rsrc', res) <- rsrc $$++ do
