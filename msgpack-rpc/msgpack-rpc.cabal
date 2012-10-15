@@ -1,5 +1,5 @@
 name:                msgpack-rpc
-version:             0.8.0
+version:             0.9.0
 synopsis:            A MessagePack-RPC Implementation
 description:         A MessagePack-RPC Implementation <http://msgpack.org/>
 homepage:            http://msgpack.org/
