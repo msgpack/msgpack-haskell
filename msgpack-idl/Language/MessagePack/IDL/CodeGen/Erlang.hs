@@ -105,13 +105,13 @@ genServer MPService {..} = [lt|
 |]
   where
     genSetMethod Function {..} =
-      let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs
+      let typs = map (genRetType . maybe Nothing (Just . fldType)) $ sortField methodArgs
           args = map f methodArgs
           f Field {..} = [lt|#{capitalize0 fldName}|]
           capitalize0 str = T.cons (toUpper $ T.head str) (T.tail str)
 
       in [lt|
--spec #{methodName}(#{LT.intercalate ", " typs}) -> #{genType methodRetType}.
+-spec #{methodName}(#{LT.intercalate ", " typs}) -> #{genRetType methodRetType}.
 #{methodName}(#{LT.intercalate ", " args}) ->
   Reply = <<"ok">>,  % write your code here
   Reply.
@@ -137,12 +137,12 @@ close(Pid)->
 |]
   where
   genMethodCall Function {..} =
-      let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs
+      let typs = map (genRetType . maybe Nothing (Just . fldType)) $ sortField methodArgs
           args = map f methodArgs
           f Field {..} = [lt|#{capitalize0 fldName}|]
           capitalize0 str = T.cons (toUpper $ T.head str) (T.tail str)
       in [lt|
--spec #{methodName}(pid(), #{LT.intercalate ", " typs}) -> #{genType methodRetType}.
+-spec #{methodName}(pid(), #{LT.intercalate ", " typs}) -> #{genRetType methodRetType}.
 #{methodName}(Pid, #{LT.intercalate ", " args}) ->
     msgpack_rpc_client:call(Pid, #{methodName}, [#{LT.intercalate ", " args}]).
 |]
@@ -177,8 +177,10 @@ genType (TTuple ts) =
   foldr1 (\t1 t2 -> [lt|{#{t1}, #{t2}}|]) $ map genType ts
 genType TObject =
   [lt|term()|]
-genType TVoid =
-  [lt|void()|]
+
+genRetType :: Maybe Type -> LT.Text
+genRetType Nothing = [lt|void()|]
+genRetType (Just t) = genType t
 
 templ :: FilePath -> String -> String -> LT.Text -> LT.Text
 templ filepath once name content = [lt|
