@@ -67,7 +67,7 @@ newtype #{monadName} m a
     monadName = classize (serviceName) `mappend` "T"
     genMethod Function {..} =
       let ts = map (genType . fldType) methodArgs in
-      let typs = ts ++ [ [lt|#{monadName} (#{genType methodRetType})|] ] in
+      let typs = ts ++ [ [lt|#{monadName} (#{genRetType methodRetType})|] ] in
       [lt|
 #{methodize methodName} :: #{LT.intercalate " -> " typs}
 #{methodize methodName} = MP.method "#{methodName}"
@@ -119,8 +119,10 @@ genType (TUserDef name params) =
   [lt|#{classize name}|]
 genType (TObject) =
   undefined
-genType (TVoid) =
-  [lt|()|]
+
+genRetType :: Maybe Type -> LT.Text
+genRetType Nothing = "()"
+genRetType (Just t) = genType t
 
 classize :: T.Text -> T.Text
 classize = capital . camelize
@@ -198,9 +200,6 @@ genType (TClass name) =
 
 genType (TTuple typs) =
   foldl appT (tupleT (length typs)) (map genType typs)
-
-genType TVoid =
-  tupleT 0
 
 capital (c:cs) = toUpper c : cs
 capital cs = cs

@@ -145,7 +145,6 @@ fromTuple (TTuple ts) name =
       f n (i, _) = [lt|#{n}[#{show i}] |]
 
 fromTuple (TObject) name = [lt|#{name}|]
-fromTuple TVoid _ = ""
 
 capitalizeT :: T.Text -> T.Text
 capitalizeT a = T.cons (toUpper $ T.head a) (T.tail a)
@@ -262,8 +261,8 @@ genConvertingType unpacked _ (TUserDef t _) = [lt|
 #{capitalizeT t}.from_tuple(#{unpacked})|]
 genConvertingType _ _ _ = ""
 
-genConvertingType' :: LT.Text -> LT.Text -> Type -> LT.Text
-genConvertingType' unpacked v (TUserDef t p) = [lt|
+genConvertingType' :: LT.Text -> LT.Text -> Maybe Type -> LT.Text
+genConvertingType' unpacked v (Just (TUserDef t p)) = [lt|
 #{genConvertingType unpacked v (TUserDef t p)}
 |]
 genConvertingType' unpacked _ _ = [lt|#{unpacked}|]

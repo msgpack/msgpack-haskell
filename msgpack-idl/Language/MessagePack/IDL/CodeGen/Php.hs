@@ -134,15 +134,15 @@ class #{serviceName} {
     let args = LT.intercalate ", " $ map arg methodArgs in
     let sortedArgs = LT.intercalate ", " $ map (maybe undefined arg) $ sortField methodArgs in
     case methodRetType of
-      TVoid -> [lt|
+      Nothing -> [lt|
   public function #{methodName}(#{args}) {
     $this->client->call("#{methodName}", array(#{sortedArgs}));
   }
 |]
-      _ -> [lt|
+      Just typ -> [lt|
   public function #{methodName}(#{args}) {
     $ret = $this->client->call("#{methodName}", array(#{sortedArgs}));
-    $type_array = #{genTypeArray methodRetType};
+    $type_array = #{genTypeArray typ};
     return ObjectDecoder::decodeToObject($ret, $type_array);
   }
 |]
