@@ -131,12 +131,12 @@ public:
   where
   genMethodDispatch Function {..} =
     -- TODO: FIX IT!
-    let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs in
+    let typs = map (genRetType . maybe Nothing (Just . fldType)) $ sortField methodArgs in
     let params = map g methodArgs in
     case params of
       [] -> [lt|
       if (method == "#{methodName}") {
-        req.result<#{genType methodRetType} >(static_cast<Impl*>(this)->#{methodName}());
+        req.result<#{genRetType methodRetType} >(static_cast<Impl*>(this)->#{methodName}());
         return;
       }
 |]
@@ -144,7 +144,7 @@ public:
       if (method == "#{methodName}") {
         msgpack::type::tuple<#{LT.intercalate ", " typs} > params;
         req.params().convert(&params);
-        req.result<#{genType methodRetType} >(static_cast<Impl*>(this)->#{methodName}(#{LT.intercalate ", " params}));
+        req.result<#{genRetType methodRetType} >(static_cast<Impl*>(this)->#{methodName}(#{LT.intercalate ", " params}));
         return;
       }
 |]
@@ -164,8 +164,8 @@ public:
 |]
   where
     genSetMethod Function {..} =
-      let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs
-          sign = [lt|#{genType methodRetType}(#{LT.intercalate ", " typs})|]
+      let typs = map (genRetType . maybe Nothing (Just . fldType)) $ sortField methodArgs
+          sign = [lt|#{genRetType methodRetType}(#{LT.intercalate ", " typs})|]
           phs  = LT.concat $ [[lt|, pfi::lang::_#{show ix}|] | ix <- [1 .. length (typs)]]
       in [lt|
     rpc_server::add<#{sign} >("#{methodName}", pfi::lang::bind(&Impl::#{methodName}, static_cast<Impl*>(this)#{phs}));|]
@@ -190,14 +190,14 @@ private:
     let args = LT.intercalate ", " $ map arg methodArgs in
     let vals = LT.concat $ map val methodArgs in
     case methodRetType of
-      TVoid -> [lt|
+      Nothing -> [lt|
     void #{methodName}(#{args}) {
       c_.call("#{methodName}"#{vals});
     }
 |]
-      _ -> [lt|
-    #{genType methodRetType} #{methodName}(#{args}) {
-      return c_.call("#{methodName}"#{vals}).get<#{genType methodRetType} >();
+      Just typ -> [lt|
+    #{genType typ} #{methodName}(#{args}) {
+      return c_.call("#{methodName}"#{vals}).get<#{genType typ} >();
     }
 |]
     where
@@ -217,18 +217,18 @@ private:
 |]
   where
   genMethodCall Function {..} =
-    let typs = map (genType . maybe TVoid fldType) $ sortField methodArgs
-        sign = [lt|#{genType methodRetType}(#{LT.intercalate ", " typs})|]
+    let typs = map (genRetType . maybe Nothing (\f -> Just (fldType f))) $ sortField methodArgs
+        sign = [lt|#{genRetType methodRetType}(#{LT.intercalate ", " typs})|]
         args = LT.intercalate ", " $ map arg methodArgs
         vals = LT.intercalate ", " $ map val methodArgs in
     case methodRetType of
-      TVoid -> [lt|
+      Nothing -> [lt|
     void #{methodName}(#{args}) {
       call<#{sign}>("#{methodName}")(#{vals});
     }
 |]
-      _ -> [lt|
-    #{genType methodRetType} #{methodName}(#{args}) {
+      Just t -> [lt|
+    #{genType t} #{methodName}(#{args}) {
       return call<#{sign}>("#{methodName}")(#{vals});
     }
 |]
@@ -265,8 +265,10 @@ genType (TTuple ts) =
   foldr1 (\t1 t2 -> [lt|std::pair<#{t1}, #{t2} >|]) $ map genType ts
 genType TObject =
   [lt|msgpack::object|]
-genType TVoid =
-  [lt|void|]
+
+genRetType :: Maybe Type -> LT.Text
+genRetType Nothing = [lt|void|]
+genRetType (Just t) = genType t
 
 templ :: FilePath -> String -> String -> LT.Text -> LT.Text
 templ filepath once name content = [lt|

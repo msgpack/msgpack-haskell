@@ -90,15 +90,15 @@ public class #{formatClassNameT msgName} #{params} {
 genStruct _ _ _ = return ()
 
 resolveMethodAlias :: [(T.Text, Type)] -> Method -> Method
-resolveMethodAlias alias Function {..}  = Function methodInherit methodName (resolveTypeAlias alias methodRetType) (map (resolveFieldAlias alias) methodArgs)
+resolveMethodAlias alias Function {..}  = Function methodInherit methodName (resolveRetTypeAlias alias methodRetType) (map (resolveFieldAlias alias) methodArgs)
 resolveMethodAlias _ f = f
 
 resolveFieldAlias :: [(T.Text, Type)] -> Field -> Field
 resolveFieldAlias alias Field {..} = Field fldId (resolveTypeAlias alias fldType) fldName fldDefault
 
 resolveTypeAlias :: [(T.Text, Type)] -> Type -> Type
-resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in 
-                           case ty of
+resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in
+                            case ty of
                              TNullable t ->
                                  TNullable $ fixedAlias t
                              TList t ->
@@ -111,7 +111,11 @@ resolveTypeAlias alias ty = let fixedAlias = resolveTypeAlias alias in
                                  case lookup className alias of 
                                    Just resolvedType -> resolvedType
                                    Nothing -> TUserDef className (map fixedAlias params)
-                             otherwise -> ty
+                             _ -> ty
+
+resolveRetTypeAlias :: [(T.Text, Type)] -> Maybe Type -> Maybe Type
+resolveRetTypeAlias alias Nothing = Nothing
+resolveRetTypeAlias alias (Just t) = Just (resolveTypeAlias alias t)
 
 genInit :: Field -> LT.Text
 genInit Field {..} = case fldDefault of
@@ -149,9 +153,9 @@ genException _ _ _  = return ()
 genClient :: [(T.Text, Type)] -> Config -> Decl -> IO()
 genClient alias Config {..} MPService {..} = do 
   let resolvedServiceMethods = map (resolveMethodAlias alias) serviceMethods
-      hashMapImport | not $ null [() | TMap _ _ <- map methodRetType resolvedServiceMethods ] = [lt|import java.util.HashMap;|]
+      hashMapImport | not $ null [() | Just (TMap _ _) <- map methodRetType resolvedServiceMethods ] = [lt|import java.util.HashMap;|]
                     | otherwise = ""
-      arrayListImport | not $ null [() | TList _ <- map methodRetType resolvedServiceMethods] = [lt|import java.util.ArrayList;|]
+      arrayListImport | not $ null [() | Just (TList _) <- map methodRetType resolvedServiceMethods] = [lt|import java.util.ArrayList;|]
                       | otherwise = ""
       dirName = joinPath $ map LT.unpack $ LT.split (== '.') $ LT.pack configPackage
       fileName =  dirName ++ "/" ++ (T.unpack className) ++ ".java"
@@ -186,13 +190,13 @@ public class #{className} {
         let args = T.intercalate ", " $ map genArgs' methodArgs
             vals = T.intercalate ", " $ pack methodArgs genVal in
         case methodRetType of
-          TVoid -> [lt|
+          Nothing -> [lt|
   public void #{methodName}(#{args}) {
     iface_.#{methodName}(#{vals});
   }
 |]
-          _ -> [lt|
-  public #{genType methodRetType} #{methodName}(#{args}) {
+          Just typ -> [lt|
+  public #{genType typ} #{methodName}(#{args}) {
     return iface_.#{methodName}(#{vals});
   }
 |]
@@ -202,7 +206,7 @@ genClient _ _ _ = return ()
 
 genSignature :: Method -> LT.Text
 genSignature Function {..} = 
-    [lt|    #{genType methodRetType} #{methodName}(#{args});
+    [lt|    #{genRetType methodRetType} #{methodName}(#{args});
 |]
     where
       args = (T.intercalate ", " $ map genArgs' methodArgs)
@@ -278,8 +282,10 @@ genType (TTuple ts) =
   foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
 genType TObject =
   [lt|org.msgpack.type.Value|]
-genType TVoid =
-  [lt|void|]
+
+genRetType :: Maybe Type -> LT.Text
+genRetType Nothing = [lt|void|]
+genRetType (Just t) = genType t
 
 genTypeWithContext :: Spec -> Type -> LT.Text
 genTypeWithContext spec t = case t of 
@@ -330,8 +336,8 @@ genWrapperType (TTuple ts) =
   foldr1 (\t1 t2 -> [lt|Tuple<#{t1}, #{t2} >|]) $ map genWrapperType ts
 genWrapperType TObject =
   [lt|org.msgpack.type.Value|]
-genWrapperType TVoid =
-  [lt|void|]
+genWrapperType (TNullable typ) =
+  genWrapperType typ
 
 templ :: FilePath -> LT.Text -> LT.Text
 templ filepath content = [lt|
