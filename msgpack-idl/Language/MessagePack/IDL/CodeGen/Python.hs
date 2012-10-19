@@ -112,11 +112,11 @@ class #{serviceName}:
         args = LT.concat $ map (\x -> [lt|, #{x}|]) arg_list
     in
     case methodRetType of
-      TVoid -> [lt|
+      Nothing -> [lt|
   def #{methodName} (self#{args}):
     self.client.call('#{methodName}'#{args})
 |]
-      ts -> [lt|
+      Just ts -> [lt|
   def #{methodName} (self#{args}):
     retval = self.client.call('#{methodName}'#{args})
     return #{fromMsgpack ts "retval"}
@@ -162,8 +162,6 @@ fromMsgpack (TTuple ts) name =
               f n (i, _) = [lt|#{n}[#{show i}]|]
 
 fromMsgpack TObject name = [lt|#{name}|]
-fromMsgpack TVoid _ = ""
-
 
 templ :: FilePath -> LT.Text -> LT.Text
 templ filepath content = [lt|

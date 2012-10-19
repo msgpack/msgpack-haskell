@@ -19,7 +19,7 @@ typeParam :: [T.Text]
 method :: Method
   = "inherit" identifier { InheritName $1 }
   / "inherit" "*" { InheritAll }
-  / "inherit"? ftype identifier "(" (field , ",") ")"
+  / "inherit"? rtype identifier "(" (field , ",") ")"
     { Function (isJust $1) $3 $2 $4 }
 
 field :: Field
@@ -29,6 +29,10 @@ field :: Field
 ftype :: Type
   = ftypeNN "?" { TNullable $1 }
   / ftypeNN
+
+rtype :: Maybe Type
+  = "void" { Nothing }
+  / ftype { Just $1 }
 
 ftypeNN :: Type
   = "byte"   { TInt True  8  }
@@ -44,7 +48,6 @@ ftypeNN :: Type
   / "bool"   { TBool }
   / "raw"    { TRaw }
   / "string" { TString }
-  / "void"   { TVoid }
   / "object" { TObject }
 
   / "list" "<" ftype ">" { TList $1 }

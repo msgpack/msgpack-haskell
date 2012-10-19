@@ -46,7 +46,7 @@ data Method
   = Function
     { methodInherit :: Bool
     , methodName :: T.Text
-    , methodRetType :: Type
+    , methodRetType :: Maybe Type
     , methodArgs :: [Field]
     }
   | InheritName T.Text
@@ -65,7 +65,6 @@ data Type
   | TTuple [Type]
   | TUserDef T.Text [Type]
   | TObject
-  | TVoid
   deriving (Eq, Show, Data, Typeable)
 
 data Literal
