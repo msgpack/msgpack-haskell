@@ -102,27 +102,31 @@ deriveObject asObject tyName = do
   p <- deriveUnpack asObject tyName
   info <- reify tyName
   o <- case info of
-    TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
+    TyConI (DataD _ {- cxt -} name tyVars _ _ {- derivings -}) ->
       -- use default implement
       instanceD (cx tyVars) (ct ''OBJECT name tyVars) []
     _ -> error $ "cant derive Object: " ++ show tyName
   return $ g ++ p ++ [o]
 
+failN :: (MonadPlus m, OBJECT a) => Maybe Object -> m a
 failN Nothing = mzero
 failN (Just a) =
   case tryFromObject a of
     Left _ -> mzero
     Right v -> return v
 
+cx :: [TyVarBndr] -> CxtQ
 cx tyVars =
   cxt [ classP cl [varT tv]
       | cl <- [''Packable, ''Unpackable, ''OBJECT]
       , PlainTV tv <- tyVars ]
 
+ct :: Name -> Name -> [TyVarBndr] -> TypeQ
 ct tc tyName tyVars =
   appT (conT tc) $ foldl appT (conT tyName) $
   map (\(PlainTV n) -> varT n) tyVars
 
+key :: Name -> Name -> [Char]
 key conName fname
   | (prefix ++ "_") `isPrefixOf` sFname && length sFname > length prefix + 1 =
     drop (length prefix + 1) sFname  
