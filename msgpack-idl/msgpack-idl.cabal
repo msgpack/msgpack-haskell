@@ -1,5 +1,5 @@
 name:                msgpack-idl
-version:             0.2.0
+version:             0.2.1
 synopsis:            An IDL Compiler for MessagePack
 description:         An IDL Compiler for MessagePack <http://msgpack.org/>
 homepage:            http://msgpack.org/
