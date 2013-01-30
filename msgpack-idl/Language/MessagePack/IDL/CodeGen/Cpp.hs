@@ -46,7 +46,7 @@ generate Config {..} spec = do
         | otherwise =
           [lt|#include <msgpack/rpc/client.h>|]
   
-  LT.writeFile (name ++ "_types.hpp") $ templ configFilePath once "TYPES" [lt|
+  LT.writeFile (name ++ "_types.hpp") $ templ configFilePath ns once "TYPES" [lt|
 #include <vector>
 #include <map>
 #include <string>
@@ -57,14 +57,14 @@ generate Config {..} spec = do
 #{genNameSpace ns $ LT.concat $ map (genTypeDecl name) spec }
 |]
 
-  LT.writeFile (name ++ "_server.hpp") $ templ configFilePath once "SERVER" [lt|
+  LT.writeFile (name ++ "_server.hpp") $ templ configFilePath (snoc ns "server") once "SERVER" [lt|
 #include "#{name}_types.hpp"
 #{serverHeader}
 
 #{genNameSpace (snoc ns "server") $ LT.concat $ map (genServer configPFICommon) spec}
 |]
 
-  LT.writeFile (name ++ "_client.hpp") $ templ configFilePath once "CLIENT" [lt|
+  LT.writeFile (name ++ "_client.hpp") $ templ configFilePath (snoc ns "client") once "CLIENT" [lt|
 #include "#{name}_types.hpp"
 #{clientHeader}
 
@@ -270,18 +270,20 @@ genRetType :: Maybe Type -> LT.Text
 genRetType Nothing = [lt|void|]
 genRetType (Just t) = genType t
 
-templ :: FilePath -> String -> String -> LT.Text -> LT.Text
-templ filepath once name content = [lt|
+templ :: FilePath -> [LT.Text] -> String -> String -> LT.Text -> LT.Text
+templ filepath ns once name content = [lt|
 // This file is auto-generated from #{filepath}
 // *** DO NOT EDIT ***
 
-#ifndef #{once}_#{name}_HPP_
-#define #{once}_#{name}_HPP_
+#ifndef #{namespace}_#{once}_#{name}_HPP_
+#define #{namespace}_#{once}_#{name}_HPP_
 
 #{content}
 
-#endif // #{once}_#{name}_HPP_
-|]
+#endif // #{namespace}_#{once}_#{name}_HPP_
+|] where
+   namespace = LT.intercalate "_" $ map LT.toUpper ns
+
 
 genNameSpace :: [LT.Text] -> LT.Text -> LT.Text
 genNameSpace namespace content = f namespace
