@@ -21,6 +21,18 @@ module Data.MessagePack.Unpack(
   -- * Simple function to unpack a Haskell value
   unpack,
   tryUnpack,
+  -- * Unpacking primitives
+  parseString,
+  parseArray,
+  parsePair,
+  parseMap,
+  parseUint16,
+  parseUint32,
+  parseUint64,
+  parseInt8,
+  parseInt16,
+  parseInt32,
+  parseInt64,
   -- * Unpack exception
   UnpackError(..),
   -- * ByteString utils
