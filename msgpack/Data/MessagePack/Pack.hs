@@ -120,6 +120,14 @@ instance Packable T.Text where
 instance Packable TL.Text where
   from = fromString TL.encodeUtf8 (fromIntegral . BL.length) fromLazyByteString
 
+-- | @fromString convertFun lengthFun packFun array@:
+-- Transforms an string-like structure (e.g. String, Text) into
+-- a MessagePack string.
+--
+-- `convertFun` specifies how to transform the structure before
+-- anything else.
+-- `lengthFun` specifies how to obtain the length of the structure,
+-- `packFun` how to pack it.
 fromString :: (s -> t) -> (t -> Int) -> (t -> Builder) -> s -> Builder
 fromString cnv lf pf str =
   let bs = cnv str in
@@ -172,6 +180,12 @@ instance (Packable a1, Packable a2, Packable a3, Packable a4, Packable a5, Packa
   from = fromArray (const 9) f where
     f (a1, a2, a3, a4, a5, a6, a7, a8, a9) = from a1 <> from a2 <> from a3 <> from a4 <> from a5 <> from a6 <> from a7 <> from a8 <> from a9
 
+-- | @fromArray lengthFun packFun array@:
+-- Transforms an array-like structure (e.g. tuple, list) into
+-- a MessagePack array.
+--
+-- `lengthFun` specifies how to obtain the length of the structure,
+-- `packFun` how to pack it.
 fromArray :: (a -> Int) -> (a -> Builder) -> a -> Builder
 fromArray lf pf arr = do
   case lf arr of
@@ -200,9 +214,16 @@ instance Packable v => Packable (IM.IntMap v) where
 instance (Packable k, Packable v) => Packable (HM.HashMap k v) where
   from = fromMap HM.size (Monoid.mconcat . map fromPair . HM.toList)
 
+-- | Transforms tuple into a MessagePack pair.
 fromPair :: (Packable a, Packable b) => (a, b) -> Builder
 fromPair (a, b) = from a <> from b
 
+-- | @fromMap lengthFun packFun array@:
+-- Transforms an map-like structure (e.g. Map, HashMap) into
+-- a MessagePack map.
+--
+-- `lengthFun` specifies how to obtain the length of the structure,
+-- `packFun` how to pack it.
 fromMap :: (a -> Int) -> (a -> Builder) -> a -> Builder
 fromMap lf pf m =
   case lf m of
