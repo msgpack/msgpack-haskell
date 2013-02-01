@@ -70,7 +70,9 @@ class Unpackable a where
   -- | Deserialize a value
   get :: A.Parser a
 
+-- | Things that can be converted to a strict 'B.ByteString'
 class IsByteString s where
+  -- | Convert a value to a strict 'B.ByteString'
   toBS :: s -> B.ByteString
 
 instance IsByteString B.ByteString where
