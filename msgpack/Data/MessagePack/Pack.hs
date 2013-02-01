@@ -111,32 +111,29 @@ cast :: (Storable a, Storable b) => a -> b
 cast v = SIU.unsafePerformIO $ with v $ peek . castPtr
 
 instance Packable String where
-  from = fromString encodeUtf8 B.length fromByteString
+  from = fromString B.length fromByteString . encodeUtf8
 
 instance Packable B.ByteString where
-  from = fromString id B.length fromByteString
+  from = fromString B.length fromByteString . id
 
 instance Packable BL.ByteString where
-  from = fromString id (fromIntegral . BL.length) fromLazyByteString
+  from = fromString (fromIntegral . BL.length) fromLazyByteString . id
 
 instance Packable T.Text where
-  from = fromString T.encodeUtf8 B.length fromByteString
+  from = fromString B.length fromByteString . T.encodeUtf8
 
 instance Packable TL.Text where
-  from = fromString TL.encodeUtf8 (fromIntegral . BL.length) fromLazyByteString
+  from = fromString (fromIntegral . BL.length) fromLazyByteString . TL.encodeUtf8
 
--- | @fromString convertFun lengthFun packFun array@:
+-- | @fromString lengthFun packFun array@:
 -- Transforms an string-like structure (e.g. String, Text) into
 -- a MessagePack string.
 --
--- `convertFun` specifies how to transform the structure before
--- anything else.
 -- `lengthFun` specifies how to obtain the length of the structure,
 -- `packFun` how to pack it.
-fromString :: (s -> t) -> (t -> Int) -> (t -> Builder) -> s -> Builder
-fromString cnv lf pf str =
-  let bs = cnv str in
-  case lf bs of
+fromString :: (s -> Int) -> (s -> Builder) -> s -> Builder
+fromString lf pf str =
+  case lf str of
     len | len <= 31 ->
       fromWord8 $ 0xA0 .|. fromIntegral len
     len | len < 0x10000 ->
@@ -145,7 +142,7 @@ fromString cnv lf pf str =
     len ->
       fromWord8 0xDB <>
       fromWord32be (fromIntegral len)
-  <> pf bs
+  <> pf str
 
 instance Packable a => Packable [a] where
   from = fromArray length (Monoid.mconcat . map from)
