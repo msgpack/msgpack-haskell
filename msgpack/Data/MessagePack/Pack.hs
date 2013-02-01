@@ -19,6 +19,11 @@ module Data.MessagePack.Pack (
   Packable(..),
   -- * Simple function to pack a Haskell value
   pack,
+  -- * Packing primitives
+  fromString,
+  fromArray,
+  fromPair,
+  fromMap,
   ) where
 
 import Blaze.ByteString.Builder
