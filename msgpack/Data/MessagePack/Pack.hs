@@ -19,6 +19,11 @@ module Data.MessagePack.Pack (
   Packable(..),
   -- * Simple function to pack a Haskell value
   pack,
+  -- * Packing primitives
+  fromString,
+  fromArray,
+  fromPair,
+  fromMap,
   ) where
 
 import Blaze.ByteString.Builder
@@ -106,24 +111,29 @@ cast :: (Storable a, Storable b) => a -> b
 cast v = SIU.unsafePerformIO $ with v $ peek . castPtr
 
 instance Packable String where
-  from = fromString encodeUtf8 B.length fromByteString
+  from = fromString B.length fromByteString . encodeUtf8
 
 instance Packable B.ByteString where
-  from = fromString id B.length fromByteString
+  from = fromString B.length fromByteString
 
 instance Packable BL.ByteString where
-  from = fromString id (fromIntegral . BL.length) fromLazyByteString
+  from = fromString (fromIntegral . BL.length) fromLazyByteString
 
 instance Packable T.Text where
-  from = fromString T.encodeUtf8 B.length fromByteString
+  from = fromString B.length fromByteString . T.encodeUtf8
 
 instance Packable TL.Text where
-  from = fromString TL.encodeUtf8 (fromIntegral . BL.length) fromLazyByteString
+  from = fromString (fromIntegral . BL.length) fromLazyByteString . TL.encodeUtf8
 
-fromString :: (s -> t) -> (t -> Int) -> (t -> Builder) -> s -> Builder
-fromString cnv lf pf str =
-  let bs = cnv str in
-  case lf bs of
+-- | @fromString lengthFun packFun array@:
+-- Transforms an string-like structure (e.g. String, Text) into
+-- a MessagePack string.
+--
+-- `lengthFun` specifies how to obtain the length of the structure,
+-- `packFun` how to pack it.
+fromString :: (s -> Int) -> (s -> Builder) -> s -> Builder
+fromString lf pf str =
+  case lf str of
     len | len <= 31 ->
       fromWord8 $ 0xA0 .|. fromIntegral len
     len | len < 0x10000 ->
@@ -132,7 +142,7 @@ fromString cnv lf pf str =
     len ->
       fromWord8 0xDB <>
       fromWord32be (fromIntegral len)
-  <> pf bs
+  <> pf str
 
 instance Packable a => Packable [a] where
   from = fromArray length (Monoid.mconcat . map from)
@@ -172,6 +182,12 @@ instance (Packable a1, Packable a2, Packable a3, Packable a4, Packable a5, Packa
   from = fromArray (const 9) f where
     f (a1, a2, a3, a4, a5, a6, a7, a8, a9) = from a1 <> from a2 <> from a3 <> from a4 <> from a5 <> from a6 <> from a7 <> from a8 <> from a9
 
+-- | @fromArray lengthFun packFun array@:
+-- Transforms an array-like structure (e.g. tuple, list) into
+-- a MessagePack array.
+--
+-- `lengthFun` specifies how to obtain the length of the structure,
+-- `packFun` how to pack it.
 fromArray :: (a -> Int) -> (a -> Builder) -> a -> Builder
 fromArray lf pf arr = do
   case lf arr of
@@ -200,9 +216,16 @@ instance Packable v => Packable (IM.IntMap v) where
 instance (Packable k, Packable v) => Packable (HM.HashMap k v) where
   from = fromMap HM.size (Monoid.mconcat . map fromPair . HM.toList)
 
+-- | Transforms tuple into a MessagePack pair.
 fromPair :: (Packable a, Packable b) => (a, b) -> Builder
 fromPair (a, b) = from a <> from b
 
+-- | @fromMap lengthFun packFun array@:
+-- Transforms an map-like structure (e.g. Map, HashMap) into
+-- a MessagePack map.
+--
+-- `lengthFun` specifies how to obtain the length of the structure,
+-- `packFun` how to pack it.
 fromMap :: (a -> Int) -> (a -> Builder) -> a -> Builder
 fromMap lf pf m =
   case lf m of

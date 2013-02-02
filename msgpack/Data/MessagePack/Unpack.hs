@@ -21,6 +21,18 @@ module Data.MessagePack.Unpack(
   -- * Simple function to unpack a Haskell value
   unpack,
   tryUnpack,
+  -- * Unpacking primitives
+  parseString,
+  parseArray,
+  parsePair,
+  parseMap,
+  parseUint16,
+  parseUint32,
+  parseUint64,
+  parseInt8,
+  parseInt16,
+  parseInt32,
+  parseInt64,
   -- * Unpack exception
   UnpackError(..),
   -- * ByteString utils
@@ -58,7 +70,9 @@ class Unpackable a where
   -- | Deserialize a value
   get :: A.Parser a
 
+-- | Things that can be converted to a strict 'B.ByteString'
 class IsByteString s where
+  -- | Convert a value to a strict 'B.ByteString'
   toBS :: s -> B.ByteString
 
 instance IsByteString B.ByteString where
@@ -176,6 +190,9 @@ instance Unpackable T.Text where
 instance Unpackable TL.Text where
   get = parseString (\n -> return . TL.decodeUtf8With skipChar . toLBS =<< A.take n)
 
+-- | Parses a MessagePack string into a user-specified data structure.
+-- The function argument, given the size of the string encoded in the message,
+-- specifies what the string shall be parsed to (e.g. a String or Text).
 parseString :: (Int -> A.Parser a) -> A.Parser a
 parseString aget = do
   c <- A.anyWord8
@@ -235,6 +252,9 @@ instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable
     f 9 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> get >>= \a8 -> get >>= \a9 -> return (a1, a2, a3, a4, a5, a6, a7, a8, a9)
     f n = fail $ printf "wrong tuple size: expected 9 but got %d" n
 
+-- | Parses a MessagePack array into a user-specified data structure.
+-- The function argument, given the size of the array encoded in the message,
+-- specifies what the array shall be parsed to (e.g. a List or Tuple).
 parseArray :: (Int -> A.Parser a) -> A.Parser a
 parseArray aget = do
   c <- A.anyWord8
@@ -263,12 +283,16 @@ instance Unpackable v => Unpackable (IM.IntMap v) where
 instance (Hashable k, Eq k, Unpackable k, Unpackable v) => Unpackable (HM.HashMap k v) where
   get = parseMap (\n -> HM.fromList <$> replicateM n parsePair)
 
+-- | Parses a MessagePack pair into a tuple.
 parsePair :: (Unpackable k, Unpackable v) => A.Parser (k, v)
 parsePair = do
   a <- get
   b <- get
   return (a, b)
 
+-- | Parses a MessagePack map into a user-specified data structure.
+-- The function argument, given the size of the map encoded in the message,
+-- specifies what the map shall be parsed to (e.g. a Map or HashMap).
 parseMap :: (Int -> A.Parser a) -> A.Parser a
 parseMap aget = do
   c <- A.anyWord8
@@ -288,12 +312,14 @@ instance Unpackable a => Unpackable (Maybe a) where
     [ liftM Just get
     , liftM (\() -> Nothing) get ]
 
+-- | Parses a 16-bit unsigned integer from the message.
 parseUint16 :: A.Parser Word16
 parseUint16 = do
   b0 <- A.anyWord8
   b1 <- A.anyWord8
   return $ (fromIntegral b0 `shiftL` 8) .|. fromIntegral b1
 
+-- | Parses a 32-bit unsigned integer from the message.
 parseUint32 :: A.Parser Word32
 parseUint32 = do
   b0 <- A.anyWord8
@@ -305,6 +331,7 @@ parseUint32 = do
            (fromIntegral b2 `shiftL` 8) .|.
            fromIntegral b3
 
+-- | Parses a 64-bit unsigned integer from the message.
 parseUint64 :: A.Parser Word64
 parseUint64 = do
   b0 <- A.anyWord8
@@ -324,14 +351,18 @@ parseUint64 = do
            (fromIntegral b6 `shiftL` 8) .|.
            fromIntegral b7
 
+-- | Parses a 8-bit signed integer from the message.
 parseInt8 :: A.Parser Int8
 parseInt8 = return . fromIntegral =<< A.anyWord8
 
+-- | Parses a 16-bit signed integer from the message.
 parseInt16 :: A.Parser Int16
 parseInt16 = return . fromIntegral =<< parseUint16
 
+-- | Parses a 32-bit signed integer from the message.
 parseInt32 :: A.Parser Int32
 parseInt32 = return . fromIntegral =<< parseUint32
 
+-- | Parses a 64-bit signed integer from the message.
 parseInt64 :: A.Parser Int64
 parseInt64 = return . fromIntegral =<< parseUint64
