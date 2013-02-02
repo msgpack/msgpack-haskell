@@ -114,10 +114,10 @@ instance Packable String where
   from = fromString B.length fromByteString . encodeUtf8
 
 instance Packable B.ByteString where
-  from = fromString B.length fromByteString . id
+  from = fromString B.length fromByteString
 
 instance Packable BL.ByteString where
-  from = fromString (fromIntegral . BL.length) fromLazyByteString . id
+  from = fromString (fromIntegral . BL.length) fromLazyByteString
 
 instance Packable T.Text where
   from = fromString B.length fromByteString . T.encodeUtf8
