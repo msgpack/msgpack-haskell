@@ -172,6 +172,7 @@ public class #{className} {
   public #{className}(String host, int port, double timeout_sec) throws Exception {
     EventLoop loop = EventLoop.defaultEventLoop();
     c_ = new Client(host, port, loop);
+    c_.setRequestTimeout((int) timeout_sec);
     iface_ = c_.proxy(RPCInterface.class);
   }
 
