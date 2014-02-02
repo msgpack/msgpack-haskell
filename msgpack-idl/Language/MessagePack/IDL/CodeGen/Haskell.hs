@@ -36,10 +36,11 @@ import Data.Text (Text)
 #{LT.concat $ map genTypeDecl spec}
 |]
 
-  LT.writeFile "Server.hs" [lt|
+  LT.writeFile "Client.hs" [lt|
+module Client where
 |]
 
-  LT.writeFile "Client.hs" [lt|
+  LT.writeFile "Server.hs" [lt|
 module Server where
 
 import Data.ByteString (ByteString)
