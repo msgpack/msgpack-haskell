@@ -96,29 +96,18 @@ deriveObject False ''#{dataName}
 genTypeDecl _ = ""
 
 genType :: Type -> LT.Text
-genType (TInt sign bits) =
-  let base = if sign then "Int" else "Word" :: T.Text in
-  [lt|#{base}#{show bits}|]
-genType (TFloat False) =
-  [lt|Float|]
-genType (TFloat True) =
-  [lt|Double|]
-genType TBool =
-  [lt|Bool|]
-genType TRaw =
-  [lt|ByteString|]
-genType TString =
-  [lt|Text|]
-genType (TList typ) =
-  [lt|[#{genType typ}]|]
-genType (TMap typ1 typ2) =
-  [lt|Map (#{genType typ1}) (#{genType typ2})|]
-genType (TTuple typs) =
-  [lt|(#{LT.intercalate ", " $ map genType typs})|]
-genType (TUserDef name params) =
-  [lt|#{classize name}|]
-genType (TObject) =
-  undefined
+genType (TInt _ _)        = "Int"
+genType (TFloat False)    = "Float"
+genType (TFloat True)     = "Double"
+genType TBool             = "Bool"
+genType TRaw              = "ByteString"
+genType TString           = "Text"
+genType (TList typ)       = "[" <> genType typ <> "]"
+genType (TMap typ1 typ2)  = "Map (" <> genType typ1 <> ") (" <> genType typ2 <> ")"
+genType (TTuple typs)     = "(" <> LT.intercalate ", " (map genType typs) <> ")"
+genType (TUserDef name _) = LT.fromStrict $ classize name
+genType (TObject)         = error "Object type is not supported"
+genType (TNullable _)     = error "Nullable type is not supported"
 
 genRetType :: Maybe Type -> LT.Text
 genRetType Nothing = "()"
