@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -64,7 +64,7 @@ newtype #{monadName} m a
 #{LT.concat $ map genMethod serviceMethods}
 |]
   where
-    monadName = classize (serviceName) `mappend` "T"
+    monadName = classize serviceName `mappend` "T"
     genMethod Function {..} =
       let ts = map (genType . fldType) methodArgs in
       let typs = ts ++ [ [lt|#{monadName} (#{genRetType methodRetType})|] ] in
@@ -90,7 +90,7 @@ deriveObject False ''#{dataName}
   where
     dataName = classize msgName
     f Field {..} =
-      let fname = uncapital dataName `mappend` (capital $ camelize fldName) in
+      let fname = uncapital dataName `mappend` capital (camelize fldName) in
       [lt|#{fname} :: #{genType fldType}|]
 
 genTypeDecl _ = ""
@@ -137,11 +137,11 @@ camelize = T.concat . map capital . T.words . T.map ubToSpc where
 
 capital :: T.Text -> T.Text
 capital word =
-  (T.map toUpper $ T.take 1 word) `mappend` T.drop 1 word
+  T.map toUpper (T.take 1 word) `mappend` T.drop 1 word
 
 uncapital :: T.Text -> T.Text
 uncapital word =
-  (T.map toLower $ T.take 1 word) `mappend` T.drop 1 word
+  T.map toLower (T.take 1 word) `mappend` T.drop 1 word
 
 {-
 genServer :: Spec -> IO Builder
