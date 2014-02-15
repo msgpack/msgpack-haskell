@@ -45,7 +45,7 @@ derivePack asObject tyName = do
         match (conP conName $ map varP vars)
         (normalB
          [| from $ Assoc
-              $(listE [ [| ( $(return $ LitE $ StringL $ key conName fname) :: T.Text
+              $(listE [ [| (T.pack $(return $ LitE $ StringL $ key conName fname) :: T.Text
                            , toObject $(varE v)) |]
                       | (v, (fname, _, _)) <- zip vars elms])
           |])
@@ -93,7 +93,7 @@ deriveUnpack asObject tyName = do
 
     binds conName var res (fname, _, _) =
       bindS (varP res)
-            [| failN $ lookup ($(return $ LitE $ StringL $ key conName fname) :: T.Text)
+            [| failN $ lookup (T.pack $(return $ LitE $ StringL $ key conName fname) :: T.Text)
                               $(varE var) |]
 
 deriveObject :: Bool -> Name -> Q [Dec]
