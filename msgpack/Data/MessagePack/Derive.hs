@@ -35,10 +35,12 @@ derivePack asObject tyName = do
     alt (NormalC conName elms) = do
       vars <- replicateM (length elms) (newName "v")
       match (conP conName $ map varP vars)
-        (normalB [| from $(tupE $ map varE vars) |])
+        (normalB [| from $(tupE $ [ [| T.pack $(return $ LitE $ StringL $ nameBase conName) :: T.Text |] ] ++
+                                  map varE vars) |])
         []
 
     alt (RecC conName elms) = do
+      -- todo: This is still buggy if multiple constructors share the same field names.
       vars <- replicateM (length elms) (newName "v")
       if asObject
         then
@@ -71,8 +73,12 @@ deriveUnpack asObject tyName = do
 
   where
     alt (NormalC conName elms) = do
+      conNameVar <- newName "n"
       vars <- replicateM (length elms) (newName "v")
-      doE [ bindS (tupP $ map varP vars) [| get |]
+      doE [ bindS (tupP $ [varP conNameVar] ++ map varP vars) [| get |]
+          , noBindS [| if $(varE conNameVar) == $(return $ LitE $ StringL $ nameBase conName)
+                         then return () else fail ""
+                       |]
           , noBindS [| return $(foldl appE (conE conName) $ map varE vars) |]
           ]
 
