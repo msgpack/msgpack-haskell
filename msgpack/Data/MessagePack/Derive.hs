@@ -35,26 +35,27 @@ derivePack asObject tyName = do
     alt (NormalC conName elms) = do
       vars <- replicateM (length elms) (newName "v")
       match (conP conName $ map varP vars)
-        (normalB [| from $(tupE $ [ [| T.pack $(return $ LitE $ StringL $ nameBase conName) :: T.Text |] ] ++
+        (normalB [| from $(tupE $ [ [| T.pack $(nameBaseLit conName) :: T.Text |] ] ++
                                   map varE vars) |])
         []
 
     alt (RecC conName elms) = do
-      -- todo: This is still buggy if multiple constructors share the same field names.
       vars <- replicateM (length elms) (newName "v")
       if asObject
         then
         match (conP conName $ map varP vars)
         (normalB
-         [| from $ Assoc
-              $(listE [ [| (T.pack $(return $ LitE $ StringL $ key conName fname) :: T.Text
-                           , toObject $(varE v)) |]
-                      | (v, (fname, _, _)) <- zip vars elms])
+         [| from $
+              ( T.pack $(return $ LitE $ StringL $ nameBase conName) :: T.Text
+              , Assoc $(listE [ [| (T.pack $(return $ LitE $ StringL $ key conName fname) :: T.Text
+                                , toObject $(varE v)) |]
+                              | (v, (fname, _, _)) <- zip vars elms])
+                )
           |])
         []
         else
         match (conP conName $ map varP vars)
-        (normalB [| from $(tupE $ map varE vars) |])
+        (normalB [| from $(tupE $ [ [| T.pack $(nameBaseLit conName) |] ] ++ map varE vars) |])
         []
 
     alt c = error $ "unsupported constructor: " ++ pprint c
@@ -76,22 +77,30 @@ deriveUnpack asObject tyName = do
       conNameVar <- newName "n"
       vars <- replicateM (length elms) (newName "v")
       doE [ bindS (tupP $ [varP conNameVar] ++ map varP vars) [| get |]
-          , noBindS [| if $(varE conNameVar) == $(return $ LitE $ StringL $ nameBase conName)
-                         then return () else fail ""
+          , noBindS [| if $(varE conNameVar) == $(nameBaseLit conName)
+                         then return () else mzero
                        |]
           , noBindS [| return $(foldl appE (conE conName) $ map varE vars) |]
           ]
 
     alt (RecC conName elms) = do
-      var <- newName "v"
+      conNameVar <- newName "n"
+      fieldsVar <- newName "fs"
       vars <- replicateM (length elms) (newName "w")
       if asObject
         then
-        doE $ [ bindS (conP 'Assoc [varP var]) [| get |] ]
-            ++ zipWith (binds conName var) vars elms ++
-            [ noBindS [| return $(foldl appE (conE conName) $ map varE vars) |] ]
+        doE $ [ bindS (tupP [varP conNameVar, conP 'Assoc [varP fieldsVar]]) [| get |]
+              , noBindS [| if $(varE conNameVar) == $(nameBaseLit conName)
+                             then return () else mzero
+                           |]
+              ]
+              ++ zipWith (binds conName fieldsVar) vars elms ++
+              [ noBindS [| return $(foldl appE (conE conName) $ map varE vars) |] ]
         else
-        doE [ bindS (tupP $ map varP vars) [| get |]
+        doE [ bindS (tupP $ [varP conNameVar] ++ map varP vars) [| get |]
+            , noBindS [| if $(varE conNameVar) == $(nameBaseLit conName)
+                           then return () else mzero
+                         |]
             , noBindS [| return $(foldl appE (conE conName) $ map varE vars) |]
             ]
 
@@ -102,6 +111,9 @@ deriveUnpack asObject tyName = do
             [| failN $ lookup (T.pack $(return $ LitE $ StringL $ key conName fname) :: T.Text)
                               $(varE var) |]
 
+
+nameBaseLit name = return $ LitE $ StringL $ nameBase name
+                              
 deriveObject :: Bool -> Name -> Q [Dec]
 deriveObject asObject tyName = do
   g <- derivePack asObject tyName
