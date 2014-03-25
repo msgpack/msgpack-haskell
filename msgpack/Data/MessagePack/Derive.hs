@@ -3,8 +3,11 @@
 module Data.MessagePack.Derive (
   -- | deriving OBJECT
   derivePack,
+  derivePackWith,
   deriveUnpack,
+  deriveUnpackWith,
   deriveObject,
+  deriveObjectWith,
   ) where
 
 import Control.Monad
@@ -20,7 +23,10 @@ import Data.MessagePack.Unpack
 import Data.MessagePack.Object
 
 derivePack :: Bool -> Name -> Q [Dec]
-derivePack asObject tyName = do
+derivePack = derivePackWith keyUncapital
+
+derivePackWith :: (Name -> Name -> String) -> Bool -> Name -> Q [Dec]
+derivePackWith key asObject tyName = do
   info <- reify tyName
   d <- case info of
     TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
@@ -58,7 +64,10 @@ derivePack asObject tyName = do
     alt c = error $ "unsupported constructor: " ++ pprint c
 
 deriveUnpack :: Bool -> Name -> Q [Dec]
-deriveUnpack asObject tyName = do
+deriveUnpack = deriveUnpackWith keyUncapital
+
+deriveUnpackWith :: (Name -> Name -> String) -> Bool -> Name -> Q [Dec]
+deriveUnpackWith key asObject tyName = do
   info <- reify tyName
   d <- case info of
     TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
@@ -97,9 +106,12 @@ deriveUnpack asObject tyName = do
                               $(varE var) |]
 
 deriveObject :: Bool -> Name -> Q [Dec]
-deriveObject asObject tyName = do
-  g <- derivePack asObject tyName
-  p <- deriveUnpack asObject tyName
+deriveObject = deriveObjectWith keyUncapital
+
+deriveObjectWith :: (Name -> Name -> String) -> Bool -> Name -> Q [Dec]
+deriveObjectWith key asObject tyName = do
+  g <- derivePackWith key asObject tyName
+  p <- deriveUnpackWith key asObject tyName
   info <- reify tyName
   o <- case info of
     TyConI (DataD _ {- cxt -} name tyVars _ _ {- derivings -}) ->
@@ -126,8 +138,8 @@ ct tc tyName tyVars =
   appT (conT tc) $ foldl appT (conT tyName) $
   map (\(PlainTV n) -> varT n) tyVars
 
-key :: Name -> Name -> [Char]
-key conName fname
+keyUncapital :: Name -> Name -> [Char]
+keyUncapital conName fname
   | (prefix ++ "_") `isPrefixOf` sFname && length sFname > length prefix + 1 =
     drop (length prefix + 1) sFname  
   | prefix `isPrefixOf` sFname && length sFname > length prefix =
