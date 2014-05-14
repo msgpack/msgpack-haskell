@@ -21,6 +21,8 @@ prop_mid_bool a = a == mid a
   where types = a :: Bool
 prop_mid_double a = a == mid a
   where types = a :: Double
+prop_mid_float a = a == mid a
+  where types = a :: Float
 prop_mid_string a = a == mid a
   where types = a :: String
 prop_mid_bytestring a = B.pack a == mid (B.pack a)
@@ -46,12 +48,44 @@ prop_mid_list_string_string a = a == mid a
 prop_mid_map_string_int a = a == mid a
   where types = a :: Assoc [(String,Int)]
 
+instance Arbitrary Object where
+  arbitrary = sized sizedArbObject
+
+arbObjLiteral = oneof [
+      return ObjectNil
+    , liftM ObjectBool arbitrary
+    , liftM ObjectInteger arbitrary
+    , liftM ObjectFloat arbitrary
+    , liftM ObjectDouble arbitrary
+    , liftM (ObjectRAW . B.pack) arbitrary
+    , return $ ObjectArray []
+    , return $ ObjectMap []
+    ]
+
+
+sizedArbObject :: Int -> Gen Object
+sizedArbObject 0 = arbObjLiteral
+sizedArbObject n = oneof [
+      arbObjLiteral
+    , liftM ObjectArray $ smallListOf subobject
+    , liftM ObjectMap $ smallListOf $ liftM2 (,) arbObjLiteral subobject
+    ]
+    where
+      subobject = sizedArbObject $ n `div` 2
+      smallListOf g = do
+        size <- choose (0, 10)
+        vectorOf size g
+
+prop_mid_object a = a == mid a
+  where types = a :: Object
+
 tests =
   [ testGroup "simple"
     [ testProperty "int" prop_mid_int
     , testProperty "nil" prop_mid_nil
     , testProperty "bool" prop_mid_bool
     , testProperty "double" prop_mid_double
+    , testProperty "float" prop_mid_float
     , testProperty "string" prop_mid_string
     , testProperty "bytestring" prop_mid_bytestring
     , testProperty "lazy-bytestring" prop_mid_lazy_bytestring
@@ -64,7 +98,9 @@ tests =
     , testProperty "[(int, double)]" prop_mid_list_int_double
     , testProperty "[(string, string)]" prop_mid_list_string_string
     , testProperty "Assoc [(string, int)]" prop_mid_map_string_int
+    , testProperty "Object" prop_mid_object
     ]
   ]
 
 main = defaultMain tests
+
