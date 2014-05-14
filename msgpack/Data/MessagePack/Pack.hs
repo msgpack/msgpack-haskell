@@ -83,9 +83,9 @@ instance Packable Int where
       _ ->
         fromWord8 0xD3 <>
         fromWord64be (fromIntegral n)
-      
+
 instance Packable () where
-  from _ = 
+  from _ =
     fromWord8 0xC0
 
 instance Packable Bool where
@@ -94,7 +94,7 @@ instance Packable Bool where
 
 instance Packable Float where
   from f =
-    fromWord8 0xCB <>
+    fromWord8 0xCA <>
     fromWord32be (cast f)
 
 instance Packable Double where
