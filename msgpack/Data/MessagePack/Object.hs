@@ -18,7 +18,7 @@
 module Data.MessagePack.Object(
   -- * MessagePack Object
   Object(..),
-  
+
   -- * Serialization to and from Object
   OBJECT(..),
   -- Result,
@@ -57,7 +57,7 @@ data Object
   | ObjectRAW B.ByteString
   | ObjectArray [Object]
   | ObjectMap [(Object, Object)]
-  deriving (Show, Eq, Ord, Typeable)  
+  deriving (Show, Eq, Ord, Typeable)
 
 instance NFData Object where
   rnf obj =
@@ -109,7 +109,7 @@ class (Unpackable a, Packable a) => OBJECT a where
   -- | Encode a value to MessagePack object
   toObject :: a -> Object
   toObject = unpack . pack
-  
+
   -- | Decode a value from MessagePack object
   fromObject :: Object -> a
   fromObject a =
@@ -127,33 +127,33 @@ instance OBJECT Object where
   toObject = id
   tryFromObject = Right
 
-tryFromObjectError :: Either String a
-tryFromObjectError = Left "tryFromObject: cannot cast"
+tryFromObjectError :: (Show a) => String -> a -> Either String b
+tryFromObjectError target obj = Left $ "tryFromObject: cannot cast " ++ show obj ++ " to " ++ target
 
 instance OBJECT () where
   toObject = const ObjectNil
   tryFromObject ObjectNil = Right ()
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "()" x
 
 instance OBJECT Int where
   toObject = ObjectInteger
   tryFromObject (ObjectInteger n) = Right n
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Int" x
 
 instance OBJECT Bool where
   toObject = ObjectBool
   tryFromObject (ObjectBool b) = Right b
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Bool" x
 
 instance OBJECT Double where
   toObject = ObjectDouble
   tryFromObject (ObjectDouble d) = Right d
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Double" x
 
 instance OBJECT Float where
   toObject = ObjectFloat
   tryFromObject (ObjectFloat f) = Right f
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Float" x
 
 instance OBJECT String where
   toObject = toObject . encodeUtf8
@@ -162,29 +162,28 @@ instance OBJECT String where
 instance OBJECT B.ByteString where
   toObject = ObjectRAW
   tryFromObject (ObjectRAW bs) = Right bs
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "ByteString" x
 
 instance OBJECT BL.ByteString where
   toObject = ObjectRAW . fromLBS
   tryFromObject (ObjectRAW bs) = Right $ toLBS bs
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Lazy ByteString" x
 
 instance OBJECT T.Text where
   toObject = ObjectRAW . T.encodeUtf8
   tryFromObject (ObjectRAW bs) = Right $ T.decodeUtf8With skipChar bs
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Text" x
 
 instance OBJECT TL.Text where
   toObject = ObjectRAW . fromLBS . TL.encodeUtf8
   tryFromObject (ObjectRAW bs) = Right $ TL.decodeUtf8With skipChar $ toLBS bs
-  tryFromObject _ = tryFromObjectError
+  tryFromObject x = tryFromObjectError "Lazy Text" x
 
 instance OBJECT a => OBJECT [a] where
   toObject = ObjectArray . map toObject
   tryFromObject (ObjectArray arr) =
     mapM tryFromObject arr
-  tryFromObject _ =
-    tryFromObjectError
+  tryFromObject x = tryFromObjectError "[]" x
 
 instance (OBJECT a1, OBJECT a2) => OBJECT (a1, a2) where
   toObject (a1, a2) = ObjectArray [toObject a1, toObject a2]
@@ -194,10 +193,8 @@ instance (OBJECT a1, OBJECT a2) => OBJECT (a1, a2) where
         v1 <- tryFromObject o1
         v2 <- tryFromObject o2
         return (v1, v2)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,)" x
+  tryFromObject x = tryFromObjectError "(,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3) => OBJECT (a1, a2, a3) where
   toObject (a1, a2, a3) = ObjectArray [toObject a1, toObject a2, toObject a3]
@@ -208,10 +205,8 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3) => OBJECT (a1, a2, a3) where
         v2 <- tryFromObject o2
         v3 <- tryFromObject o3
         return (v1, v2, v3)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,)" x
+  tryFromObject x = tryFromObjectError "(,,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4) => OBJECT (a1, a2, a3, a4) where
   toObject (a1, a2, a3, a4) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4]
@@ -223,10 +218,8 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4) => OBJECT (a1, a2, a3, a4)
         v3 <- tryFromObject o3
         v4 <- tryFromObject o4
         return (v1, v2, v3, v4)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,,)" x
+  tryFromObject x = tryFromObjectError "(,,,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5) => OBJECT (a1, a2, a3, a4, a5) where
   toObject (a1, a2, a3, a4, a5) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5]
@@ -239,10 +232,8 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5) => OBJECT (a1, 
         v4 <- tryFromObject o4
         v5 <- tryFromObject o5
         return (v1, v2, v3, v4, v5)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,,,)" x
+  tryFromObject x = tryFromObjectError "(,,,,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6) => OBJECT (a1, a2, a3, a4, a5, a6) where
   toObject (a1, a2, a3, a4, a5, a6) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6]
@@ -256,10 +247,8 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6) => O
         v5 <- tryFromObject o5
         v6 <- tryFromObject o6
         return (v1, v2, v3, v4, v5, v6)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,,,,)" x
+  tryFromObject x = tryFromObjectError "(,,,,,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJECT a7) => OBJECT (a1, a2, a3, a4, a5, a6, a7) where
   toObject (a1, a2, a3, a4, a5, a6, a7) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7]
@@ -274,10 +263,8 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJE
         v6 <- tryFromObject o6
         v7 <- tryFromObject o7
         return (v1, v2, v3, v4, v5, v6, v7)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,,,,,,)" x
+  tryFromObject x = tryFromObjectError "(,,,,,,,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJECT a7, OBJECT a8) => OBJECT (a1, a2, a3, a4, a5, a6, a7, a8) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8]
@@ -293,10 +280,8 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJE
         v7 <- tryFromObject o7
         v8 <- tryFromObject o8
         return (v1, v2, v3, v4, v5, v6, v7, v8)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,,,,,,,)" x
+  tryFromObject x = tryFromObjectError "(,,,,,,,,)" x
 
 instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJECT a7, OBJECT a8, OBJECT a9) => OBJECT (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8, a9) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8, toObject a9]
@@ -313,54 +298,47 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJE
         v8 <- tryFromObject o8
         v9 <- tryFromObject o9
         return (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+      x -> tryFromObjectError "(,,,,,,,,,)" x
+  tryFromObject x = tryFromObjectError "(,,,,,,,,,)" x
 
 instance (OBJECT a, OBJECT b) => OBJECT (Assoc [(a,b)]) where
   toObject =
     ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . unAssoc
   tryFromObject (ObjectMap mem) = do
     Assoc <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
-  tryFromObject _ =
-    tryFromObjectError
+  tryFromObject x = tryFromObjectError "Assoc [(a,b)]" x
 
 instance (OBJECT a, OBJECT b) => OBJECT (Assoc (V.Vector (a,b))) where
   toObject =
     ObjectMap . V.toList . V.map (\(a, b) -> (toObject a, toObject b)) . unAssoc
   tryFromObject (ObjectMap mem) = do
     Assoc <$> V.mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) (V.fromList mem)
-  tryFromObject _ =
-    tryFromObjectError
+  tryFromObject x = tryFromObjectError "Assoc (Vector (a,b))" x
 
 instance (Ord a, OBJECT a, OBJECT b) => OBJECT (M.Map a b) where
   toObject =
     ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . M.toList
   tryFromObject (ObjectMap mem) = do
     M.fromList <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
-  tryFromObject _ =
-    tryFromObjectError
+  tryFromObject x = tryFromObjectError "Map a b" x
 
 instance OBJECT b => OBJECT (IM.IntMap b) where
   toObject =
     ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . IM.toList
   tryFromObject (ObjectMap mem) = do
     IM.fromList <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
-  tryFromObject _ =
-    tryFromObjectError
+  tryFromObject x = tryFromObjectError "IntMap b" x
 
 instance (Hashable a, Eq a, OBJECT a, OBJECT b) => OBJECT (HM.HashMap a b) where
   toObject =
     ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . HM.toList
   tryFromObject (ObjectMap mem) = do
     HM.fromList <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
-  tryFromObject _ =
-    tryFromObjectError
+  tryFromObject x = tryFromObjectError "HashMap a b" x
 
 instance OBJECT a => OBJECT (Maybe a) where
   toObject (Just a) = toObject a
   toObject Nothing = ObjectNil
-  
+
   tryFromObject ObjectNil = return Nothing
   tryFromObject obj = liftM Just $ tryFromObject obj
