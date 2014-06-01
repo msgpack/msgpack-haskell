@@ -32,6 +32,7 @@ module Network.MessagePackRpc.Client (
   -- * MessagePack Client type
   ClientT, Client,
   runClient,
+  runClientResult,
 
   -- * Call RPC method
   call,
@@ -76,6 +77,14 @@ runClient host port m = do
   runTCPClient (clientSettings port host) $ \ad -> do
     (rsrc, _) <- appSource ad $$+ return ()
     void $ evalStateT (unClientT m) (Connection rsrc (appSink ad) 0)
+
+runClientResult :: (MonadIO m, MonadBaseControl IO m)
+             => S.ByteString -> Int -> ClientT m a -> m a
+runClientResult host port m = do
+  runTCPClient (clientSettings port host) $ \ad -> do
+    (rsrc, _) <- appSource ad $$+ return ()
+    evalStateT (unClientT m) (Connection rsrc (appSink ad) 0)
+
 
 -- | RPC error type
 data RpcError

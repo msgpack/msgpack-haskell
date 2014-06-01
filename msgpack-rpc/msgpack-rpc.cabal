@@ -25,9 +25,10 @@ library
                    , random             == 1.0.*
                    , mtl                >= 2.1
                    , monad-control      >= 0.3
-                   , conduit            >= 0.5
-                   , network-conduit    >= 0.6
-                   , attoparsec-conduit >= 0.5
+                   , conduit            == 1.0.17.1
+                   , network-conduit    == 1.0.4
+                   , attoparsec-conduit == 1.0.1.2
+                   , attoparsec
                    , msgpack            == 0.7.*
 
   exposed-modules:   Network.MessagePackRpc.Server
