@@ -1,5 +1,5 @@
 Name:               msgpack
-Version:            0.7.2.5
+Version:            0.7.2.6
 Synopsis:           A Haskell implementation of MessagePack
 Description:        A Haskell implementation of MessagePack <http://msgpack.org/>
 Homepage:           http://msgpack.org/
@@ -22,7 +22,7 @@ Library
                   , ghc-prim      >= 0.2
                   , mtl           >= 2.0
                   , bytestring    == 0.10.*
-                  , text          == 0.11.*
+                  , text          == 1.*
                   , containers    >= 0.4
                   , unordered-containers >= 0.1 && < 0.3
                   , hashable
