@@ -12,16 +12,10 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack(
-  module Data.MessagePack.Assoc,
-  module Data.MessagePack.Pack,
-  module Data.MessagePack.Unpack,
-  module Data.MessagePack.Object,
-  module Data.MessagePack.Derive,
-  ) where
+module Data.MessagePack( module All ) where
 
-import Data.MessagePack.Assoc
-import Data.MessagePack.Pack
-import Data.MessagePack.Unpack
-import Data.MessagePack.Object
-import Data.MessagePack.Derive
+import Data.MessagePack.Assoc  as All
+import Data.MessagePack.Pack   as All
+import Data.MessagePack.Unpack as All
+import Data.MessagePack.Object as All
+import Data.MessagePack.Derive as All

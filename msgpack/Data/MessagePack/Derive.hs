@@ -8,7 +8,7 @@ module Data.MessagePack.Derive (
   ) where
 
 import Control.Monad
-import Control.Monad.Error () -- MonadPlus instance for Either e
+import Control.Monad.Except () -- MonadPlus instance for Either e
 import Data.Char
 import Data.List
 import qualified Data.Text as T
@@ -24,7 +24,7 @@ derivePack asObject tyName = do
   info <- reify tyName
   d <- case info of
     TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
-      instanceD (cx tyVars) (ct ''Packable name tyVars) $
+      instanceD (cx tyVars) (ct ''Packable name tyVars)
         [ funD 'from [ clause [] (normalB [e| \v -> $(caseE [| v |] (map alt cons)) |]) []]
         ]
 
@@ -62,7 +62,7 @@ deriveUnpack asObject tyName = do
   info <- reify tyName
   d <- case info of
     TyConI (DataD _ {- cxt -} name tyVars cons _ {- derivings -}) ->
-      instanceD (cx tyVars) (ct ''Unpackable name tyVars) $
+      instanceD (cx tyVars) (ct ''Unpackable name tyVars)
         [ funD 'get [ clause [] (normalB (foldl1 (\x y -> [| $x `mplus` $y |]) $ map alt cons)) []]
         ]
 
@@ -126,7 +126,7 @@ ct tc tyName tyVars =
   appT (conT tc) $ foldl appT (conT tyName) $
   map (\(PlainTV n) -> varT n) tyVars
 
-key :: Name -> Name -> [Char]
+key :: Name -> Name -> String
 key conName fname
   | (prefix ++ "_") `isPrefixOf` sFname && length sFname > length prefix + 1 =
     drop (length prefix + 1) sFname  
