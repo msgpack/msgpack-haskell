@@ -182,6 +182,8 @@ parseString aget = do
   case c of
     _ | c .&. 0xE0 == 0xA0 ->
       aget . fromIntegral $ c .&. 0x1F
+    0xD9 ->
+      aget . fromIntegral =<< A.anyWord8
     0xDA ->
       aget . fromIntegral =<< parseUint16
     0xDB ->

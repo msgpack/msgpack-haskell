@@ -126,6 +126,9 @@ fromString cnv lf pf str =
   case lf bs of
     len | len <= 31 ->
       fromWord8 $ 0xA0 .|. fromIntegral len
+    len | len < 0x100 ->
+      fromWord8 0xD9 <>
+      fromWord8 (fromIntegral len)
     len | len < 0x10000 ->
       fromWord8 0xDA <>
       fromWord16be (fromIntegral len)
@@ -173,7 +176,7 @@ instance (Packable a1, Packable a2, Packable a3, Packable a4, Packable a5, Packa
     f (a1, a2, a3, a4, a5, a6, a7, a8, a9) = from a1 <> from a2 <> from a3 <> from a4 <> from a5 <> from a6 <> from a7 <> from a8 <> from a9
 
 fromArray :: (a -> Int) -> (a -> Builder) -> a -> Builder
-fromArray lf pf arr = do
+fromArray lf pf arr =
   case lf arr of
     len | len <= 15 ->
       fromWord8 $ 0x90 .|. fromIntegral len
