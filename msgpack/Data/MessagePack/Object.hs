@@ -24,6 +24,7 @@ module Data.MessagePack.Object(
   -- Result,
   ) where
 
+import Control.Arrow hiding (arr)
 import Control.Applicative
 import Control.DeepSeq
 import Control.Exception
@@ -320,40 +321,40 @@ instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJE
 
 instance (OBJECT a, OBJECT b) => OBJECT (Assoc [(a,b)]) where
   toObject =
-    ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . unAssoc
-  tryFromObject (ObjectMap mem) = do
+    ObjectMap . map (toObject *** toObject) . unAssoc
+  tryFromObject (ObjectMap mem) =
     Assoc <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
   tryFromObject _ =
     tryFromObjectError
 
 instance (OBJECT a, OBJECT b) => OBJECT (Assoc (V.Vector (a,b))) where
   toObject =
-    ObjectMap . V.toList . V.map (\(a, b) -> (toObject a, toObject b)) . unAssoc
-  tryFromObject (ObjectMap mem) = do
+    ObjectMap . V.toList . V.map (toObject *** toObject) . unAssoc
+  tryFromObject (ObjectMap mem) =
     Assoc <$> V.mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) (V.fromList mem)
   tryFromObject _ =
     tryFromObjectError
 
 instance (Ord a, OBJECT a, OBJECT b) => OBJECT (M.Map a b) where
   toObject =
-    ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . M.toList
-  tryFromObject (ObjectMap mem) = do
+    ObjectMap . map (toObject *** toObject) . M.toList
+  tryFromObject (ObjectMap mem) =
     M.fromList <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
   tryFromObject _ =
     tryFromObjectError
 
 instance OBJECT b => OBJECT (IM.IntMap b) where
   toObject =
-    ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . IM.toList
-  tryFromObject (ObjectMap mem) = do
+    ObjectMap . map (toObject *** toObject) . IM.toList
+  tryFromObject (ObjectMap mem) =
     IM.fromList <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
   tryFromObject _ =
     tryFromObjectError
 
 instance (Hashable a, Eq a, OBJECT a, OBJECT b) => OBJECT (HM.HashMap a b) where
   toObject =
-    ObjectMap . map (\(a, b) -> (toObject a, toObject b)) . HM.toList
-  tryFromObject (ObjectMap mem) = do
+    ObjectMap . map (toObject *** toObject) . HM.toList
+  tryFromObject (ObjectMap mem) =
     HM.fromList <$> mapM (\(a, b) -> liftM2 (,) (tryFromObject a) (tryFromObject b)) mem
   tryFromObject _ =
     tryFromObjectError
@@ -361,6 +362,6 @@ instance (Hashable a, Eq a, OBJECT a, OBJECT b) => OBJECT (HM.HashMap a b) where
 instance OBJECT a => OBJECT (Maybe a) where
   toObject (Just a) = toObject a
   toObject Nothing = ObjectNil
-  
+
   tryFromObject ObjectNil = return Nothing
   tryFromObject obj = liftM Just $ tryFromObject obj

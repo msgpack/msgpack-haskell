@@ -162,19 +162,19 @@ instance Unpackable Double where
         fail $ printf "invalid double tag: 0x%02X" c
 
 instance Unpackable String where
-  get = parseString (\n -> return . decodeUtf8 =<< A.take n)
+  get = parseString $ (return . decodeUtf8) <=< A.take
 
 instance Unpackable B.ByteString where
   get = parseString A.take
 
 instance Unpackable BL.ByteString where
-  get = parseString (\n -> return . toLBS =<< A.take n)
+  get = parseString $ (return . toLBS) <=< A.take
 
 instance Unpackable T.Text where
-  get = parseString (\n -> return . T.decodeUtf8With skipChar =<< A.take n)
+  get = parseString $ (return . T.decodeUtf8With skipChar) <=< A.take
 
 instance Unpackable TL.Text where
-  get = parseString (\n -> return . TL.decodeUtf8With skipChar . toLBS =<< A.take n)
+  get = parseString $ (return . TL.decodeUtf8With skipChar . toLBS) <=< A.take
 
 parseString :: (Int -> A.Parser a) -> A.Parser a
 parseString aget = do
@@ -190,10 +190,10 @@ parseString aget = do
       fail $ printf "invalid raw tag: 0x%02X" c
 
 instance Unpackable a => Unpackable [a] where
-  get = parseArray (flip replicateM get)
+  get = parseArray (`replicateM` get)
 
 instance Unpackable a => Unpackable (V.Vector a) where
-  get = parseArray (flip V.replicateM get)
+  get = parseArray (`V.replicateM` get)
 
 instance (Unpackable a1, Unpackable a2) => Unpackable (a1, a2) where
   get = parseArray f where
@@ -249,10 +249,10 @@ parseArray aget = do
       fail $ printf "invalid array tag: 0x%02X" c
 
 instance (Unpackable k, Unpackable v) => Unpackable (Assoc [(k,v)]) where
-  get = liftM Assoc $ parseMap (flip replicateM parsePair)
+  get = liftM Assoc $ parseMap (`replicateM` parsePair)
 
 instance (Unpackable k, Unpackable v) => Unpackable (Assoc (V.Vector (k, v))) where
-  get = liftM Assoc $ parseMap (flip V.replicateM parsePair)
+  get = liftM Assoc $ parseMap (`V.replicateM` parsePair)
 
 instance (Ord k, Unpackable k, Unpackable v) => Unpackable (M.Map k v) where
   get = parseMap (\n -> M.fromList <$> replicateM n parsePair)
