@@ -30,7 +30,7 @@ module Data.MessagePack.Unpack(
 import Control.Applicative
 import Control.Exception
 import Control.Monad
-import qualified Data.Attoparsec as A
+import qualified Data.Attoparsec.ByteString as A
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL

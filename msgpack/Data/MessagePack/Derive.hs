@@ -8,7 +8,7 @@ module Data.MessagePack.Derive (
   ) where
 
 import Control.Monad
-import Control.Monad.Error () -- MonadPlus instance for Either e
+import Control.Monad.Except () -- MonadError instance for Either e
 import Data.Char
 import Data.List
 import qualified Data.Text as T

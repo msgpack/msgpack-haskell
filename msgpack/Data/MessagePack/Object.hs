@@ -28,7 +28,7 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Exception
 import Control.Monad
-import qualified Data.Attoparsec as A
+import qualified Data.Attoparsec.ByteString as A
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Hashable
