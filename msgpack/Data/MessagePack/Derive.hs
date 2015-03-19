@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Data.MessagePack.Derive (
   -- | deriving OBJECT
@@ -7,17 +8,17 @@ module Data.MessagePack.Derive (
   deriveObject,
   ) where
 
-import Control.Monad
-import Control.Monad.Error () -- MonadPlus instance for Either e
-import Data.Char
-import Data.List
-import qualified Data.Text as T
-import Language.Haskell.TH
+import           Control.Monad
+import           Control.Monad.Except    ()
+import           Data.Char
+import           Data.List
+import qualified Data.Text               as T
+import           Language.Haskell.TH
 
-import Data.MessagePack.Assoc
-import Data.MessagePack.Pack
-import Data.MessagePack.Unpack
-import Data.MessagePack.Object
+import           Data.MessagePack.Assoc
+import           Data.MessagePack.Object
+import           Data.MessagePack.Pack
+import           Data.MessagePack.Unpack
 
 derivePack :: Bool -> Name -> Q [Dec]
 derivePack asObject tyName = do
@@ -129,7 +130,7 @@ ct tc tyName tyVars =
 key :: Name -> Name -> [Char]
 key conName fname
   | (prefix ++ "_") `isPrefixOf` sFname && length sFname > length prefix + 1 =
-    drop (length prefix + 1) sFname  
+    drop (length prefix + 1) sFname
   | prefix `isPrefixOf` sFname && length sFname > length prefix =
     uncapital $ drop (length prefix) sFname
   | otherwise = sFname

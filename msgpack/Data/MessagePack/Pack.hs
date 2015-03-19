@@ -1,4 +1,6 @@
-{-# LANGUAGE FlexibleInstances, IncoherentInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE IncoherentInstances  #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
 -- |
@@ -21,24 +23,24 @@ module Data.MessagePack.Pack (
   pack,
   ) where
 
-import Blaze.ByteString.Builder
-import Data.Bits
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Map as M
-import qualified Data.IntMap as IM
-import qualified Data.Monoid as Monoid
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TL
-import qualified Data.Vector as V
-import Foreign
-import qualified System.IO.Unsafe as SIU
+import           Blaze.ByteString.Builder
+import           Data.Bits
+import qualified Data.ByteString                as B
+import qualified Data.ByteString.Lazy           as BL
+import qualified Data.HashMap.Strict            as HM
+import qualified Data.IntMap                    as IM
+import qualified Data.Map                       as M
+import qualified Data.Monoid                    as Monoid
+import qualified Data.Text                      as T
+import qualified Data.Text.Encoding             as T
+import qualified Data.Text.Lazy                 as TL
+import qualified Data.Text.Lazy.Encoding        as TL
+import qualified Data.Vector                    as V
+import           Foreign
+import qualified System.IO.Unsafe               as SIU
 
-import Data.MessagePack.Assoc
-import Data.MessagePack.Internal.Utf8
+import           Data.MessagePack.Assoc
+import           Data.MessagePack.Internal.Utf8
 
 (<>) :: Monoid.Monoid m => m -> m -> m
 (<>) = Monoid.mappend
@@ -83,9 +85,9 @@ instance Packable Int where
       _ ->
         fromWord8 0xD3 <>
         fromWord64be (fromIntegral n)
-      
+
 instance Packable () where
-  from _ = 
+  from _ =
     fromWord8 0xC0
 
 instance Packable Bool where

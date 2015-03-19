@@ -1,5 +1,7 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, IncoherentInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE IncoherentInstances  #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
 -- |
@@ -18,34 +20,34 @@
 module Data.MessagePack.Object(
   -- * MessagePack Object
   Object(..),
-  
+
   -- * Serialization to and from Object
   OBJECT(..),
   -- Result,
   ) where
 
-import Control.Applicative
-import Control.DeepSeq
-import Control.Exception
-import Control.Monad
-import qualified Data.Attoparsec as A
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import Data.Hashable
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Map as M
-import qualified Data.IntMap as IM
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TL
-import qualified Data.Vector as V
-import Data.Typeable
+import           Control.Applicative
+import           Control.DeepSeq
+import           Control.Exception
+import           Control.Monad
+import qualified Data.Attoparsec.ByteString     as A
+import qualified Data.ByteString                as B
+import qualified Data.ByteString.Lazy           as BL
+import           Data.Hashable
+import qualified Data.HashMap.Strict            as HM
+import qualified Data.IntMap                    as IM
+import qualified Data.Map                       as M
+import qualified Data.Text                      as T
+import qualified Data.Text.Encoding             as T
+import qualified Data.Text.Lazy                 as TL
+import qualified Data.Text.Lazy.Encoding        as TL
+import           Data.Typeable
+import qualified Data.Vector                    as V
 
-import Data.MessagePack.Assoc
-import Data.MessagePack.Pack
-import Data.MessagePack.Unpack
-import Data.MessagePack.Internal.Utf8
+import           Data.MessagePack.Assoc
+import           Data.MessagePack.Internal.Utf8
+import           Data.MessagePack.Pack
+import           Data.MessagePack.Unpack
 
 -- | Object Representation of MessagePack data.
 data Object
@@ -57,7 +59,7 @@ data Object
   | ObjectRAW B.ByteString
   | ObjectArray [Object]
   | ObjectMap [(Object, Object)]
-  deriving (Show, Eq, Ord, Typeable)  
+  deriving (Show, Eq, Ord, Typeable)
 
 instance NFData Object where
   rnf obj =
@@ -109,7 +111,7 @@ class (Unpackable a, Packable a) => OBJECT a where
   -- | Encode a value to MessagePack object
   toObject :: a -> Object
   toObject = unpack . pack
-  
+
   -- | Decode a value from MessagePack object
   fromObject :: Object -> a
   fromObject a =
@@ -361,6 +363,6 @@ instance (Hashable a, Eq a, OBJECT a, OBJECT b) => OBJECT (HM.HashMap a b) where
 instance OBJECT a => OBJECT (Maybe a) where
   toObject (Just a) = toObject a
   toObject Nothing = ObjectNil
-  
+
   tryFromObject ObjectNil = return Nothing
   tryFromObject obj = liftM Just $ tryFromObject obj

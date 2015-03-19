@@ -9,3 +9,5 @@ dist/
 attic/
 tmp/
 *.aes
+/msgpack/.cabal-sandbox/
+/msgpack/cabal.sandbox.config

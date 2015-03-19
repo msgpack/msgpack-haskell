@@ -1,5 +1,7 @@
-{-# LANGUAGE FlexibleInstances, IncoherentInstances, TypeSynonymInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE IncoherentInstances  #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
 -- |
@@ -27,31 +29,31 @@ module Data.MessagePack.Unpack(
   IsByteString(..),
   ) where
 
-import Control.Applicative
-import Control.Exception
-import Control.Monad
-import qualified Data.Attoparsec as A
-import Data.Bits
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import Data.Hashable
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Map as M
-import qualified Data.IntMap as IM
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TL
-import Data.Int
-import Data.Typeable
-import qualified Data.Vector as V
-import Data.Word
-import Foreign
-import qualified System.IO.Unsafe as SIU
-import Text.Printf
+import           Control.Applicative
+import           Control.Exception
+import           Control.Monad
+import qualified Data.Attoparsec.ByteString     as A
+import           Data.Bits
+import qualified Data.ByteString                as B
+import qualified Data.ByteString.Lazy           as BL
+import           Data.Hashable
+import qualified Data.HashMap.Strict            as HM
+import           Data.Int
+import qualified Data.IntMap                    as IM
+import qualified Data.Map                       as M
+import qualified Data.Text                      as T
+import qualified Data.Text.Encoding             as T
+import qualified Data.Text.Lazy                 as TL
+import qualified Data.Text.Lazy.Encoding        as TL
+import           Data.Typeable
+import qualified Data.Vector                    as V
+import           Data.Word
+import           Foreign
+import qualified System.IO.Unsafe               as SIU
+import           Text.Printf
 
-import Data.MessagePack.Assoc
-import Data.MessagePack.Internal.Utf8
+import           Data.MessagePack.Assoc
+import           Data.MessagePack.Internal.Utf8
 
 -- | Deserializable class
 class Unpackable a where
@@ -283,7 +285,7 @@ parseMap aget = do
       fail $ printf "invalid map tag: 0x%02X" c
 
 instance Unpackable a => Unpackable (Maybe a) where
-  get = 
+  get =
     A.choice
     [ liftM Just get
     , liftM (\() -> Nothing) get ]

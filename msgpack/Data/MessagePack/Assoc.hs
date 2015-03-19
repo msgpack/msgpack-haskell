@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 --------------------------------------------------------------------
 -- |
@@ -18,8 +19,8 @@ module Data.MessagePack.Assoc (
   Assoc(..)
   ) where
 
-import Control.DeepSeq
-import Data.Typeable
+import           Control.DeepSeq
+import           Data.Typeable
 
 -- not defined for general Functor for performance reason.
 -- (ie. you would want to write custom instances for each type using specialized mapM-like functions)

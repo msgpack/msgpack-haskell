@@ -1,10 +1,12 @@
+{-# LANGUAGE TypeOperators #-}
+
 module Data.MessagePack.Generic (
   GPackable(..),
   ) where
 
-import Blaze.ByteString.Builder
-import Data.Monoid
-import GHC.Generic
+import           Blaze.ByteString.Builder
+import           Data.Monoid
+import           GHC.Generics
 
 packUnit = undefined
 
@@ -26,11 +28,11 @@ instance (GPackable a, GPackable b) => GPackable (a :+: b) where
 
 instance GPackable a => GPackable (D1 c a) where
   gfrom (M1 x) = from x
-  {-# INLINE gfrom #-}  
+  {-# INLINE gfrom #-}
 
 instance GPackable a => GPackable (C1 c a) where
   gfrom (M1 x) = undefined
-  {-# INLINE gfrom #-}  
+  {-# INLINE gfrom #-}
 
 instance Packable a => GPackable (K1 i a) where
   gfrom (K1 x) = from x

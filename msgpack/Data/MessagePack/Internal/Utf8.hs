@@ -6,10 +6,10 @@ module Data.MessagePack.Internal.Utf8 (
   fromLBS,
   ) where
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
+import qualified Data.ByteString          as B
+import qualified Data.ByteString.Lazy     as BL
+import qualified Data.Text                as T
+import qualified Data.Text.Encoding       as T
 import qualified Data.Text.Encoding.Error as T
 
 encodeUtf8 :: String -> B.ByteString
