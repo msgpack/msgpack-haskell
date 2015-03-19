@@ -52,59 +52,43 @@ import           Data.MessagePack.Unpack
 -- | Object Representation of MessagePack data.
 data Object
   = ObjectNil
-  | ObjectBool Bool
-  | ObjectInteger Int
-  | ObjectFloat Float
-  | ObjectDouble Double
-  | ObjectRAW B.ByteString
-  | ObjectArray [Object]
-  | ObjectMap [(Object, Object)]
+  | ObjectBool    {-# UNPACK #-} !Bool
+  | ObjectInteger {-# UNPACK #-} !Int
+  | ObjectFloat   {-# UNPACK #-} !Float
+  | ObjectDouble  {-# UNPACK #-} !Double
+  | ObjectRAW                    !B.ByteString
+  | ObjectArray                  [Object]
+  | ObjectMap                    [(Object, Object)]
   deriving (Show, Eq, Ord, Typeable)
 
 instance NFData Object where
-  rnf obj =
-    case obj of
-      ObjectNil -> ()
-      ObjectBool b -> rnf b
-      ObjectInteger n -> rnf n
-      ObjectFloat f -> rnf f
-      ObjectDouble d -> rnf d
-      ObjectRAW bs -> bs `seq` ()
-      ObjectArray a -> rnf a
-      ObjectMap m -> rnf m
+  rnf obj = case obj of
+    ObjectArray a -> rnf a
+    ObjectMap   m -> rnf m
+    _             -> ()
 
 instance Unpackable Object where
-  get =
-    A.choice
-    [ liftM ObjectInteger get
-    , liftM (\() -> ObjectNil) get
-    , liftM ObjectBool get
-    , liftM ObjectFloat get
-    , liftM ObjectDouble get
-    , liftM ObjectRAW get
-    , liftM ObjectArray get
-    , liftM (ObjectMap . unAssoc) get
+  get = A.choice
+    [ ObjectInteger       <$> get
+    , (\() -> ObjectNil)  <$> get
+    , ObjectBool          <$> get
+    , ObjectFloat         <$> get
+    , ObjectDouble        <$> get
+    , ObjectRAW           <$> get
+    , ObjectArray         <$> get
+    , ObjectMap . unAssoc <$> get
     ]
 
 instance Packable Object where
-  from obj =
-    case obj of
-      ObjectInteger n ->
-        from n
-      ObjectNil ->
-        from ()
-      ObjectBool b ->
-        from b
-      ObjectFloat f ->
-        from f
-      ObjectDouble d ->
-        from d
-      ObjectRAW raw ->
-        from raw
-      ObjectArray arr ->
-        from arr
-      ObjectMap m ->
-        from $ Assoc m
+  from obj = case obj of
+    ObjectInteger n -> from n
+    ObjectNil       -> from ()
+    ObjectBool    b -> from b
+    ObjectFloat   f -> from f
+    ObjectDouble  d -> from d
+    ObjectRAW   raw -> from raw
+    ObjectArray arr -> from arr
+    ObjectMap     m -> from $ Assoc m
 
 -- | The class of types serializable to and from MessagePack object
 class (Unpackable a, Packable a) => OBJECT a where
