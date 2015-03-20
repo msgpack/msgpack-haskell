@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable   #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE IncoherentInstances  #-}
 {-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
@@ -29,19 +31,19 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
 import           Data.Binary
-import qualified Data.ByteString                as S
-import qualified Data.ByteString.Lazy           as L
+import qualified Data.ByteString          as S
+import qualified Data.ByteString.Lazy     as L
 import           Data.Hashable
-import qualified Data.HashMap.Strict            as HashMap
-import qualified Data.IntMap.Strict             as IntMap
-import qualified Data.Map                       as Map
-import qualified Data.Text                      as T
-import qualified Data.Text.Encoding             as T
-import qualified Data.Text.Encoding.Error       as T
-import qualified Data.Text.Lazy                 as LT
-import qualified Data.Text.Lazy.Encoding        as LT
+import qualified Data.HashMap.Strict      as HashMap
+import qualified Data.IntMap.Strict       as IntMap
+import qualified Data.Map                 as Map
+import qualified Data.Text                as T
+import qualified Data.Text.Encoding       as T
+import qualified Data.Text.Encoding.Error as T
+import qualified Data.Text.Lazy           as LT
+import qualified Data.Text.Lazy.Encoding  as LT
 import           Data.Typeable
-import qualified Data.Vector                    as V
+import qualified Data.Vector              as V
 
 import           Data.MessagePack.Assoc
 import           Data.MessagePack.Pack
@@ -139,6 +141,11 @@ instance Msgpack S.ByteString where
     ObjectRAW r -> Just r
     _           -> Nothing
 
+-- Because of overlapping instance, this must be above [a]
+instance Msgpack String where
+  toObject = toObject . T.encodeUtf8 . T.pack
+  fromObject obj = T.unpack . T.decodeUtf8 <$> fromObject obj
+
 instance Msgpack a => Msgpack [a] where
   toObject = ObjectArray . map toObject
   fromObject = \case
@@ -167,10 +174,6 @@ instance Msgpack a => Msgpack (Maybe a) where
     obj -> fromObject obj
 
 -- UTF8 string like
-
-instance Msgpack String where
-  toObject = toObject . T.encodeUtf8 . T.pack
-  fromObject obj = T.unpack . T.decodeUtf8 <$> fromObject obj
 
 instance Msgpack L.ByteString where
   toObject = ObjectRAW . L.toStrict

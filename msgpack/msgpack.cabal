@@ -47,7 +47,7 @@ Test-suite msgpack-tests
 
   Build-depends:    base
                   , bytestring
-                  , QuickCheck     >= 2.8
-                  , test-framework >= 0.8
-                  , test-framework-quickcheck2 >= 0.3
+                  , QuickCheck       >= 2.8
+                  , tasty            >= 0.10
+                  , tasty-quickcheck >= 0.8
                   , msgpack
