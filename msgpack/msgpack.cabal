@@ -18,19 +18,20 @@ Source-repository head
   Location:         git://github.com/msgpack/msgpack-haskell.git
 
 Library
-  Build-depends:    base          == 4.*
+  Build-depends:    base                 == 4.*
                   , ghc-prim
-                  , mtl           >= 2.2
-                  , bytestring    >= 0.10
-                  , text          >= 1.2
-                  , containers    >= 0.5.5
+                  , mtl                  >= 2.2
+                  , bytestring           >= 0.10
+                  , text                 >= 1.2
+                  , containers           >= 0.5.5
                   , unordered-containers >= 0.2.5
                   , hashable
-                  , vector        >= 0.10
-                  , attoparsec    >= 0.12
-                  , blaze-builder >= 0.4
-                  , deepseq       >= 1.3
+                  , vector               >= 0.10
+                  , blaze-builder        >= 0.4
+                  , deepseq              >= 1.3
                   , template-haskell
+                  , binary               >= 0.7
+                  , data-binary-ieee754
 
   Ghc-options:      -Wall
 

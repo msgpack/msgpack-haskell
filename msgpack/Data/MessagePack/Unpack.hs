@@ -1,23 +1,114 @@
-{-# LANGUAGE DeriveDataTypeable   #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE IncoherentInstances  #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE LambdaCase #-}
 
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Unpack
--- Copyright : (c) Hideyuki Tanaka, 2009-2011
+-- Copyright : (c) Hideyuki Tanaka, 2009-2015
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com
 -- Stability :  experimental
 -- Portability: portable
 --
--- MessagePack Deserializer using @Data.Attoparsec@
+-- MessagePack Deserializer using @Data.Binary@
 --
 --------------------------------------------------------------------
 
 module Data.MessagePack.Unpack(
+  getNil, getBool, getInt, getFloat, getDouble,
+  getRAW, getArray, getMap,
+  ) where
+
+import           Control.Applicative
+import           Control.Monad
+import           Data.Bits
+import qualified Data.ByteString                as S
+import           Data.Int
+import           Data.Word
+
+import Data.Binary
+import Data.Binary.Get
+import Data.Binary.IEEE754
+
+getNil :: Get ()
+getNil = tag 0xC0
+
+getBool :: Get Bool
+getBool =
+  False <$ tag 0xC2 <|>
+  True  <$ tag 0xC3
+
+getInt :: Get Int
+getInt =
+  getWord8 >>= \case
+    c | c .&. 0x80 == 0x00 ->
+        return $ fromIntegral c
+      | c .&. 0xE0 == 0xE0 ->
+        return $ fromIntegral (fromIntegral c :: Int8)
+    0xCC -> fromIntegral <$> getWord8
+    0xCD -> fromIntegral <$> getWord16be
+    0xCE -> fromIntegral <$> getWord32be
+    0xCF -> fromIntegral <$> getWord64be
+    0xD0 -> fromIntegral <$> getInt8
+    0xD1 -> fromIntegral <$> getInt16be
+    0xD2 -> fromIntegral <$> getInt32be
+    0xD3 -> fromIntegral <$> getInt64be
+    _    -> empty
+
+getFloat :: Get Float
+getFloat = tag 0xCA >> getFloat32be
+
+getDouble :: Get Double
+getDouble = tag 0xCB >> getFloat64be
+
+getRAW :: Get S.ByteString
+getRAW = do
+  len <- getWord8 >>= \case
+    t | t .&. 0xE0 == 0xA0 ->
+      return $ fromIntegral $ t .&. 0x1F
+    0xDA -> fromIntegral <$> getWord16be
+    0xDB -> fromIntegral <$> getWord32be
+    _    -> empty
+  getByteString len
+
+getArray :: Get a -> Get [a]
+getArray g = do
+  len <- getWord8 >>= \case
+    t | t .&. 0xF0 == 0x90 ->
+      return $ fromIntegral $ t .&. 0x0F
+    0xDC -> fromIntegral <$> getWord16be
+    0xDD -> fromIntegral <$> getWord32be
+    _    -> empty
+  replicateM len g
+
+getMap :: Get a -> Get b -> Get [(a, b)]
+getMap k v = do
+  len <- getWord8 >>= \case
+    t | t .&. 0xF0 == 0x80 ->
+      return $ fromIntegral $ t .&. 0x0F
+    0xDE -> fromIntegral <$> getWord16be
+    0xDF -> fromIntegral <$> getWord32be
+    _    -> empty
+  replicateM len $ (,) <$> k <*> v
+
+getInt8 :: Get Int8
+getInt8 = fromIntegral <$> getWord8
+
+getInt16be :: Get Int16
+getInt16be = fromIntegral <$> getWord16be
+
+getInt32be :: Get Int32
+getInt32be = fromIntegral <$> getWord32be
+
+getInt64be :: Get Int64
+getInt64be = fromIntegral <$> getWord64be
+
+tag :: Word8 -> Get ()
+tag t = do
+  b <- getWord8
+  guard $ t == b
+
+{-
   -- * MessagePack deserializer
   Unpackable(..),
   -- * Simple function to unpack a Haskell value
@@ -27,47 +118,11 @@ module Data.MessagePack.Unpack(
   UnpackError(..),
   -- * ByteString utils
   IsByteString(..),
-  ) where
-
-import           Control.Applicative
-import           Control.Exception
-import           Control.Monad
-import qualified Data.Attoparsec.ByteString     as A
-import           Data.Bits
-import qualified Data.ByteString                as B
-import qualified Data.ByteString.Lazy           as BL
-import           Data.Hashable
-import qualified Data.HashMap.Strict            as HM
-import           Data.Int
-import qualified Data.IntMap                    as IM
-import qualified Data.Map                       as M
-import qualified Data.Text                      as T
-import qualified Data.Text.Encoding             as T
-import qualified Data.Text.Lazy                 as TL
-import qualified Data.Text.Lazy.Encoding        as TL
-import           Data.Typeable
-import qualified Data.Vector                    as V
-import           Data.Word
-import           Foreign
-import qualified System.IO.Unsafe               as SIU
-import           Text.Printf
-
-import           Data.MessagePack.Assoc
-import           Data.MessagePack.Internal.Utf8
 
 -- | Deserializable class
 class Unpackable a where
   -- | Deserialize a value
-  get :: A.Parser a
-
-class IsByteString s where
-  toBS :: s -> B.ByteString
-
-instance IsByteString B.ByteString where
-  toBS = id
-
-instance IsByteString BL.ByteString where
-  toBS = B.concat . BL.toChunks
+  get :: Get a
 
 -- | The exception of unpack
 data UnpackError =
@@ -77,7 +132,7 @@ data UnpackError =
 instance Exception UnpackError
 
 -- | Unpack MessagePack string to Haskell data.
-unpack :: (Unpackable a, IsByteString s) => s -> a
+unpack :: Unpackable a => L.ByteString -> a
 unpack bs =
   case tryUnpack bs of
     Left err ->
@@ -96,73 +151,6 @@ tryUnpack bs =
     A.Done _ ret ->
       Right ret
 
-instance Unpackable Int where
-  get = do
-    c <- A.anyWord8
-    case c of
-      _ | c .&. 0x80 == 0x00 ->
-        return $ fromIntegral c
-      _ | c .&. 0xE0 == 0xE0 ->
-        return $ fromIntegral (fromIntegral c :: Int8)
-      0xCC ->
-        return . fromIntegral =<< A.anyWord8
-      0xCD ->
-        return . fromIntegral =<< parseUint16
-      0xCE ->
-        return . fromIntegral =<< parseUint32
-      0xCF ->
-        return . fromIntegral =<< parseUint64
-      0xD0 ->
-        return . fromIntegral =<< parseInt8
-      0xD1 ->
-        return . fromIntegral =<< parseInt16
-      0xD2 ->
-        return . fromIntegral =<< parseInt32
-      0xD3 ->
-        return . fromIntegral =<< parseInt64
-      _ ->
-        fail $ printf "invalid integer tag: 0x%02X" c
-
-instance Unpackable () where
-  get = do
-    c <- A.anyWord8
-    case c of
-      0xC0 ->
-        return ()
-      _ ->
-        fail $ printf "invalid nil tag: 0x%02X" c
-
-instance Unpackable Bool where
-  get = do
-    c <- A.anyWord8
-    case c of
-      0xC3 ->
-        return True
-      0xC2 ->
-        return False
-      _ ->
-        fail $ printf "invalid bool tag: 0x%02X" c
-
-instance Unpackable Float where
-  get = do
-    c <- A.anyWord8
-    case c of
-      0xCA -> do
-        bs <- A.take 4
-        return $! SIU.unsafePerformIO $ B.useAsCString (B.reverse bs) $ peek . castPtr
-      _ ->
-        fail $ printf "invalid float tag: 0x%02X" c
-
-instance Unpackable Double where
-  get = do
-    c <- A.anyWord8
-    case c of
-      0xCB -> do
-        bs <- A.take 8
-        return $! SIU.unsafePerformIO $ B.useAsCString (B.reverse bs) $ peek . castPtr
-      _ ->
-        fail $ printf "invalid double tag: 0x%02X" c
-
 instance Unpackable String where
   get = parseString (\n -> return . decodeUtf8 =<< A.take n)
 
@@ -178,18 +166,27 @@ instance Unpackable T.Text where
 instance Unpackable TL.Text where
   get = parseString (\n -> return . TL.decodeUtf8With skipChar . toLBS =<< A.take n)
 
-parseString :: (Int -> A.Parser a) -> A.Parser a
-parseString aget = do
-  c <- A.anyWord8
-  case c of
-    _ | c .&. 0xE0 == 0xA0 ->
-      aget . fromIntegral $ c .&. 0x1F
-    0xDA ->
-      aget . fromIntegral =<< parseUint16
-    0xDB ->
-      aget . fromIntegral =<< parseUint32
-    _ ->
-      fail $ printf "invalid raw tag: 0x%02X" c
+instance (Unpackable k, Unpackable v) => Unpackable (Assoc [(k,v)]) where
+  get = liftM Assoc $ parseMap (flip replicateM parsePair)
+
+instance (Unpackable k, Unpackable v) => Unpackable (Assoc (V.Vector (k, v))) where
+  get = liftM Assoc $ parseMap (flip V.replicateM parsePair)
+
+instance (Ord k, Unpackable k, Unpackable v) => Unpackable (M.Map k v) where
+  get = parseMap (\n -> M.fromList <$> replicateM n parsePair)
+
+instance Unpackable v => Unpackable (IM.IntMap v) where
+  get = parseMap (\n -> IM.fromList <$> replicateM n parsePair)
+
+instance (Hashable k, Eq k, Unpackable k, Unpackable v) => Unpackable (HM.HashMap k v) where
+  get = parseMap (\n -> HM.fromList <$> replicateM n parsePair)
+
+instance Unpackable a => Unpackable (Maybe a) where
+  get =
+    A.choice
+    [ liftM Just get
+    , liftM (\() -> Nothing) get ]
+
 
 instance Unpackable a => Unpackable [a] where
   get = parseArray (flip replicateM get)
@@ -236,104 +233,4 @@ instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable
   get = parseArray f where
     f 9 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> get >>= \a8 -> get >>= \a9 -> return (a1, a2, a3, a4, a5, a6, a7, a8, a9)
     f n = fail $ printf "wrong tuple size: expected 9 but got %d" n
-
-parseArray :: (Int -> A.Parser a) -> A.Parser a
-parseArray aget = do
-  c <- A.anyWord8
-  case c of
-    _ | c .&. 0xF0 == 0x90 ->
-      aget . fromIntegral $ c .&. 0x0F
-    0xDC ->
-      aget . fromIntegral =<< parseUint16
-    0xDD ->
-      aget . fromIntegral =<< parseUint32
-    _ ->
-      fail $ printf "invalid array tag: 0x%02X" c
-
-instance (Unpackable k, Unpackable v) => Unpackable (Assoc [(k,v)]) where
-  get = liftM Assoc $ parseMap (flip replicateM parsePair)
-
-instance (Unpackable k, Unpackable v) => Unpackable (Assoc (V.Vector (k, v))) where
-  get = liftM Assoc $ parseMap (flip V.replicateM parsePair)
-
-instance (Ord k, Unpackable k, Unpackable v) => Unpackable (M.Map k v) where
-  get = parseMap (\n -> M.fromList <$> replicateM n parsePair)
-
-instance Unpackable v => Unpackable (IM.IntMap v) where
-  get = parseMap (\n -> IM.fromList <$> replicateM n parsePair)
-
-instance (Hashable k, Eq k, Unpackable k, Unpackable v) => Unpackable (HM.HashMap k v) where
-  get = parseMap (\n -> HM.fromList <$> replicateM n parsePair)
-
-parsePair :: (Unpackable k, Unpackable v) => A.Parser (k, v)
-parsePair = do
-  a <- get
-  b <- get
-  return (a, b)
-
-parseMap :: (Int -> A.Parser a) -> A.Parser a
-parseMap aget = do
-  c <- A.anyWord8
-  case c of
-    _ | c .&. 0xF0 == 0x80 ->
-      aget . fromIntegral $ c .&. 0x0F
-    0xDE ->
-      aget . fromIntegral =<< parseUint16
-    0xDF ->
-      aget . fromIntegral =<< parseUint32
-    _ ->
-      fail $ printf "invalid map tag: 0x%02X" c
-
-instance Unpackable a => Unpackable (Maybe a) where
-  get =
-    A.choice
-    [ liftM Just get
-    , liftM (\() -> Nothing) get ]
-
-parseUint16 :: A.Parser Word16
-parseUint16 = do
-  b0 <- A.anyWord8
-  b1 <- A.anyWord8
-  return $ (fromIntegral b0 `shiftL` 8) .|. fromIntegral b1
-
-parseUint32 :: A.Parser Word32
-parseUint32 = do
-  b0 <- A.anyWord8
-  b1 <- A.anyWord8
-  b2 <- A.anyWord8
-  b3 <- A.anyWord8
-  return $ (fromIntegral b0 `shiftL` 24) .|.
-           (fromIntegral b1 `shiftL` 16) .|.
-           (fromIntegral b2 `shiftL` 8) .|.
-           fromIntegral b3
-
-parseUint64 :: A.Parser Word64
-parseUint64 = do
-  b0 <- A.anyWord8
-  b1 <- A.anyWord8
-  b2 <- A.anyWord8
-  b3 <- A.anyWord8
-  b4 <- A.anyWord8
-  b5 <- A.anyWord8
-  b6 <- A.anyWord8
-  b7 <- A.anyWord8
-  return $ (fromIntegral b0 `shiftL` 56) .|.
-           (fromIntegral b1 `shiftL` 48) .|.
-           (fromIntegral b2 `shiftL` 40) .|.
-           (fromIntegral b3 `shiftL` 32) .|.
-           (fromIntegral b4 `shiftL` 24) .|.
-           (fromIntegral b5 `shiftL` 16) .|.
-           (fromIntegral b6 `shiftL` 8) .|.
-           fromIntegral b7
-
-parseInt8 :: A.Parser Int8
-parseInt8 = return . fromIntegral =<< A.anyWord8
-
-parseInt16 :: A.Parser Int16
-parseInt16 = return . fromIntegral =<< parseUint16
-
-parseInt32 :: A.Parser Int32
-parseInt32 = return . fromIntegral =<< parseUint32
-
-parseInt64 :: A.Parser Int64
-parseInt64 = return . fromIntegral =<< parseUint64
+-}
