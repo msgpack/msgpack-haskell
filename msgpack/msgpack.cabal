@@ -23,7 +23,7 @@ Library
                   , mtl           >= 2.2
                   , bytestring    >= 0.10
                   , text          >= 1.2
-                  , containers    >= 0.5.6
+                  , containers    >= 0.5.5
                   , unordered-containers >= 0.2.5
                   , hashable
                   , vector        >= 0.10
