@@ -1,7 +1,7 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack
--- Copyright : (c) Hideyuki Tanaka, 2009-2011
+-- Copyright : (c) Hideyuki Tanaka, 2009-2015
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com
@@ -15,7 +15,6 @@
 module Data.MessagePack (module X) where
 
 import           Data.MessagePack.Assoc  as X
-import           Data.MessagePack.Derive as X
 import           Data.MessagePack.Object as X
 import           Data.MessagePack.Pack   as X
 import           Data.MessagePack.Unpack as X

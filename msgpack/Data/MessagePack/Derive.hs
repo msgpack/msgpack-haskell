@@ -1,3 +1,6 @@
+module Data.MessagePack.Derive () where
+
+{-
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
@@ -139,3 +142,4 @@ key conName fname
     sFname = nameBase fname
     uncapital (c:cs) | isUpper c = toLower c : cs
     uncapital cs = cs
+-}

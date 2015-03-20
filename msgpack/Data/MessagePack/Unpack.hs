@@ -21,14 +21,12 @@ module Data.MessagePack.Unpack(
 
 import           Control.Applicative
 import           Control.Monad
+import           Data.Binary
+import           Data.Binary.Get
+import           Data.Binary.IEEE754
 import           Data.Bits
-import qualified Data.ByteString                as S
+import qualified Data.ByteString     as S
 import           Data.Int
-import           Data.Word
-
-import Data.Binary
-import Data.Binary.Get
-import Data.Binary.IEEE754
 
 getNil :: Get ()
 getNil = tag 0xC0
@@ -109,16 +107,6 @@ tag t = do
   guard $ t == b
 
 {-
-  -- * MessagePack deserializer
-  Unpackable(..),
-  -- * Simple function to unpack a Haskell value
-  unpack,
-  tryUnpack,
-  -- * Unpack exception
-  UnpackError(..),
-  -- * ByteString utils
-  IsByteString(..),
-
 -- | Deserializable class
 class Unpackable a where
   -- | Deserialize a value
@@ -150,87 +138,4 @@ tryUnpack bs =
       Left "not enough input"
     A.Done _ ret ->
       Right ret
-
-instance Unpackable String where
-  get = parseString (\n -> return . decodeUtf8 =<< A.take n)
-
-instance Unpackable B.ByteString where
-  get = parseString A.take
-
-instance Unpackable BL.ByteString where
-  get = parseString (\n -> return . toLBS =<< A.take n)
-
-instance Unpackable T.Text where
-  get = parseString (\n -> return . T.decodeUtf8With skipChar =<< A.take n)
-
-instance Unpackable TL.Text where
-  get = parseString (\n -> return . TL.decodeUtf8With skipChar . toLBS =<< A.take n)
-
-instance (Unpackable k, Unpackable v) => Unpackable (Assoc [(k,v)]) where
-  get = liftM Assoc $ parseMap (flip replicateM parsePair)
-
-instance (Unpackable k, Unpackable v) => Unpackable (Assoc (V.Vector (k, v))) where
-  get = liftM Assoc $ parseMap (flip V.replicateM parsePair)
-
-instance (Ord k, Unpackable k, Unpackable v) => Unpackable (M.Map k v) where
-  get = parseMap (\n -> M.fromList <$> replicateM n parsePair)
-
-instance Unpackable v => Unpackable (IM.IntMap v) where
-  get = parseMap (\n -> IM.fromList <$> replicateM n parsePair)
-
-instance (Hashable k, Eq k, Unpackable k, Unpackable v) => Unpackable (HM.HashMap k v) where
-  get = parseMap (\n -> HM.fromList <$> replicateM n parsePair)
-
-instance Unpackable a => Unpackable (Maybe a) where
-  get =
-    A.choice
-    [ liftM Just get
-    , liftM (\() -> Nothing) get ]
-
-
-instance Unpackable a => Unpackable [a] where
-  get = parseArray (flip replicateM get)
-
-instance Unpackable a => Unpackable (V.Vector a) where
-  get = parseArray (flip V.replicateM get)
-
-instance (Unpackable a1, Unpackable a2) => Unpackable (a1, a2) where
-  get = parseArray f where
-    f 2 = get >>= \a1 -> get >>= \a2 -> return (a1, a2)
-    f n = fail $ printf "wrong tuple size: expected 2 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3) => Unpackable (a1, a2, a3) where
-  get = parseArray f where
-    f 3 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> return (a1, a2, a3)
-    f n = fail $ printf "wrong tuple size: expected 3 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4) => Unpackable (a1, a2, a3, a4) where
-  get = parseArray f where
-    f 4 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> return (a1, a2, a3, a4)
-    f n = fail $ printf "wrong tuple size: expected 4 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5) => Unpackable (a1, a2, a3, a4, a5) where
-  get = parseArray f where
-    f 5 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> return (a1, a2, a3, a4, a5)
-    f n = fail $ printf "wrong tuple size: expected 5 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6) => Unpackable (a1, a2, a3, a4, a5, a6) where
-  get = parseArray f where
-    f 6 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> return (a1, a2, a3, a4, a5, a6)
-    f n = fail $ printf "wrong tuple size: expected 6 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6, Unpackable a7) => Unpackable (a1, a2, a3, a4, a5, a6, a7) where
-  get = parseArray f where
-    f 7 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> return (a1, a2, a3, a4, a5, a6, a7)
-    f n = fail $ printf "wrong tuple size: expected 7 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6, Unpackable a7, Unpackable a8) => Unpackable (a1, a2, a3, a4, a5, a6, a7, a8) where
-  get = parseArray f where
-    f 8 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> get >>= \a8 -> return (a1, a2, a3, a4, a5, a6, a7, a8)
-    f n = fail $ printf "wrong tuple size: expected 8 but got %d" n
-
-instance (Unpackable a1, Unpackable a2, Unpackable a3, Unpackable a4, Unpackable a5, Unpackable a6, Unpackable a7, Unpackable a8, Unpackable a9) => Unpackable (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
-  get = parseArray f where
-    f 9 = get >>= \a1 -> get >>= \a2 -> get >>= \a3 -> get >>= \a4 -> get >>= \a5 -> get >>= \a6 -> get >>= \a7 -> get >>= \a8 -> get >>= \a9 -> return (a1, a2, a3, a4, a5, a6, a7, a8, a9)
-    f n = fail $ printf "wrong tuple size: expected 9 but got %d" n
 -}

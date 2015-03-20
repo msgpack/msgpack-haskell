@@ -1,49 +1,104 @@
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE IncoherentInstances  #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Pack
--- Copyright : (c) Hideyuki Tanaka, 2009-2011
+-- Copyright : (c) Hideyuki Tanaka, 2009-2015
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com
 -- Stability :  experimental
 -- Portability: portable
 --
--- MessagePack Serializer using @Data.Binary.Pack@
+-- MessagePack Serializer using @Data.Binary@
 --
 --------------------------------------------------------------------
 
 module Data.MessagePack.Pack (
+  putNil, putBool, putInt, putFloat, putDouble,
+  putRAW, putArray, putMap,
+  ) where
+
+import           Data.Binary
+import           Data.Binary.IEEE754
+import           Data.Binary.Put
+import           Data.Bits
+import qualified Data.ByteString     as S
+
+putNil :: Put
+putNil = putWord8 0xC0
+
+putBool :: Bool -> Put
+putBool False = putWord8 0xC2
+putBool True  = putWord8 0xC3
+
+putInt :: Int -> Put
+putInt n
+  | -32 <= n && n <= 127 =
+    putWord8 $ fromIntegral n
+  | 0 <= n && n < 0x100 =
+    putWord8 0xCC >> putWord8     (fromIntegral n)
+  | 0 <= n && n < 0x10000 =
+    putWord8 0xCD >> putWord16be  (fromIntegral n)
+  | 0 <= n && n < 0x100000000 =
+    putWord8 0xCE >> putWord32be  (fromIntegral n)
+  | 0 <= n =
+    putWord8 0xCF >> putWord64be  (fromIntegral n)
+  | -0x80 <= n =
+    putWord8 0xD0 >> putWord8     (fromIntegral n)
+  | -0x8000 <= n =
+    putWord8 0xD1 >> putWord16be  (fromIntegral n)
+  | -0x80000000  <= n =
+    putWord8 0xD2 >> putWord32be  (fromIntegral n)
+  | otherwise =
+    putWord8 0xD3 >> putWord64be (fromIntegral n)
+
+putFloat :: Float -> Put
+putFloat f = do
+  putWord8 0xCB
+  putFloat32be f
+
+putDouble :: Double -> Put
+putDouble d = do
+  putWord8 0xCB
+  putFloat64be d
+
+putRAW :: S.ByteString -> Put
+putRAW bs = do
+  case S.length bs of
+    len | len <= 31 ->
+          putWord8 $ 0xA0 .|. fromIntegral len
+        | len < 0x10000 ->
+          putWord8 0xDA >> putWord16be (fromIntegral len)
+        | otherwise ->
+          putWord8 0xDB >> putWord32be (fromIntegral len)
+  putByteString bs
+
+putArray :: (a -> Put) -> [a] -> Put
+putArray p xs = do
+  case length xs of
+    len | len <= 15 ->
+          putWord8 $ 0x90 .|. fromIntegral len
+        | len < 0x10000 ->
+          putWord8 0xDC >> putWord16be (fromIntegral len)
+        | otherwise ->
+          putWord8 0xDD >> putWord32be (fromIntegral len)
+  mapM_ p xs
+
+putMap :: (a -> Put) -> (b -> Put) -> [(a, b)] -> Put
+putMap p q xs = do
+  case length xs of
+    len | len <= 15 ->
+          putWord8 $ 0x80 .|. fromIntegral len
+        | len < 0x10000 ->
+          putWord8 0xDE >> putWord16be (fromIntegral len)
+        | otherwise ->
+          putWord8 0xDF >> putWord32be (fromIntegral len)
+  mapM_ (\(a, b) -> p a >> q b ) xs
+
+{-
   -- * Serializable class
   Packable(..),
   -- * Simple function to pack a Haskell value
   pack,
-  ) where
-
-import           Blaze.ByteString.Builder
-import           Data.Bits
-import qualified Data.ByteString                as B
-import qualified Data.ByteString.Lazy           as BL
-import qualified Data.HashMap.Strict            as HM
-import qualified Data.IntMap                    as IM
-import qualified Data.Map                       as M
-import qualified Data.Monoid                    as Monoid
-import qualified Data.Text                      as T
-import qualified Data.Text.Encoding             as T
-import qualified Data.Text.Lazy                 as TL
-import qualified Data.Text.Lazy.Encoding        as TL
-import qualified Data.Vector                    as V
-import           Foreign
-import qualified System.IO.Unsafe               as SIU
-
-import           Data.MessagePack.Assoc
-import           Data.MessagePack.Internal.Utf8
-
-(<>) :: Monoid.Monoid m => m -> m -> m
-(<>) = Monoid.mappend
 
 -- | Serializable class
 class Packable a where
@@ -53,59 +108,6 @@ class Packable a where
 -- | Pack Haskell data to MessagePack string.
 pack :: Packable a => a -> BL.ByteString
 pack = toLazyByteString . from
-
-instance Packable Int where
-  from n =
-    case n of
-      _ | n >= 0 && n <= 127 ->
-        fromWord8 $ fromIntegral n
-      _ | n >= -32 && n <= -1 ->
-        fromWord8 $ fromIntegral n
-      _ | n >= 0 && n < 0x100 ->
-        fromWord8 0xCC <>
-        fromWord8 (fromIntegral n)
-      _ | n >= 0 && n < 0x10000 ->
-        fromWord8 0xCD <>
-        fromWord16be (fromIntegral n)
-      _ | n >= 0 && n < 0x100000000 ->
-        fromWord8 0xCE <>
-        fromWord32be (fromIntegral n)
-      _ | n >= 0 ->
-        fromWord8 0xCF <>
-        fromWord64be (fromIntegral n)
-      _ | n >= -0x80 ->
-        fromWord8 0xD0 <>
-        fromWord8 (fromIntegral n)
-      _ | n >= -0x8000 ->
-        fromWord8 0xD1 <>
-        fromWord16be (fromIntegral n)
-      _ | n >= -0x80000000 ->
-        fromWord8 0xD2 <>
-        fromWord32be (fromIntegral n)
-      _ ->
-        fromWord8 0xD3 <>
-        fromWord64be (fromIntegral n)
-
-instance Packable () where
-  from _ =
-    fromWord8 0xC0
-
-instance Packable Bool where
-  from True  = fromWord8 0xC3
-  from False = fromWord8 0xC2
-
-instance Packable Float where
-  from f =
-    fromWord8 0xCB <>
-    fromWord32be (cast f)
-
-instance Packable Double where
-  from d =
-    fromWord8 0xCB <>
-    fromWord64be (cast d)
-
-cast :: (Storable a, Storable b) => a -> b
-cast v = SIU.unsafePerformIO $ with v $ peek . castPtr
 
 instance Packable String where
   from = fromString encodeUtf8 B.length fromByteString
@@ -124,17 +126,6 @@ instance Packable TL.Text where
 
 fromString :: (s -> t) -> (t -> Int) -> (t -> Builder) -> s -> Builder
 fromString cnv lf pf str =
-  let bs = cnv str in
-  case lf bs of
-    len | len <= 31 ->
-      fromWord8 $ 0xA0 .|. fromIntegral len
-    len | len < 0x10000 ->
-      fromWord8 0xDA <>
-      fromWord16be (fromIntegral len)
-    len ->
-      fromWord8 0xDB <>
-      fromWord32be (fromIntegral len)
-  <> pf bs
 
 instance Packable a => Packable [a] where
   from = fromArray length (Monoid.mconcat . map from)
@@ -174,19 +165,6 @@ instance (Packable a1, Packable a2, Packable a3, Packable a4, Packable a5, Packa
   from = fromArray (const 9) f where
     f (a1, a2, a3, a4, a5, a6, a7, a8, a9) = from a1 <> from a2 <> from a3 <> from a4 <> from a5 <> from a6 <> from a7 <> from a8 <> from a9
 
-fromArray :: (a -> Int) -> (a -> Builder) -> a -> Builder
-fromArray lf pf arr = do
-  case lf arr of
-    len | len <= 15 ->
-      fromWord8 $ 0x90 .|. fromIntegral len
-    len | len < 0x10000 ->
-      fromWord8 0xDC <>
-      fromWord16be (fromIntegral len)
-    len ->
-      fromWord8 0xDD <>
-      fromWord32be (fromIntegral len)
-  <> pf arr
-
 instance (Packable k, Packable v) => Packable (Assoc [(k,v)]) where
   from = fromMap length (Monoid.mconcat . map fromPair) . unAssoc
 
@@ -202,22 +180,7 @@ instance Packable v => Packable (IM.IntMap v) where
 instance (Packable k, Packable v) => Packable (HM.HashMap k v) where
   from = fromMap HM.size (Monoid.mconcat . map fromPair . HM.toList)
 
-fromPair :: (Packable a, Packable b) => (a, b) -> Builder
-fromPair (a, b) = from a <> from b
-
-fromMap :: (a -> Int) -> (a -> Builder) -> a -> Builder
-fromMap lf pf m =
-  case lf m of
-    len | len <= 15 ->
-      fromWord8 $ 0x80 .|. fromIntegral len
-    len | len < 0x10000 ->
-      fromWord8 0xDE <>
-      fromWord16be (fromIntegral len)
-    len ->
-      fromWord8 0xDF <>
-      fromWord32be (fromIntegral len)
-  <> pf m
-
 instance Packable a => Packable (Maybe a) where
   from Nothing = from ()
   from (Just a) = from a
+-}
