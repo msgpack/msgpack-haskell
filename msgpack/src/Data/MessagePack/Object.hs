@@ -24,7 +24,7 @@ module Data.MessagePack.Object(
   Object(..),
 
   -- * MessagePack Serializable Types
-  Msgpack(..),
+  MessagePack(..),
   ) where
 
 import           Control.Applicative
@@ -93,66 +93,66 @@ instance Binary Object where
   get = getObject
   put = putObject
 
-class Msgpack a where
+class MessagePack a where
   toObject   :: a -> Object
   fromObject :: Object -> Maybe a
 
 -- core instances
 
-instance Msgpack Object where
+instance MessagePack Object where
   toObject = id
   fromObject = Just
 
-instance Msgpack () where
+instance MessagePack () where
   toObject _ = ObjectNil
   fromObject = \case
     ObjectNil -> Just ()
     _         -> Nothing
 
-instance Msgpack Int where
+instance MessagePack Int where
   toObject = ObjectInt
   fromObject = \case
     ObjectInt n -> Just n
     _           -> Nothing
 
-instance Msgpack Bool where
+instance MessagePack Bool where
   toObject = ObjectBool
   fromObject = \case
     ObjectBool b -> Just b
     _            -> Nothing
 
-instance Msgpack Float where
+instance MessagePack Float where
   toObject = ObjectFloat
   fromObject = \case
     ObjectFloat  f -> Just f
     ObjectDouble d -> Just $ realToFrac d
     _              -> Nothing
 
-instance Msgpack Double where
+instance MessagePack Double where
   toObject = ObjectDouble
   fromObject = \case
     ObjectFloat  f -> Just $ realToFrac f
     ObjectDouble d -> Just d
     _              -> Nothing
 
-instance Msgpack S.ByteString where
+instance MessagePack S.ByteString where
   toObject = ObjectRAW
   fromObject = \case
     ObjectRAW r -> Just r
     _           -> Nothing
 
 -- Because of overlapping instance, this must be above [a]
-instance Msgpack String where
+instance MessagePack String where
   toObject = toObject . T.encodeUtf8 . T.pack
   fromObject obj = T.unpack . T.decodeUtf8 <$> fromObject obj
 
-instance Msgpack a => Msgpack [a] where
+instance MessagePack a => MessagePack [a] where
   toObject = ObjectArray . map toObject
   fromObject = \case
     ObjectArray xs -> mapM fromObject xs
     _              -> Nothing
 
-instance (Msgpack a, Msgpack b) => Msgpack (Assoc [(a, b)]) where
+instance (MessagePack a, MessagePack b) => MessagePack (Assoc [(a, b)]) where
   toObject (Assoc xs) = ObjectMap $ map (toObject *** toObject) xs
   fromObject = \case
     ObjectMap xs ->
@@ -164,7 +164,7 @@ instance (Msgpack a, Msgpack b) => Msgpack (Assoc [(a, b)]) where
 
 -- nullable
 
-instance Msgpack a => Msgpack (Maybe a) where
+instance MessagePack a => MessagePack (Maybe a) where
   toObject = \case
     Just a  -> toObject a
     Nothing -> ObjectNil
@@ -175,15 +175,15 @@ instance Msgpack a => Msgpack (Maybe a) where
 
 -- UTF8 string like
 
-instance Msgpack L.ByteString where
+instance MessagePack L.ByteString where
   toObject = ObjectRAW . L.toStrict
   fromObject obj = L.fromStrict <$> fromObject obj
 
-instance Msgpack T.Text where
+instance MessagePack T.Text where
   toObject = toObject . T.encodeUtf8
   fromObject obj = T.decodeUtf8With skipChar <$> fromObject obj
 
-instance Msgpack LT.Text where
+instance MessagePack LT.Text where
   toObject = ObjectRAW . L.toStrict . LT.encodeUtf8
   fromObject obj = LT.decodeUtf8With skipChar <$> fromObject obj
 
@@ -192,19 +192,19 @@ skipChar _ _ = Nothing
 
 -- map like
 
-instance (Msgpack k, Msgpack v) => Msgpack (Assoc (V.Vector (k, v))) where
+instance (MessagePack k, MessagePack v) => MessagePack (Assoc (V.Vector (k, v))) where
   toObject = toObject . Assoc . V.toList . unAssoc
   fromObject obj = Assoc . V.fromList . unAssoc <$> fromObject obj
 
-instance (Msgpack k, Msgpack v, Ord k) => Msgpack (Map.Map k v) where
+instance (MessagePack k, MessagePack v, Ord k) => MessagePack (Map.Map k v) where
   toObject = toObject . Assoc . Map.toList
   fromObject obj = Map.fromList . unAssoc <$> fromObject obj
 
-instance Msgpack v => Msgpack (IntMap.IntMap v) where
+instance MessagePack v => MessagePack (IntMap.IntMap v) where
   toObject = toObject . Assoc . IntMap.toList
   fromObject obj = IntMap.fromList . unAssoc <$> fromObject obj
 
-instance (Msgpack k, Msgpack v, Hashable k, Eq k) => Msgpack (HashMap.HashMap k v) where
+instance (MessagePack k, MessagePack v, Hashable k, Eq k) => MessagePack (HashMap.HashMap k v) where
   toObject = toObject . Assoc . HashMap.toList
   fromObject obj = HashMap.fromList . unAssoc <$> fromObject obj
 

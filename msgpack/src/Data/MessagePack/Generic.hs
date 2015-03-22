@@ -1,13 +1,20 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Data.MessagePack.Generic (
-  GPackable(..),
   ) where
 
 import           Blaze.ByteString.Builder
+import           Data.MessagePack.Object
 import           Data.Monoid
 import           GHC.Generics
 
+class GMsgpack a where
+  gToObject   :: a -> Object
+  gFromObject :: Object -> a
+
+-- instance GMsgpack
+
+{-
 packUnit = undefined
 
 class GPackable f where
@@ -37,3 +44,4 @@ instance GPackable a => GPackable (C1 c a) where
 instance Packable a => GPackable (K1 i a) where
   gfrom (K1 x) = from x
   {-# INLINE gfrom #-}
+-}

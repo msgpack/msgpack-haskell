@@ -4,6 +4,7 @@ module Main (main) where
 import           Control.Applicative
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
+import           Data.Maybe
 import           Data.MessagePack
 import           Test.QuickCheck
 import           Test.Tasty
@@ -21,8 +22,8 @@ instance Arbitrary S.ByteString where
 instance Arbitrary L.ByteString where
   arbitrary = L.pack <$> arbitrary
 
-mid :: Msgpack a => a -> a
-mid = unpack . pack
+mid :: MessagePack a => a -> a
+mid = fromJust .unpack . pack
 
 tests :: TestTree
 tests =
