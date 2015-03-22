@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+
 module Main (main) where
 
 import           Control.Applicative
@@ -23,11 +24,11 @@ instance Arbitrary L.ByteString where
   arbitrary = L.pack <$> arbitrary
 
 mid :: MessagePack a => a -> a
-mid = fromJust .unpack . pack
+mid = fromJust . unpack . pack
 
 tests :: TestTree
 tests =
-  testGroup "Properties"
+  testGroup "Identity Properties"
     [ testProperty "int" $
       \(a :: Int) -> a == mid a
     , testProperty "nil" $
@@ -46,11 +47,18 @@ tests =
       \(a :: [Int]) -> a == mid a
     , testProperty "[string]" $
       \(a :: [String]) -> a == mid a
---    , testProperty "(int, int)"
---    , testProperty "(int, int, int)"
---    , testProperty "(int, int, int, int)"
---    , testProperty "(int, int, int, int, int)"
---    , testProperty "[(int, double)]"
---    , testProperty "[(string, string)]"
---    , testProperty "Assoc [(string, int)]"
+    , testProperty "(int, int)" $
+      \(a :: (Int, Int)) -> a == mid a
+    , testProperty "(int, int, int)" $
+      \(a :: (Int, Int, Int)) -> a == mid a
+    , testProperty "(int, int, int, int)" $
+      \(a :: (Int, Int, Int, Int)) -> a == mid a
+    , testProperty "(int, int, int, int, int)" $
+      \(a :: (Int, Int, Int, Int, Int)) -> a == mid a
+    , testProperty "[(int, double)]" $
+      \(a :: [(Int, Double)]) -> a == mid a
+    , testProperty "[(string, string)]" $
+      \(a :: [(String, String)]) -> a == mid a
+    , testProperty "Assoc [(string, int)]" $
+      \(a :: Assoc [(String, Int)]) -> a == mid a
     ]

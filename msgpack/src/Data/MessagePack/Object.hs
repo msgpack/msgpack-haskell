@@ -208,140 +208,44 @@ instance (MessagePack k, MessagePack v, Hashable k, Eq k) => MessagePack (HashMa
   toObject = toObject . Assoc . HashMap.toList
   fromObject obj = HashMap.fromList . unAssoc <$> fromObject obj
 
-{-
-tryFromObjectError :: Either String a
-tryFromObjectError = Left "tryFromObject: cannot cast"
+-- tuples
 
-instance (OBJECT a1, OBJECT a2) => OBJECT (a1, a2) where
+instance (MessagePack a1, MessagePack a2) => MessagePack (a1, a2) where
   toObject (a1, a2) = ObjectArray [toObject a1, toObject a2]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        return (v1, v2)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2]) = (,) <$> fromObject a1 <*> fromObject a2
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3) => OBJECT (a1, a2, a3) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3) => MessagePack (a1, a2, a3) where
   toObject (a1, a2, a3) = ObjectArray [toObject a1, toObject a2, toObject a3]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        return (v1, v2, v3)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2, a3]) = (,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4) => OBJECT (a1, a2, a3, a4) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4) => MessagePack (a1, a2, a3, a4) where
   toObject (a1, a2, a3, a4) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3, o4] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        v4 <- tryFromObject o4
-        return (v1, v2, v3, v4)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2, a3, a4]) = (,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5) => OBJECT (a1, a2, a3, a4, a5) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5) => MessagePack (a1, a2, a3, a4, a5) where
   toObject (a1, a2, a3, a4, a5) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3, o4, o5] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        v4 <- tryFromObject o4
-        v5 <- tryFromObject o5
-        return (v1, v2, v3, v4, v5)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2, a3, a4, a5]) = (,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6) => OBJECT (a1, a2, a3, a4, a5, a6) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6) => MessagePack (a1, a2, a3, a4, a5, a6) where
   toObject (a1, a2, a3, a4, a5, a6) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3, o4, o5, o6] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        v4 <- tryFromObject o4
-        v5 <- tryFromObject o5
-        v6 <- tryFromObject o6
-        return (v1, v2, v3, v4, v5, v6)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2, a3, a4, a5, a6]) = (,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJECT a7) => OBJECT (a1, a2, a3, a4, a5, a6, a7) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7) => MessagePack (a1, a2, a3, a4, a5, a6, a7) where
   toObject (a1, a2, a3, a4, a5, a6, a7) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3, o4, o5, o6, o7] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        v4 <- tryFromObject o4
-        v5 <- tryFromObject o5
-        v6 <- tryFromObject o6
-        v7 <- tryFromObject o7
-        return (v1, v2, v3, v4, v5, v6, v7)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7]) = (,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJECT a7, OBJECT a8) => OBJECT (a1, a2, a3, a4, a5, a6, a7, a8) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7, MessagePack a8) => MessagePack (a1, a2, a3, a4, a5, a6, a7, a8) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3, o4, o5, o6, o7, o8] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        v4 <- tryFromObject o4
-        v5 <- tryFromObject o5
-        v6 <- tryFromObject o6
-        v7 <- tryFromObject o7
-        v8 <- tryFromObject o8
-        return (v1, v2, v3, v4, v5, v6, v7, v8)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
+  fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8]) = (,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8
+  fromObject _ = Nothing
 
-instance (OBJECT a1, OBJECT a2, OBJECT a3, OBJECT a4, OBJECT a5, OBJECT a6, OBJECT a7, OBJECT a8, OBJECT a9) => OBJECT (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
+instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7, MessagePack a8, MessagePack a9) => MessagePack (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8, a9) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8, toObject a9]
-  tryFromObject (ObjectArray arr) =
-    case arr of
-      [o1, o2, o3, o4, o5, o6, o7, o8, o9] -> do
-        v1 <- tryFromObject o1
-        v2 <- tryFromObject o2
-        v3 <- tryFromObject o3
-        v4 <- tryFromObject o4
-        v5 <- tryFromObject o5
-        v6 <- tryFromObject o6
-        v7 <- tryFromObject o7
-        v8 <- tryFromObject o8
-        v9 <- tryFromObject o9
-        return (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-      _ ->
-        tryFromObjectError
-  tryFromObject _ =
-    tryFromObjectError
-
--}
+  fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8, a9]) = (,,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8 <*> fromObject a9
+  fromObject _ = Nothing
