@@ -8,7 +8,7 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Object
--- Copyright : (c) Hideyuki Tanaka, 2009-2011
+-- Copyright : (c) Hideyuki Tanaka, 2009-2015
 -- License   : BSD3
 --
 -- Maintainer:  tanaka.hideyuki@gmail.com

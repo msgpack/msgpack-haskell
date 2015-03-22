@@ -105,37 +105,3 @@ tag :: Word8 -> Get ()
 tag t = do
   b <- getWord8
   guard $ t == b
-
-{-
--- | Deserializable class
-class Unpackable a where
-  -- | Deserialize a value
-  get :: Get a
-
--- | The exception of unpack
-data UnpackError =
-  UnpackError String
-  deriving (Show, Typeable)
-
-instance Exception UnpackError
-
--- | Unpack MessagePack string to Haskell data.
-unpack :: Unpackable a => L.ByteString -> a
-unpack bs =
-  case tryUnpack bs of
-    Left err ->
-      throw $ UnpackError err
-    Right ret ->
-      ret
-
--- | Unpack MessagePack string to Haskell data.
-tryUnpack :: (Unpackable a, IsByteString s) => s -> Either String a
-tryUnpack bs =
-  case A.parse get (toBS bs) of
-    A.Fail _ _ err ->
-      Left err
-    A.Partial _ ->
-      Left "not enough input"
-    A.Done _ ret ->
-      Right ret
--}

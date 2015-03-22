@@ -1,5 +1,5 @@
 name:               msgpack
-version:            0.7.2.5
+version:            0.8.0.0
 synopsis:           A Haskell implementation of MessagePack
 description:        A Haskell implementation of MessagePack <http://msgpack.org/>
 homepage:           http://msgpack.org/
@@ -7,7 +7,7 @@ license:            BSD3
 license-file:       LICENSE
 author:             Hideyuki Tanaka
 maintainer:         Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
-copyright:          Copyright (c) 2009-2011, Hideyuki Tanaka
+copyright:          Copyright (c) 2009-2015, Hideyuki Tanaka
 category:           Data
 stability:          Experimental
 cabal-version:      >= 1.18
