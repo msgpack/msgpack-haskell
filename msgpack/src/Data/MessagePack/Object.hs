@@ -125,6 +125,7 @@ instance MessagePack Bool where
 instance MessagePack Float where
   toObject = ObjectFloat
   fromObject = \case
+    ObjectInt    n -> Just $ fromIntegral n
     ObjectFloat  f -> Just f
     ObjectDouble d -> Just $ realToFrac d
     _              -> Nothing
@@ -132,6 +133,7 @@ instance MessagePack Float where
 instance MessagePack Double where
   toObject = ObjectDouble
   fromObject = \case
+    ObjectInt    n -> Just $ fromIntegral n
     ObjectFloat  f -> Just $ realToFrac f
     ObjectDouble d -> Just d
     _              -> Nothing
