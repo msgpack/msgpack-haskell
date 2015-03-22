@@ -15,6 +15,7 @@
 module Data.MessagePack (
   module X,
 
+  -- * Simple interface to pack and unpack msgpack binary
   pack, unpack,
   ) where
 
@@ -22,9 +23,9 @@ import           Data.Binary
 import qualified Data.ByteString.Lazy    as L
 
 import           Data.MessagePack.Assoc  as X
+import           Data.MessagePack.Get    as X
 import           Data.MessagePack.Object as X
-import           Data.MessagePack.Pack   as X
-import           Data.MessagePack.Unpack as X
+import           Data.MessagePack.Put    as X
 
 pack :: MessagePack a => a -> L.ByteString
 pack = encode . toObject

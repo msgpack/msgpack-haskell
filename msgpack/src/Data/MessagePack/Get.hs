@@ -2,7 +2,7 @@
 
 --------------------------------------------------------------------
 -- |
--- Module    : Data.MessagePack.Unpack
+-- Module    : Data.MessagePack.Get
 -- Copyright : (c) Hideyuki Tanaka, 2009-2015
 -- License   : BSD3
 --
@@ -14,7 +14,7 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack.Unpack(
+module Data.MessagePack.Get(
   getNil, getBool, getInt, getFloat, getDouble,
   getRAW, getArray, getMap,
   ) where

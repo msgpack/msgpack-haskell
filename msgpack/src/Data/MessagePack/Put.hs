@@ -1,6 +1,6 @@
 --------------------------------------------------------------------
 -- |
--- Module    : Data.MessagePack.Pack
+-- Module    : Data.MessagePack.Put
 -- Copyright : (c) Hideyuki Tanaka, 2009-2015
 -- License   : BSD3
 --
@@ -12,7 +12,7 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack.Pack (
+module Data.MessagePack.Put (
   putNil, putBool, putInt, putFloat, putDouble,
   putRAW, putArray, putMap,
   ) where

@@ -24,8 +24,8 @@ library
   exposed-modules:  Data.MessagePack
                     Data.MessagePack.Assoc
                     Data.MessagePack.Object
-                    Data.MessagePack.Pack
-                    Data.MessagePack.Unpack
+                    Data.MessagePack.Get
+                    Data.MessagePack.Put
 
   build-depends:    base                 == 4.*
                   , mtl                  >= 2.2

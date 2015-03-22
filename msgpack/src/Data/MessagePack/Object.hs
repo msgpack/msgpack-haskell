@@ -47,8 +47,8 @@ import           Data.Typeable
 import qualified Data.Vector              as V
 
 import           Data.MessagePack.Assoc
-import           Data.MessagePack.Pack
-import           Data.MessagePack.Unpack
+import           Data.MessagePack.Get
+import           Data.MessagePack.Put
 
 -- | Object Representation of MessagePack data.
 data Object
