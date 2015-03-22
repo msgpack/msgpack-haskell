@@ -47,6 +47,7 @@ test-suite msgpack-rpc-test
   build-depends:    base
                   , mtl
                   , network
-                  , async >= 2.0
-                  , tasty >= 0.10
+                  , async              >= 2.0
+                  , tasty              >= 0.10
+                  , tasty-hunit        >= 0.9
                   , msgpack-rpc

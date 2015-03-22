@@ -1,23 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Control.Concurrent
-import Control.Concurrent.Async
-import Control.Monad.Trans
+import           Control.Concurrent
+import           Control.Concurrent.Async
+import           Control.Monad.Trans
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
-import Test.Hspec
-
-import Network (withSocketsDo)
-import Network.MessagePackRpc.Server
-import Network.MessagePackRpc.Client
+import           Network                       (withSocketsDo)
+import           Network.MessagePackRpc.Client
+import           Network.MessagePackRpc.Server
 
 port :: Int
 port = 5000
 
 main :: IO ()
-main = withSocketsDo $ hspec $ do
-  describe "add service" $ do
-    it "correct" $ do
-      server `race_` (threadDelay 1000 >> client)
+main = withSocketsDo $ defaultMain $
+  testGroup "add service"
+  [ testCase "correct" $ server `race_` (threadDelay 1000 >> client) ]
 
 server :: IO ()
 server =
@@ -33,11 +32,11 @@ server =
     echo s = return $ "***" ++ s ++ "***"
 
 client :: IO ()
-client = runClient "localhost" port $ do
+client = execClient "localhost" port $ do
   r1 <- add 123 456
-  liftIO $ r1 `shouldBe` 123 + 456
+  liftIO $ r1 @?= 123 + 456
   r2 <- echo "hello"
-  liftIO $ r2 `shouldBe` "***hello***"
+  liftIO $ r2 @?= "***hello***"
   where
     add :: Int -> Int -> Client Int
     add = call "add"
