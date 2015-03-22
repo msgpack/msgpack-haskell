@@ -23,7 +23,6 @@ library
 
   exposed-modules:  Data.MessagePack
                     Data.MessagePack.Assoc
-                    Data.MessagePack.Generic
                     Data.MessagePack.Object
                     Data.MessagePack.Pack
                     Data.MessagePack.Unpack
