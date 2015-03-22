@@ -13,3 +13,5 @@ tmp/
 /msgpack/cabal.sandbox.config
 /msgpack-rpc/.cabal-sandbox/
 /msgpack-rpc/cabal.sandbox.config
+/msgpack-aeson/cabal.sandbox.config
+/msgpack-aeson/.cabal-sandbox/

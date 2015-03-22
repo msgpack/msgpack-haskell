@@ -15,8 +15,8 @@ port = 5000
 
 main :: IO ()
 main = withSocketsDo $ defaultMain $
-  testGroup "add service"
-  [ testCase "correct" $ server `race_` (threadDelay 1000 >> client) ]
+  testGroup "simple service"
+  [ testCase "test" $ server `race_` (threadDelay 1000 >> client) ]
 
 server :: IO ()
 server =
