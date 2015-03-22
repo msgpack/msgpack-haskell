@@ -11,3 +11,5 @@ tmp/
 *.aes
 /msgpack/.cabal-sandbox/
 /msgpack/cabal.sandbox.config
+/msgpack-rpc/.cabal-sandbox/
+/msgpack-rpc/cabal.sandbox.config

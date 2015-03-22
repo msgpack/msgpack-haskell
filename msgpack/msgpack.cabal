@@ -28,7 +28,6 @@ library
                     Data.MessagePack.Unpack
 
   build-depends:    base                 == 4.*
-                  , ghc-prim
                   , mtl                  >= 2.2
                   , bytestring           >= 0.10
                   , text                 >= 1.2

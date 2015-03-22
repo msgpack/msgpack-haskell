@@ -27,6 +27,7 @@ import           Data.Binary.IEEE754
 import           Data.Bits
 import qualified Data.ByteString     as S
 import           Data.Int
+import qualified Data.Vector         as V
 
 getNil :: Get ()
 getNil = tag 0xC0
@@ -69,7 +70,7 @@ getRAW = do
     _    -> empty
   getByteString len
 
-getArray :: Get a -> Get [a]
+getArray :: Get a -> Get (V.Vector a)
 getArray g = do
   len <- getWord8 >>= \case
     t | t .&. 0xF0 == 0x90 ->
@@ -77,9 +78,9 @@ getArray g = do
     0xDC -> fromIntegral <$> getWord16be
     0xDD -> fromIntegral <$> getWord32be
     _    -> empty
-  replicateM len g
+  V.replicateM len g
 
-getMap :: Get a -> Get b -> Get [(a, b)]
+getMap :: Get a -> Get b -> Get (V.Vector (a, b))
 getMap k v = do
   len <- getWord8 >>= \case
     t | t .&. 0xF0 == 0x80 ->
@@ -87,7 +88,7 @@ getMap k v = do
     0xDE -> fromIntegral <$> getWord16be
     0xDF -> fromIntegral <$> getWord32be
     _    -> empty
-  replicateM len $ (,) <$> k <*> v
+  V.replicateM len $ (,) <$> k <*> v
 
 getInt8 :: Get Int8
 getInt8 = fromIntegral <$> getWord8

@@ -22,6 +22,7 @@ import           Data.Binary.IEEE754
 import           Data.Binary.Put
 import           Data.Bits
 import qualified Data.ByteString     as S
+import qualified Data.Vector         as V
 
 putNil :: Put
 putNil = putWord8 0xC0
@@ -72,24 +73,24 @@ putRAW bs = do
           putWord8 0xDB >> putWord32be (fromIntegral len)
   putByteString bs
 
-putArray :: (a -> Put) -> [a] -> Put
+putArray :: (a -> Put) -> V.Vector a -> Put
 putArray p xs = do
-  case length xs of
+  case V.length xs of
     len | len <= 15 ->
           putWord8 $ 0x90 .|. fromIntegral len
         | len < 0x10000 ->
           putWord8 0xDC >> putWord16be (fromIntegral len)
         | otherwise ->
           putWord8 0xDD >> putWord32be (fromIntegral len)
-  mapM_ p xs
+  V.mapM_ p xs
 
-putMap :: (a -> Put) -> (b -> Put) -> [(a, b)] -> Put
+putMap :: (a -> Put) -> (b -> Put) -> V.Vector (a, b) -> Put
 putMap p q xs = do
-  case length xs of
+  case V.length xs of
     len | len <= 15 ->
           putWord8 $ 0x80 .|. fromIntegral len
         | len < 0x10000 ->
           putWord8 0xDE >> putWord16be (fromIntegral len)
         | otherwise ->
           putWord8 0xDF >> putWord32be (fromIntegral len)
-  mapM_ (\(a, b) -> p a >> q b ) xs
+  V.mapM_ (\(a, b) -> p a >> q b ) xs

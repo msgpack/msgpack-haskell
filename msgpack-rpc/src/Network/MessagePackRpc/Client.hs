@@ -1,10 +1,10 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
-{-# LANGUAGE GADTs, FlexibleContexts #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -------------------------------------------------------------------
 -- |
 -- Module    : Network.MessagePackRpc.Client
--- Copyright : (c) Hideyuki Tanaka, 2010-2012
+-- Copyright : (c) Hideyuki Tanaka, 2010-2015
 -- License   : BSD3
 --
 -- Maintainer:  Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
@@ -30,8 +30,7 @@
 
 module Network.MessagePackRpc.Client (
   -- * MessagePack Client type
-  ClientT, Client,
-  runClient,
+  Client, execClient,
 
   -- * Call RPC method
   call,
@@ -40,42 +39,36 @@ module Network.MessagePackRpc.Client (
   RpcError(..),
   ) where
 
-import Control.Exception
-import Control.Monad
-import Control.Monad.Trans.Control
-import Control.Monad.State.Strict as CMS
-import qualified Data.ByteString as S
-import Data.Conduit
-import qualified Data.Conduit.Attoparsec as CA
-import qualified Data.Conduit.Binary as CB
-import Data.Conduit.Network
-import Data.MessagePack as M
-import Data.Typeable
+import           Control.Applicative
+import           Control.Exception
+import           Control.Monad
+import           Control.Monad.Catch
+import           Control.Monad.State.Strict        as CMS
+import           Data.Binary                       as Binary
+import qualified Data.ByteString                   as S
+import           Data.Conduit
+import qualified Data.Conduit.Binary               as CB
+import           Data.Conduit.Network
+import           Data.Conduit.Serialization.Binary
+import           Data.MessagePack
+import           Data.Typeable
 
-type Client = ClientT IO
-
-newtype ClientT m a
-  = ClientT { unClientT :: StateT (Connection m) m a }
-  deriving (Monad, MonadIO, MonadThrow)
-
--- It can't derive by newtype deriving...
-instance MonadTrans ClientT where
-  lift = ClientT . lift
+newtype Client a
+  = ClientT { runClient :: StateT Connection IO a }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadThrow)
 
 -- | RPC connection type
-data Connection m where
-  Connection ::
-    !(ResumableSource m S.ByteString)
-    -> !(Sink S.ByteString m ())
-    -> !Int
-    -> Connection m
+data Connection
+  = Connection
+    !(ResumableSource IO S.ByteString)
+    !(Sink S.ByteString IO ())
+    !Int
 
-runClient :: (MonadIO m, MonadBaseControl IO m)
-             => S.ByteString -> Int -> ClientT m a -> m ()
-runClient host port m = do
+execClient :: S.ByteString -> Int -> Client a -> IO ()
+execClient host port m =
   runTCPClient (clientSettings port host) $ \ad -> do
     (rsrc, _) <- appSource ad $$+ return ()
-    void $ evalStateT (unClientT m) (Connection rsrc (appSink ad) 0)
+    void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
 
 -- | RPC error type
 data RpcError
@@ -89,37 +82,37 @@ instance Exception RpcError
 class RpcType r where
   rpcc :: String -> [Object] -> r
 
-instance (MonadIO m, MonadThrow m, OBJECT o) => RpcType (ClientT m o) where
+instance MessagePack o => RpcType (Client o) where
   rpcc m args = do
     res <- rpcCall m (reverse args)
-    case tryFromObject res of
-      Left err -> monadThrow $ ResultTypeError err
-      Right r  -> return r
+    case fromObject res of
+      Just r  -> return r
+      Nothing -> throwM $ ResultTypeError "type mismatch"
 
-instance (OBJECT o, RpcType r) => RpcType (o -> r) where
+instance (MessagePack o, RpcType r) => RpcType (o -> r) where
   rpcc m args arg = rpcc m (toObject arg:args)
 
-rpcCall :: (MonadIO m, MonadThrow m) => String -> [Object] -> ClientT m Object
+rpcCall :: String -> [Object] -> Client Object
 rpcCall methodName args = ClientT $ do
   Connection rsrc sink msgid <- CMS.get
   (rsrc', (rtype, rmsgid, rerror, rresult)) <- lift $ do
     CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
-    rsrc $$++ CA.sinkParser M.get
+    rsrc $$++ sinkGet Binary.get
   CMS.put $ Connection rsrc' sink (msgid + 1)
 
   when (rtype /= (1 :: Int)) $
-    monadThrow $ ProtocolError $
+    throwM $ ProtocolError $
       "invalid response type (expect 1, but got " ++ show rtype ++ ")"
+
   when (rmsgid /= msgid) $
-    monadThrow $ ProtocolError $
+    throwM $ ProtocolError $
       "message id mismatch: expect "
       ++ show msgid ++ ", but got "
       ++ show rmsgid
-  case tryFromObject rerror of
-    Left _ ->
-      monadThrow $ ServerError rerror
-    Right () ->
-      return rresult
+
+  case fromObject rerror of
+    Nothing -> throwM $ ServerError rerror
+    Just () -> return rresult
 
 -- | Call an RPC Method
 call :: RpcType a

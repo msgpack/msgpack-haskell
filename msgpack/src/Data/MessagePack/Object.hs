@@ -3,6 +3,7 @@
 {-# LANGUAGE IncoherentInstances  #-}
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
@@ -57,8 +58,8 @@ data Object
   | ObjectFloat  {-# UNPACK #-} !Float
   | ObjectDouble {-# UNPACK #-} !Double
   | ObjectRAW                   !S.ByteString
-  | ObjectArray                 [Object]
-  | ObjectMap                   [(Object, Object)]
+  | ObjectArray                 !(V.Vector Object)
+  | ObjectMap                   !(V.Vector (Object, Object))
   deriving (Show, Eq, Ord, Typeable)
 
 instance NFData Object where
@@ -146,17 +147,17 @@ instance MessagePack String where
   toObject = toObject . T.encodeUtf8 . T.pack
   fromObject obj = T.unpack . T.decodeUtf8 <$> fromObject obj
 
-instance MessagePack a => MessagePack [a] where
-  toObject = ObjectArray . map toObject
+instance MessagePack a => MessagePack (V.Vector a) where
+  toObject = ObjectArray . V.map toObject
   fromObject = \case
-    ObjectArray xs -> mapM fromObject xs
+    ObjectArray xs -> V.mapM fromObject xs
     _              -> Nothing
 
-instance (MessagePack a, MessagePack b) => MessagePack (Assoc [(a, b)]) where
-  toObject (Assoc xs) = ObjectMap $ map (toObject *** toObject) xs
+instance (MessagePack a, MessagePack b) => MessagePack (Assoc (V.Vector (a, b))) where
+  toObject (Assoc xs) = ObjectMap $ V.map (toObject *** toObject) xs
   fromObject = \case
     ObjectMap xs ->
-      Assoc <$> mapM (\(k, v) -> (,) <$> fromObject k <*> fromObject v) xs
+      Assoc <$> V.mapM (\(k, v) -> (,) <$> fromObject k <*> fromObject v) xs
     _ ->
       Nothing
 
@@ -190,11 +191,17 @@ instance MessagePack LT.Text where
 skipChar :: T.OnDecodeError
 skipChar _ _ = Nothing
 
+-- array like
+
+instance MessagePack a => MessagePack [a] where
+  toObject = toObject . V.fromList
+  fromObject obj = V.toList <$> fromObject obj
+
 -- map like
 
-instance (MessagePack k, MessagePack v) => MessagePack (Assoc (V.Vector (k, v))) where
-  toObject = toObject . Assoc . V.toList . unAssoc
-  fromObject obj = Assoc . V.fromList . unAssoc <$> fromObject obj
+instance (MessagePack k, MessagePack v) => MessagePack (Assoc [(k, v)]) where
+  toObject = toObject . Assoc . V.fromList . unAssoc
+  fromObject obj = Assoc . V.toList . unAssoc <$> fromObject obj
 
 instance (MessagePack k, MessagePack v, Ord k) => MessagePack (Map.Map k v) where
   toObject = toObject . Assoc . Map.toList
