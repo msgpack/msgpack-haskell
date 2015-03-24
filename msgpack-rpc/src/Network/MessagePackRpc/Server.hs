@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE OverloadedStrings, Rank2Types          #-}
 
 -------------------------------------------------------------------
 -- |
@@ -81,12 +81,15 @@ serve :: Int                        -- ^ Port number
          -> IO ()
 serve port methods = runTCPServer (serverSettings port "*") $ \ad -> do
   (rsrc, _) <- appSource ad $$+ return ()
-  processRequests rsrc (appSink ad)
+  _ <- try $ processRequests rsrc (appSink ad) :: IO (Either ParseError ())
+  return ()
   where
     processRequests rsrc sink = do
       (rsrc', res) <- rsrc $$++ do
-        req <- sinkGet get
-        lift $ getResponse req
+        obj <- sinkGet get
+        case fromObject obj of
+          Nothing  -> throwM $ ServerError "invalid request"
+          Just req -> lift $ getResponse req
       _ <- CB.sourceLbs (pack res) $$ sink
       processRequests rsrc' sink
 

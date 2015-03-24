@@ -52,6 +52,7 @@ import           Data.Conduit.Network
 import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
 import           Data.Typeable
+import System.IO
 
 newtype Client a
   = ClientT { runClient :: StateT Connection IO a }
@@ -95,24 +96,28 @@ instance (MessagePack o, RpcType r) => RpcType (o -> r) where
 rpcCall :: String -> [Object] -> Client Object
 rpcCall methodName args = ClientT $ do
   Connection rsrc sink msgid <- CMS.get
-  (rsrc', (rtype, rmsgid, rerror, rresult)) <- lift $ do
+  (rsrc', res) <- lift $ do
     CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
     rsrc $$++ sinkGet Binary.get
   CMS.put $ Connection rsrc' sink (msgid + 1)
 
-  when (rtype /= (1 :: Int)) $
-    throwM $ ProtocolError $
-      "invalid response type (expect 1, but got " ++ show rtype ++ ")"
+  case fromObject res of
+    Nothing -> throwM $ ProtocolError "invalid response data"
+    Just (rtype, rmsgid, rerror, rresult) -> do
 
-  when (rmsgid /= msgid) $
-    throwM $ ProtocolError $
-      "message id mismatch: expect "
-      ++ show msgid ++ ", but got "
-      ++ show rmsgid
+      when (rtype /= (1 :: Int)) $
+        throwM $ ProtocolError $
+          "invalid response type (expect 1, but got " ++ show rtype ++ ")"
 
-  case fromObject rerror of
-    Nothing -> throwM $ ServerError rerror
-    Just () -> return rresult
+      when (rmsgid /= msgid) $
+        throwM $ ProtocolError $
+          "message id mismatch: expect "
+          ++ show msgid ++ ", but got "
+          ++ show rmsgid
+
+      case fromObject rerror of
+        Nothing -> throwM $ ServerError rerror
+        Just () -> return rresult
 
 -- | Call an RPC Method
 call :: RpcType a
