@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, GeneralizedNewtypeDeriving, DeriveFunctor, DeriveDataTypeable #-}
 
 -- | Aeson bridge for MessagePack
 
@@ -29,10 +29,13 @@ import           Data.Monoid
 import           Data.Scientific
 import qualified Data.Text.Encoding   as T
 import qualified Data.Vector          as V
+import Data.Data
+import Control.DeepSeq
+import Control.Arrow
 
 toAeson :: MP.Object -> Maybe Value
 toAeson = \case
-  ObjectNil      -> Just $ Null
+  ObjectNil      -> Just Null
   ObjectBool b   -> Just $ Bool b
   ObjectInt n    -> Just $ Number $ fromIntegral n
   ObjectFloat f  -> Just $ Number $ realToFrac f
@@ -53,7 +56,7 @@ fromAeson = \case
       Right n -> ObjectInt n
   String t    -> ObjectRAW $ T.encodeUtf8 t
   Array v     -> ObjectArray $ V.map fromAeson v
-  A.Object o  -> ObjectMap $ V.fromList $ map (\(k, v) -> (toObject k, fromAeson v)) $ HM.toList o
+  A.Object o  -> ObjectMap $ V.fromList $ map (toObject *** fromAeson) $ HM.toList o
 
 instance MessagePack Value where
   fromObject = toAeson
@@ -67,12 +70,14 @@ instance FromJSON MP.Object where
   parseJSON = return . fromAeson
 
 newtype AsMessagePack a = AsMessagePack { getAsMessagePack :: a }
+  deriving (Eq, Ord, Show, Read, Functor, Data, Typeable, NFData)
 
 instance (FromJSON a, ToJSON a) => MessagePack (AsMessagePack a) where
   fromObject o = AsMessagePack <$> (fromJSON' =<< toAeson o)
   toObject = fromAeson . toJSON . getAsMessagePack
 
 newtype AsAeson a = AsAeson { getAsAeson :: a }
+  deriving (Eq, Ord, Show, Read, Functor, Data, Typeable, NFData)
 
 instance MessagePack a => ToJSON (AsAeson a) where
   toJSON = fromMaybe Null . toAeson . toObject . getAsAeson
