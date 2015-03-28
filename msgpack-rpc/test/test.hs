@@ -6,9 +6,9 @@ import           Control.Monad.Trans
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Network                       (withSocketsDo)
-import           Network.MessagePackRpc.Client
-import           Network.MessagePackRpc.Server
+import           Network                    (withSocketsDo)
+import           Network.MessagePack.Client
+import           Network.MessagePack.Server
 
 port :: Int
 port = 5000
@@ -21,8 +21,8 @@ main = withSocketsDo $ defaultMain $
 server :: IO ()
 server =
   serve port
-    [ ("add", toMethod add)
-    , ("echo", toMethod echo)
+    [ method "add"  add
+    , method "echo" echo
     ]
   where
     add :: Int -> Int -> Server Int

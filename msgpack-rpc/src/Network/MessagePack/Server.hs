@@ -26,14 +26,16 @@
 -- > add :: Int -> Int -> Server Int
 -- > add x y = return $ x + y
 -- >
--- > main = serve 1234 [("add", toMethod add)]
+-- > main = serve 1234 [ method "add" add ]
 --
 --------------------------------------------------------------------
 
-module Network.MessagePackRpc.Server (
+module Network.MessagePack.Server (
   -- * RPC method types
   Method, MethodType(..),
   ServerT(..), Server,
+  -- * Build a method
+  method,
   -- * Start RPC server
   serve,
   ) where
@@ -48,10 +50,16 @@ import           Data.Conduit
 import qualified Data.Conduit.Binary               as CB
 import           Data.Conduit.Network
 import           Data.Conduit.Serialization.Binary
+import           Data.List
 import           Data.MessagePack
 import           Data.Typeable
 
-type Method m = [Object] -> m Object
+-- ^ MessagePack RPC method
+data Method m
+  = Method
+    { methodName :: String
+    , methodBody :: [Object] -> m Object
+    }
 
 type Request  = (Int, Int, String, [Object])
 type Response = (Int, Int, Object, Object)
@@ -71,23 +79,30 @@ type Server = ServerT IO
 
 class Monad m => MethodType m f where
   -- | Create a RPC method from a Hakell function
-  toMethod :: f -> Method m
+  toBody :: f -> [Object] -> m Object
 
 instance (MonadThrow m, MessagePack o) => MethodType m (ServerT m o) where
-  toMethod m ls = case ls of
+  toBody m ls = case ls of
     [] -> toObject <$> runServerT m
     _  -> throwM $ ServerError "argument number error"
 
 instance (MonadThrow m, MessagePack o, MethodType m r) => MethodType m (o -> r) where
-  toMethod f (x: xs) =
+  toBody f (x: xs) =
     case fromObject x of
       Nothing -> throwM $ ServerError "argument type error"
-      Just r  -> toMethod (f r) xs
+      Just r  -> toBody (f r) xs
+
+-- | Build a method
+method :: MethodType m f
+          => String   -- ^ Method name
+          -> f        -- ^ Method body
+          -> Method m
+method name body = Method name $ toBody body
 
 -- | Start RPC server with a set of RPC methods.
 serve :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
-         => Int                     -- ^ Port number
-         -> [(String, Method m)] -- ^ list of (method name, RPC method)
+         => Int        -- ^ Port number
+         -> [Method m] -- ^ list of methods
          -> m ()
 serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
   (rsrc, _) <- appSource ad $$+ return ()
@@ -109,9 +124,9 @@ serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
       ret <- callMethod methodName args
       return ((1, msgid, toObject (), ret) :: Response)
 
-    callMethod methodName args =
-      case lookup methodName methods of
+    callMethod name args =
+      case find ((== name) . methodName) methods of
         Nothing ->
-          throwM $ ServerError $ "method '" ++ methodName ++ "' not found"
-        Just method ->
-          method args
+          throwM $ ServerError $ "method '" ++ name ++ "' not found"
+        Just m ->
+          methodBody m args
