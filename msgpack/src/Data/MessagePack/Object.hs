@@ -31,34 +31,46 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
 import           Data.Binary
-import qualified Data.ByteString          as S
-import qualified Data.ByteString.Lazy     as L
+import qualified Data.ByteString        as S
+import qualified Data.ByteString.Lazy   as L
 import           Data.Hashable
-import qualified Data.HashMap.Strict      as HashMap
-import qualified Data.IntMap.Strict       as IntMap
-import qualified Data.Map                 as Map
-import qualified Data.Text                as T
-import qualified Data.Text.Encoding       as T
-import qualified Data.Text.Encoding.Error as T
-import qualified Data.Text.Lazy           as LT
-import qualified Data.Text.Lazy.Encoding  as LT
+import qualified Data.HashMap.Strict    as HashMap
+import qualified Data.IntMap.Strict     as IntMap
+import qualified Data.Map               as Map
+import qualified Data.Text              as T
+import qualified Data.Text.Lazy         as LT
 import           Data.Typeable
-import qualified Data.Vector              as V
+import qualified Data.Vector            as V
 
 import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
 import           Data.MessagePack.Put
 
+import           Prelude                hiding (putStr)
+
 -- | Object Representation of MessagePack data.
 data Object
   = ObjectNil
+    -- ^ represents nil
   | ObjectBool                  !Bool
+    -- ^ represents true or false
   | ObjectInt    {-# UNPACK #-} !Int
+    -- ^ represents an integer
   | ObjectFloat  {-# UNPACK #-} !Float
+    -- ^ represents a floating point number
   | ObjectDouble {-# UNPACK #-} !Double
-  | ObjectRAW                   !S.ByteString
+    -- ^ represents a floating point number
+  | ObjectStr                   !T.Text
+    -- ^ extending Raw type represents a UTF-8 string
+  | ObjectBin                   !S.ByteString
+    -- ^ extending Raw type represents a byte array
   | ObjectArray                 !(V.Vector Object)
+    -- ^ represents a sequence of objects
   | ObjectMap                   !(V.Vector (Object, Object))
+    -- ^ represents key-value pairs of objects
+  | ObjectExt    {-# UNPACK #-} !Word8 !S.ByteString
+    -- ^ represents a tuple of an integer and a byte array where
+    -- the integer represents type information and the byte array represents data.
   deriving (Show, Eq, Ord, Typeable)
 
 instance NFData Object where
@@ -74,9 +86,11 @@ getObject =
   <|> ObjectInt    <$> getInt
   <|> ObjectFloat  <$> getFloat
   <|> ObjectDouble <$> getDouble
-  <|> ObjectRAW    <$> getRAW
+  <|> ObjectStr    <$> getStr
+  <|> ObjectBin    <$> getBin
   <|> ObjectArray  <$> getArray getObject
   <|> ObjectMap    <$> getMap getObject getObject
+  <|> uncurry ObjectExt <$> getExt
 
 putObject :: Object -> Put
 putObject = \case
@@ -85,9 +99,11 @@ putObject = \case
   ObjectInt    n -> putInt n
   ObjectFloat  f -> putFloat f
   ObjectDouble d -> putDouble d
-  ObjectRAW    r -> putRAW r
+  ObjectStr    t -> putStr t
+  ObjectBin    b -> putBin b
   ObjectArray  a -> putArray putObject a
   ObjectMap    m -> putMap putObject putObject m
+  ObjectExt  b r -> putExt b r
 
 instance Binary Object where
   get = getObject
@@ -138,15 +154,15 @@ instance MessagePack Double where
     _              -> Nothing
 
 instance MessagePack S.ByteString where
-  toObject = ObjectRAW
+  toObject = ObjectBin
   fromObject = \case
-    ObjectRAW r -> Just r
+    ObjectBin r -> Just r
     _           -> Nothing
 
 -- Because of overlapping instance, this must be above [a]
 instance MessagePack String where
-  toObject = toObject . T.encodeUtf8 . T.pack
-  fromObject obj = T.unpack . T.decodeUtf8 <$> fromObject obj
+  toObject = toObject . T.pack
+  fromObject obj = T.unpack <$> fromObject obj
 
 instance MessagePack a => MessagePack (V.Vector a) where
   toObject = ObjectArray . V.map toObject
@@ -178,19 +194,18 @@ instance MessagePack a => MessagePack (Maybe a) where
 -- UTF8 string like
 
 instance MessagePack L.ByteString where
-  toObject = ObjectRAW . L.toStrict
+  toObject = ObjectBin . L.toStrict
   fromObject obj = L.fromStrict <$> fromObject obj
 
 instance MessagePack T.Text where
-  toObject = toObject . T.encodeUtf8
-  fromObject obj = T.decodeUtf8With skipChar <$> fromObject obj
+  toObject = ObjectStr
+  fromObject = \case
+    ObjectStr s -> Just s
+    _           -> Nothing
 
 instance MessagePack LT.Text where
-  toObject = ObjectRAW . L.toStrict . LT.encodeUtf8
-  fromObject obj = LT.decodeUtf8With skipChar <$> fromObject obj
-
-skipChar :: T.OnDecodeError
-skipChar _ _ = Nothing
+  toObject = toObject . LT.toStrict
+  fromObject obj = LT.fromStrict <$> fromObject obj
 
 -- array like
 

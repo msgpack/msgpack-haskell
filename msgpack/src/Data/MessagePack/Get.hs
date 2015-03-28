@@ -16,7 +16,7 @@
 
 module Data.MessagePack.Get(
   getNil, getBool, getInt, getFloat, getDouble,
-  getRAW, getArray, getMap,
+  getStr, getBin, getArray, getMap, getExt,
   ) where
 
 import           Control.Applicative
@@ -27,6 +27,8 @@ import           Data.Binary.IEEE754
 import           Data.Bits
 import qualified Data.ByteString     as S
 import           Data.Int
+import qualified Data.Text           as T
+import qualified Data.Text.Encoding  as T
 import qualified Data.Vector         as V
 
 getNil :: Get ()
@@ -60,13 +62,26 @@ getFloat = tag 0xCA >> getFloat32be
 getDouble :: Get Double
 getDouble = tag 0xCB >> getFloat64be
 
-getRAW :: Get S.ByteString
-getRAW = do
+getStr :: Get T.Text
+getStr = do
   len <- getWord8 >>= \case
     t | t .&. 0xE0 == 0xA0 ->
       return $ fromIntegral $ t .&. 0x1F
+    0xD9 -> fromIntegral <$> getWord8
     0xDA -> fromIntegral <$> getWord16be
     0xDB -> fromIntegral <$> getWord32be
+    _    -> empty
+  bs <- getByteString len
+  case T.decodeUtf8' bs of
+    Left _ -> empty
+    Right v -> return v
+
+getBin :: Get S.ByteString
+getBin = do
+  len <- getWord8 >>= \case
+    0xC4 -> fromIntegral <$> getWord8
+    0xC5 -> fromIntegral <$> getWord16be
+    0xC6 -> fromIntegral <$> getWord32be
     _    -> empty
   getByteString len
 
@@ -89,6 +104,20 @@ getMap k v = do
     0xDF -> fromIntegral <$> getWord32be
     _    -> empty
   V.replicateM len $ (,) <$> k <*> v
+
+getExt :: Get (Word8, S.ByteString)
+getExt = do
+  len <- getWord8 >>= \case
+    0xD4 -> return 1
+    0xD5 -> return 2
+    0xD6 -> return 4
+    0xD7 -> return 8
+    0xD8 -> return 16
+    0xC7 -> fromIntegral <$> getWord8
+    0xC8 -> fromIntegral <$> getWord16be
+    0xC9 -> fromIntegral <$> getWord32be
+    _ -> empty
+  (,) <$> getWord8 <*> getByteString len
 
 getInt8 :: Get Int8
 getInt8 = fromIntegral <$> getWord8

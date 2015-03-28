@@ -14,7 +14,7 @@
 
 module Data.MessagePack.Put (
   putNil, putBool, putInt, putFloat, putDouble,
-  putRAW, putArray, putMap,
+  putStr, putBin, putArray, putMap, putExt,
   ) where
 
 import           Data.Binary
@@ -22,7 +22,11 @@ import           Data.Binary.IEEE754
 import           Data.Binary.Put
 import           Data.Bits
 import qualified Data.ByteString     as S
+import qualified Data.Text           as T
+import qualified Data.Text.Encoding  as T
 import qualified Data.Vector         as V
+
+import           Prelude             hiding (putStr)
 
 putNil :: Put
 putNil = putWord8 0xC0
@@ -62,15 +66,29 @@ putDouble d = do
   putWord8 0xCB
   putFloat64be d
 
-putRAW :: S.ByteString -> Put
-putRAW bs = do
+putStr :: T.Text -> Put
+putStr t = do
+  let bs = T.encodeUtf8 t
   case S.length bs of
     len | len <= 31 ->
           putWord8 $ 0xA0 .|. fromIntegral len
+        | len < 0x100 ->
+          putWord8 0xD9 >> putWord8    (fromIntegral len)
         | len < 0x10000 ->
           putWord8 0xDA >> putWord16be (fromIntegral len)
         | otherwise ->
           putWord8 0xDB >> putWord32be (fromIntegral len)
+  putByteString bs
+
+putBin :: S.ByteString -> Put
+putBin bs = do
+  case S.length bs of
+    len | len < 0x100 ->
+          putWord8 0xC4 >> putWord8    (fromIntegral len)
+        | len < 0x10000 ->
+          putWord8 0xC5 >> putWord16be (fromIntegral len)
+        | otherwise ->
+          putWord8 0xC6 >> putWord32be (fromIntegral len)
   putByteString bs
 
 putArray :: (a -> Put) -> V.Vector a -> Put
@@ -94,3 +112,17 @@ putMap p q xs = do
         | otherwise ->
           putWord8 0xDF >> putWord32be (fromIntegral len)
   V.mapM_ (\(a, b) -> p a >> q b ) xs
+
+putExt :: Word8 -> S.ByteString -> Put
+putExt typ dat = do
+  case S.length dat of
+    1  -> putWord8 0xD4
+    2  -> putWord8 0xD5
+    4  -> putWord8 0xD6
+    8  -> putWord8 0xD7
+    16 -> putWord8 0xD8
+    len | len < 0x100   -> putWord8 0xC7 >> putWord8    (fromIntegral len)
+        | len < 0x10000 -> putWord8 0xC8 >> putWord16be (fromIntegral len)
+        | otherwise     -> putWord8 0xC9 >> putWord32be (fromIntegral len)
+  putWord8 typ
+  putByteString dat
