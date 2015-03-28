@@ -25,10 +25,10 @@ server =
     , ("echo", toMethod echo)
     ]
   where
-    add :: Int -> Int -> Method Int
+    add :: Int -> Int -> Server Int
     add x y = return $ x + y
 
-    echo :: String -> Method String
+    echo :: String -> Server String
     echo s = return $ "***" ++ s ++ "***"
 
 client :: IO ()

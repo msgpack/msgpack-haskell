@@ -1,6 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings, Rank2Types          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 
 -------------------------------------------------------------------
 -- |
@@ -20,7 +23,7 @@
 --
 -- > import Network.MessagePackRpc.Server
 -- >
--- > add :: Int -> Int -> Method Int
+-- > add :: Int -> Int -> Server IO Int
 -- > add x y = return $ x + y
 -- >
 -- > main = serve 1234 [("add", toMethod add)]
@@ -29,8 +32,8 @@
 
 module Network.MessagePackRpc.Server (
   -- * RPC method types
-  RpcMethod, MethodType(..),
-  Method(..),
+  Method, MethodType(..),
+  ServerT(..), Server,
   -- * Start RPC server
   serve,
   ) where
@@ -39,6 +42,7 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Catch
 import           Control.Monad.Trans
+import           Control.Monad.Trans.Control
 import           Data.Binary
 import           Data.Conduit
 import qualified Data.Conduit.Binary               as CB
@@ -47,7 +51,7 @@ import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
 import           Data.Typeable
 
-type RpcMethod = [Object] -> IO Object
+type Method m = [Object] -> m Object
 
 type Request  = (Int, Int, String, [Object])
 type Response = (Int, Int, Object, Object)
@@ -57,31 +61,37 @@ data ServerError = ServerError String
 
 instance Exception ServerError
 
-newtype Method a = Method { runMethod :: IO a }
+newtype ServerT m a = ServerT { runServerT :: m a }
   deriving (Functor, Applicative, Monad, MonadIO)
 
-class MethodType f where
-  -- | Create a RPC method from a Hakell function
-  toMethod :: f -> RpcMethod
+instance MonadTrans ServerT where
+  lift = ServerT
 
-instance MessagePack o => MethodType (Method o) where
+type Server = ServerT IO
+
+class Monad m => MethodType m f where
+  -- | Create a RPC method from a Hakell function
+  toMethod :: f -> Method m
+
+instance (MonadThrow m, MessagePack o) => MethodType m (ServerT m o) where
   toMethod m ls = case ls of
-    [] -> toObject <$> runMethod m
+    [] -> toObject <$> runServerT m
     _  -> throwM $ ServerError "argument number error"
 
-instance (MessagePack o, MethodType r) => MethodType (o -> r) where
+instance (MonadThrow m, MessagePack o, MethodType m r) => MethodType m (o -> r) where
   toMethod f (x: xs) =
     case fromObject x of
       Nothing -> throwM $ ServerError "argument type error"
       Just r  -> toMethod (f r) xs
 
 -- | Start RPC server with a set of RPC methods.
-serve :: Int                        -- ^ Port number
-         -> [(String, RpcMethod)] -- ^ list of (method name, RPC method)
-         -> IO ()
-serve port methods = runTCPServer (serverSettings port "*") $ \ad -> do
+serve :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
+         => Int                     -- ^ Port number
+         -> [(String, Method m)] -- ^ list of (method name, RPC method)
+         -> m ()
+serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
   (rsrc, _) <- appSource ad $$+ return ()
-  _ <- try $ processRequests rsrc (appSink ad) :: IO (Either ParseError ())
+  (_ :: Either ParseError ()) <- try $ processRequests rsrc (appSink ad)
   return ()
   where
     processRequests rsrc sink = do
@@ -89,18 +99,16 @@ serve port methods = runTCPServer (serverSettings port "*") $ \ad -> do
         obj <- sinkGet get
         case fromObject obj of
           Nothing  -> throwM $ ServerError "invalid request"
-          Just req -> lift $ getResponse req
+          Just req -> lift $ getResponse (req :: Request)
       _ <- CB.sourceLbs (pack res) $$ sink
       processRequests rsrc' sink
 
-    getResponse :: Request -> IO Response
     getResponse (rtype, msgid, methodName, args) = do
       when (rtype /= 0) $
         throwM $ ServerError $ "request type is not 0, got " ++ show rtype
       ret <- callMethod methodName args
-      return (1, msgid, toObject (), ret)
+      return ((1, msgid, toObject (), ret) :: Response)
 
-    callMethod :: String -> [Object] -> IO Object
     callMethod methodName args =
       case lookup methodName methods of
         Nothing ->
