@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE IncoherentInstances  #-}
 {-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
