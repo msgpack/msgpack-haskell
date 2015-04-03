@@ -41,6 +41,8 @@ test-suite msgpack-aeson-test
                      , msgpack
                      , aeson
                      , msgpack-aeson
+                     , tasty
+                     , tasty-hunit
 
   hs-source-dirs:      test
   default-language:    Haskell2010

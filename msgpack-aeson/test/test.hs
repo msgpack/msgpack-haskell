@@ -1,8 +1,14 @@
-{-# LANGUAGE OverloadedStrings, ViewPatterns, ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
-import Data.MessagePack
-import Data.MessagePack.Aeson
-import Data.Aeson.TH
+import           Control.Monad
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.MessagePack
+import           Data.MessagePack.Aeson
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
 data T
   = A Int String
@@ -41,13 +47,30 @@ test v = do
   print oa
   print (fromObject oa == Just v)
 
+roundTrip :: (Show a, Eq a, ToJSON a, FromJSON a) => a -> IO ()
+roundTrip v = do
+  let mp = pack (AsMessagePack v)
+      v' = unpack mp
+  v' @?= Just (AsMessagePack v)
+
 main :: IO ()
-main = do
-  test $ AsMessagePack $ A 123 "hoge"
-  test $ AsMessagePack $ B 3.14
-  test $ AsMessagePack $ C 123 "hoge"
-  test $ AsMessagePack $ D 3.14
-  test $ AsMessagePack $ E "hello"
-  test $ AsMessagePack   F
-  test $ AsMessagePack $ G (E "hello") "world"
-  test $ AsMessagePack $ H 123 F
+main =
+  defaultMain $
+  testGroup "test case"
+  [ testCase "unnamed 1" $
+    roundTrip $ A 123 "hoge"
+  , testCase "unnamed 2" $
+    roundTrip $ B 3.14
+  , testCase "named 1" $
+    roundTrip $ C 123 "hoge"
+  , testCase "named 2" $
+    roundTrip $ D 3.14
+  , testCase "unit 1" $
+    roundTrip $ E "hello"
+  , testCase "unit 2" $
+    roundTrip F
+  , testCase "parameterized 1" $
+    roundTrip $ G (E "hello") "world"
+  , testCase "parameterized 2" $
+    roundTrip $ H 123 F
+  ]
