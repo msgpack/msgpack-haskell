@@ -30,11 +30,9 @@ import           Control.DeepSeq
 import           Data.Aeson           as A
 import qualified Data.ByteString.Lazy as L
 import           Data.Data
-import           Data.Either
 import qualified Data.HashMap.Strict  as HM
 import           Data.Maybe
 import           Data.MessagePack     as MP
-import           Data.Monoid
 import           Data.Scientific
 import qualified Data.Text.Encoding   as T
 import qualified Data.Vector          as V
