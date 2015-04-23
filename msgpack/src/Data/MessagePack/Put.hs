@@ -58,7 +58,7 @@ putInt n
 
 putFloat :: Float -> Put
 putFloat f = do
-  putWord8 0xCB
+  putWord8 0xCA
   putFloat32be f
 
 putDouble :: Double -> Put
