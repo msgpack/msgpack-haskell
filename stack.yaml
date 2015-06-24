@@ -1,0 +1,10 @@
+flags: {}
+packages:
+- msgpack/
+- msgpack-rpc/
+- msgpack-aeson/
+# - msgpack-idl/
+# - msgpack-idl-web/
+extra-deps:
+- peggy-0.3.2
+resolver: lts-2.15
