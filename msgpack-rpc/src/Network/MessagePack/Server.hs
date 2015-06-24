@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -81,7 +82,7 @@ class Monad m => MethodType m f where
   -- | Create a RPC method from a Hakell function
   toBody :: f -> [Object] -> m Object
 
-instance (MonadThrow m, MessagePack o) => MethodType m (ServerT m o) where
+instance (Functor m, MonadThrow m, MessagePack o) => MethodType m (ServerT m o) where
   toBody m ls = case ls of
     [] -> toObject <$> runServerT m
     _  -> throwM $ ServerError "argument number error"

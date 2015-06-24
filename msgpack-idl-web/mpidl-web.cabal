@@ -84,8 +84,8 @@ executable         mpidl-web
     if flag(library-only)
         Buildable: False
 
-    main-is:           ../main.hs
-    hs-source-dirs:    dist
+    main-is:           main.hs
+    hs-source-dirs:    src
     build-depends:     base
                      , mpidl-web
                      , yesod-default
