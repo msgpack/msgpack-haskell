@@ -3,12 +3,12 @@ MessagePack for Haskell
 
 This is an implementation of msgpack for Haskell.
 
-It containes:
+It contains:
 
 * Serializer/Deserializer
 * RPC
 
-# Install
+# Installation
 
 Execute following instructions:
 
@@ -18,9 +18,9 @@ $ cabal install msgpack
 $ cabal install msgpack-rpc
 ~~~
 
-# Document
+# Documentation
 
-There are Haddoc documents on Hackage Database.
+Haddock documentation can be found on Hackage:
 
 * <http://hackage.haskell.org/package/msgpack>
 * <http://hackage.haskell.org/package/msgpack-rpc>
