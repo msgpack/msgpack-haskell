@@ -71,17 +71,20 @@ tests =
    -- toObject (Just $ Just ()) == ObjectNil
    --
    -- I am not sure how should these types be decoded?
-   -- One way is to add additional ObjectEmpty for decoding ()
    --
    -- , testProperty "maybe nil" $
    --   \(a :: Maybe ()) -> a == mid a
 
    -- FIXME: this test is also failing
    --
-   -- it should probably be decoded somewhat specially with Put/Get ?
+   -- it should probably be decoded somewhat specially with ObjectExt ?
    --
    -- , testProperty "maybe maybe int" $
    --   \(a :: Maybe (Maybe Int)) -> a == mid a
+   --
+   -- by looking at msgpack specification it looks like Haskells Maybe
+   -- type should be probably decoded with custom ObjectExt
+   --
     , testProperty "maybe bool" $
       \(a :: Maybe Bool) -> a == mid a
     , testProperty "maybe double" $
