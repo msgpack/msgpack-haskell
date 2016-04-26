@@ -120,10 +120,13 @@ instance MessagePack Object where
   fromObject = Just
 
 instance MessagePack () where
-  toObject _ = ObjectNil
+  toObject _ = ObjectArray V.empty
   fromObject = \case
-    ObjectNil -> Just ()
-    _         -> Nothing
+    ObjectArray v ->
+        if V.null v
+            then Just ()
+            else Nothing
+    _ -> Nothing
 
 instance MessagePack Int where
   toObject = ObjectInt

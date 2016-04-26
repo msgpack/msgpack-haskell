@@ -64,16 +64,8 @@ tests =
       -- maybe tests
     , testProperty "maybe int" $
       \(a :: Maybe Int) -> a == mid a
-   -- FIXME: this test is failing:
-   --
-   -- toObject () == ObjectNil
-   -- toObject (Just ()) == ObjectNil
-   -- toObject (Just $ Just ()) == ObjectNil
-   --
-   -- I am not sure how should these types be decoded?
-   --
-   -- , testProperty "maybe nil" $
-   --   \(a :: Maybe ()) -> a == mid a
+    , testProperty "maybe nil" $
+      \(a :: Maybe ()) -> a == mid a
 
    -- FIXME: this test is also failing
    --
