@@ -75,6 +75,13 @@ tests =
    --
    -- , testProperty "maybe nil" $
    --   \(a :: Maybe ()) -> a == mid a
+
+   -- FIXME: this test is also failing
+   --
+   -- it should probably be decoded somewhat specially with Put/Get ?
+   --
+   -- , testProperty "maybe maybe int" $
+   --   \(a :: Maybe (Maybe Int)) -> a == mid a
     , testProperty "maybe bool" $
       \(a :: Maybe Bool) -> a == mid a
     , testProperty "maybe double" $
