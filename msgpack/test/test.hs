@@ -61,4 +61,46 @@ tests =
       \(a :: [(String, String)]) -> a == mid a
     , testProperty "Assoc [(string, int)]" $
       \(a :: Assoc [(String, Int)]) -> a == mid a
+      -- maybe tests
+    , testProperty "maybe int" $
+      \(a :: Maybe Int) -> a == mid a
+   -- FIXME: this test is failing:
+   --
+   -- toObject () == ObjectNil
+   -- toObject (Just ()) == ObjectNil
+   -- toObject (Just $ Just ()) == ObjectNil
+   --
+   -- I am not sure how should these types be decoded?
+   -- One way is to add additional ObjectEmpty for decoding ()
+   --
+   -- , testProperty "maybe nil" $
+   --   \(a :: Maybe ()) -> a == mid a
+    , testProperty "maybe bool" $
+      \(a :: Maybe Bool) -> a == mid a
+    , testProperty "maybe double" $
+      \(a :: Maybe Double) -> a == mid a
+    , testProperty "maybe string" $
+      \(a :: Maybe String) -> a == mid a
+    , testProperty "maybe bytestring" $
+      \(a :: Maybe S.ByteString) -> a == mid a
+    , testProperty "maybe lazy-bytestring" $
+      \(a :: Maybe L.ByteString) -> a == mid a
+    , testProperty "maybe [int]" $
+      \(a :: Maybe [Int]) -> a == mid a
+    , testProperty "maybe [string]" $
+      \(a :: Maybe [String]) -> a == mid a
+    , testProperty "maybe (int, int)" $
+      \(a :: Maybe (Int, Int)) -> a == mid a
+    , testProperty "maybe (int, int, int)" $
+      \(a :: Maybe (Int, Int, Int)) -> a == mid a
+    , testProperty "maybe (int, int, int, int)" $
+      \(a :: Maybe (Int, Int, Int, Int)) -> a == mid a
+    , testProperty "maybe (int, int, int, int, int)" $
+      \(a :: Maybe (Int, Int, Int, Int, Int)) -> a == mid a
+    , testProperty "maybe [(int, double)]" $
+      \(a :: Maybe [(Int, Double)]) -> a == mid a
+    , testProperty "maybe [(string, string)]" $
+      \(a :: Maybe [(String, String)]) -> a == mid a
+    , testProperty "maybe (Assoc [(string, int)])" $
+      \(a :: Maybe (Assoc [(String, Int)])) -> a == mid a
     ]
