@@ -191,9 +191,8 @@ instance MessagePack a => MessagePack (Maybe a) where
     Nothing -> ObjectNil
 
   fromObject = \case
-    ObjectNil     -> Just Nothing
-    ObjectExt _ _ -> Nothing
-    obj           -> Just $ fromObject obj
+    ObjectNil -> Just Nothing
+    obj       -> Just <$> fromObject obj
 
 -- UTF8 string like
 
