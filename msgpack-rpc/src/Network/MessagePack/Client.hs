@@ -22,7 +22,7 @@
 -- > add :: Int -> Int -> Client Int
 -- > add = call "add"
 -- >
--- > main = runClient "localhost" 5000 $ do
+-- > main = execClient "localhost" 5000 $ do
 -- >   ret <- add 123 456
 -- >   liftIO $ print ret
 --
