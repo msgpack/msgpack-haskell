@@ -39,6 +39,7 @@ module Network.MessagePack.Server (
   method,
   -- * Start RPC server
   serve,
+  serveUnix,
   ) where
 
 import           Control.Applicative
@@ -50,6 +51,7 @@ import           Data.Binary
 import           Data.Conduit
 import qualified Data.Conduit.Binary               as CB
 import           Data.Conduit.Network
+import qualified Data.Conduit.Network.Unix         as U
 import           Data.Conduit.Serialization.Binary
 import           Data.List
 import           Data.MessagePack
@@ -100,25 +102,36 @@ method :: MethodType m f
           -> Method m
 method name body = Method name $ toBody body
 
--- | Start RPC server with a set of RPC methods.
+-- | Start an RPC server with a set of RPC methods on a TCP socket.
 serve :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
          => Int        -- ^ Port number
          -> [Method m] -- ^ list of methods
          -> m ()
 serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
   (rsrc, _) <- appSource ad $$+ return ()
-  (_ :: Either ParseError ()) <- try $ processRequests rsrc (appSink ad)
+  (_ :: Either ParseError ()) <- try $ processRequests methods rsrc (appSink ad)
   return ()
-  where
-    processRequests rsrc sink = do
-      (rsrc', res) <- rsrc $$++ do
-        obj <- sinkGet get
-        case fromObject obj of
-          Error e     -> throwM $ ServerError e
-          Success req -> lift $ getResponse (req :: Request)
-      _ <- CB.sourceLbs (pack res) $$ sink
-      processRequests rsrc' sink
 
+-- | Start an RPC server with a set of RPC methods on a Unix domain socket.
+serveUnix :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
+          => FilePath  -- ^ Socket path
+          -> [Method m] -- ^ list of methods
+          -> m ()
+serveUnix path methods = liftBaseWith $ \run ->
+  U.runUnixServer (U.serverSettings path) $ \ad -> void . run $ do
+    (rsrc, _) <- appSource ad $$+ return ()
+    (_ :: Either ParseError ()) <- try $ processRequests methods rsrc (appSink ad)
+    return ()
+
+processRequests methods rsrc sink = do
+  (rsrc', res) <- rsrc $$++ do
+    obj <- sinkGet get
+    case fromObject obj of
+      Nothing  -> throwM $ ServerError "invalid request"
+      Just req -> lift $ getResponse (req :: Request)
+  _ <- CB.sourceLbs (pack res) $$ sink
+  processRequests methods rsrc' sink
+  where
     getResponse (rtype, msgid, methodName, args) = do
       when (rtype /= 0) $
         throwM $ ServerError $ "request type is not 0, got " ++ show rtype
