@@ -41,7 +41,6 @@ module Network.MessagePack.Server (
   serve,
   ) where
 
-import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Catch
 import           Control.Monad.Trans
@@ -92,6 +91,7 @@ instance (MonadThrow m, MessagePack o, MethodType m r) => MethodType m (o -> r) 
     case fromObject x of
       Nothing -> throwM $ ServerError "argument type error"
       Just r  -> toBody (f r) xs
+  toBody _ [] = error "messagepack-rpc methodtype instance toBody failed"
 
 -- | Build a method
 method :: MethodType m f

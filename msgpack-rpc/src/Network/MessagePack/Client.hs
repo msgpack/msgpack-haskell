@@ -39,7 +39,6 @@ module Network.MessagePack.Client (
   RpcError(..),
   ) where
 
-import           Control.Applicative
 import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Catch
@@ -52,7 +51,6 @@ import           Data.Conduit.Network
 import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
 import           Data.Typeable
-import           System.IO
 
 newtype Client a
   = ClientT { runClient :: StateT Connection IO a }
