@@ -189,7 +189,7 @@ instance MessagePack a => MessagePack (Maybe a) where
 
   fromObject = \case
     ObjectNil -> Just Nothing
-    obj -> fromObject obj
+    obj -> Just <$> fromObject obj
 
 -- UTF8 string like
 
