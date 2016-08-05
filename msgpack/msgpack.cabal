@@ -33,7 +33,7 @@ library
                   , text                 >=1.2
                   , containers           >=0.5.5
                   , unordered-containers >=0.2.5
-                  , hashable
+                  , hashable             >=1.2.4.0
                   , vector               >=0.10
                   , blaze-builder        >=0.4
                   , deepseq              >=1.3
