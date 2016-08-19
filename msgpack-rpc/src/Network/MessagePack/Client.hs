@@ -81,12 +81,15 @@ instance Exception RpcError
 class RpcType r where
   rpcc :: String -> [Object] -> r
 
-instance MessagePack o => RpcType (Client o) where
-  rpcc m args = do
-    res <- rpcCall m (reverse args)
-    case fromObject res of
-      Just r  -> return r
-      Nothing -> throwM $ ResultTypeError "type mismatch"
+instance MessagePack o =>
+         RpcType (Client o) where
+    rpcc m args = do
+        res <- rpcCall m (reverse args)
+        case fromObject res of
+            Just r -> return r
+            Nothing ->
+                throwM $
+                ResultTypeError ("type mismatch, object: " ++ show res)
 
 instance (MessagePack o, RpcType r) => RpcType (o -> r) where
   rpcc m args arg = rpcc m (toObject arg:args)
