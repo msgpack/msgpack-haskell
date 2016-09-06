@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE Trustworthy                #-}
 
 --------------------------------------------------------------------
 -- |
@@ -15,15 +16,20 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack.Assoc (
-  Assoc(..)
+module Data.MessagePack.Assoc
+  ( Assoc (..)
   ) where
 
-import           Control.DeepSeq
-import           Data.Typeable
+import           Control.Applicative       ((<$>))
+import           Control.DeepSeq           (NFData)
+import           Data.Typeable             (Typeable)
+import           Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 -- not defined for general Functor for performance reason.
 -- (ie. you would want to write custom instances for each type using specialized mapM-like functions)
 newtype Assoc a
   = Assoc { unAssoc :: a }
-  deriving (Show, Eq, Ord, Typeable, NFData)
+  deriving (Show, Read, Eq, Ord, Typeable, NFData)
+
+instance Arbitrary a => Arbitrary (Assoc a) where
+  arbitrary = Assoc <$> arbitrary

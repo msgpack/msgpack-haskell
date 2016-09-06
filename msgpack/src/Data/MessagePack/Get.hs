@@ -1,4 +1,5 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase  #-}
+{-# LANGUAGE Trustworthy #-}
 
 --------------------------------------------------------------------
 -- |
@@ -14,22 +15,31 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack.Get(
-  getNil, getBool, getInt, getFloat, getDouble,
-  getStr, getBin, getArray, getMap, getExt,
+module Data.MessagePack.Get
+  ( getNil
+  , getBool
+  , getInt
+  , getFloat
+  , getDouble
+  , getStr
+  , getBin
+  , getArray
+  , getMap
+  , getExt
   ) where
 
-import           Control.Applicative
-import           Control.Monad
-import           Data.Binary
-import           Data.Binary.Get
-import           Data.Binary.IEEE754
-import           Data.Bits
+import           Control.Applicative (empty, (<$), (<$>), (<*>), (<|>))
+import           Control.Monad       (guard, replicateM)
+import           Data.Binary         (Get)
+import           Data.Binary.Get     (getByteString, getWord16be, getWord32be,
+                                      getWord64be, getWord8)
+import           Data.Binary.IEEE754 (getFloat32be, getFloat64be)
+import           Data.Bits           ((.&.))
 import qualified Data.ByteString     as S
-import           Data.Int
+import           Data.Int            (Int16, Int32, Int64, Int8)
 import qualified Data.Text           as T
 import qualified Data.Text.Encoding  as T
-import qualified Data.Vector         as V
+import           Data.Word           (Word8)
 
 getNil :: Get ()
 getNil = tag 0xC0
@@ -39,7 +49,7 @@ getBool =
   False <$ tag 0xC2 <|>
   True  <$ tag 0xC3
 
-getInt :: Get Int
+getInt :: Get Int64
 getInt =
   getWord8 >>= \case
     c | c .&. 0x80 == 0x00 ->
@@ -73,7 +83,7 @@ getStr = do
     _    -> empty
   bs <- getByteString len
   case T.decodeUtf8' bs of
-    Left _ -> empty
+    Left  _ -> empty
     Right v -> return v
 
 getBin :: Get S.ByteString
@@ -85,7 +95,7 @@ getBin = do
     _    -> empty
   getByteString len
 
-getArray :: Get a -> Get (V.Vector a)
+getArray :: Get a -> Get [a]
 getArray g = do
   len <- getWord8 >>= \case
     t | t .&. 0xF0 == 0x90 ->
@@ -93,9 +103,9 @@ getArray g = do
     0xDC -> fromIntegral <$> getWord16be
     0xDD -> fromIntegral <$> getWord32be
     _    -> empty
-  V.replicateM len g
+  replicateM len g
 
-getMap :: Get a -> Get b -> Get (V.Vector (a, b))
+getMap :: Get a -> Get b -> Get [(a, b)]
 getMap k v = do
   len <- getWord8 >>= \case
     t | t .&. 0xF0 == 0x80 ->
@@ -103,7 +113,7 @@ getMap k v = do
     0xDE -> fromIntegral <$> getWord16be
     0xDF -> fromIntegral <$> getWord32be
     _    -> empty
-  V.replicateM len $ (,) <$> k <*> v
+  replicateM len $ (,) <$> k <*> v
 
 getExt :: Get (Word8, S.ByteString)
 getExt = do
@@ -116,7 +126,7 @@ getExt = do
     0xC7 -> fromIntegral <$> getWord8
     0xC8 -> fromIntegral <$> getWord16be
     0xC9 -> fromIntegral <$> getWord32be
-    _ -> empty
+    _    -> empty
   (,) <$> getWord8 <*> getByteString len
 
 getInt8 :: Get Int8

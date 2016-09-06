@@ -1,0 +1,51 @@
+name:                 network-msgpack-rpc
+version:              0.0.1
+synopsis:             A MessagePack-RPC Implementation
+description:          A MessagePack-RPC Implementation <http://msgpack.org/>
+homepage:             http://msgpack.org/
+license:              BSD3
+license-file:         LICENSE
+author:               Hideyuki Tanaka
+maintainer:           Iphigenia Df <iphydf@gmail.com>
+copyright:            Copyright (c) 2009-2016, Hideyuki Tanaka
+category:             Data
+stability:            Experimental
+cabal-version:        >= 1.10
+build-type:           Simple
+
+source-repository head
+  type:             git
+  location:         https://github.com/TokTok/msgpack-haskell.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:
+      src
+  exposed-modules:
+      Network.MessagePack.Client
+      Network.MessagePack.Server
+  build-depends:
+      base < 5
+    , binary
+    , binary-conduit
+    , bytestring
+    , conduit
+    , conduit-extra
+    , data-msgpack
+    , exceptions
+    , monad-control
+    , mtl
+    , network
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs: test
+  main-is: testsuite.hs
+  build-depends:
+      base < 5
+    , async
+    , hspec
+    , mtl
+    , network
+    , network-msgpack-rpc

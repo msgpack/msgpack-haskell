@@ -14,13 +14,13 @@ Execute following instructions:
 
 ~~~ {.bash}
 $ cabal update
-$ cabal install msgpack
-$ cabal install msgpack-rpc
+$ cabal install data-msgpack
+$ cabal install network-msgpack-rpc
 ~~~
 
 # Document
 
 There are Haddoc documents on Hackage Database.
 
-* <http://hackage.haskell.org/package/msgpack>
-* <http://hackage.haskell.org/package/msgpack-rpc>
+* <http://hackage.haskell.org/package/data-msgpack>
+* <http://hackage.haskell.org/package/network-msgpack-rpc>

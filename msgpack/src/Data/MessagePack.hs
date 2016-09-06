@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack
@@ -12,31 +13,38 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack (
+module Data.MessagePack
   -- * Simple interface to pack and unpack msgpack binary
-  pack, unpack,
+  ( pack
+  , unpack
 
   -- * Re-export modules
   -- $reexports
-  -- module X,
-  module Data.MessagePack.Assoc,
-  module Data.MessagePack.Get,
-  module Data.MessagePack.Object,
-  module Data.MessagePack.Put,
+  , module X
   ) where
 
-import           Data.Binary
-import qualified Data.ByteString.Lazy    as L
+import           Control.Applicative      (Applicative)
+import           Control.Monad            ((>=>))
+import           Data.Binary              (decodeOrFail, encode)
+import qualified Data.ByteString.Lazy     as L
 
-import           Data.MessagePack.Assoc
-import           Data.MessagePack.Get
-import           Data.MessagePack.Object
-import           Data.MessagePack.Put
+import           Data.MessagePack.Assoc   as X
+import           Data.MessagePack.Class   as X
+import           Data.MessagePack.Generic ()
+import           Data.MessagePack.Get     as X
+import           Data.MessagePack.Object  as X
+import           Data.MessagePack.Put     as X
+
 
 -- | Pack a Haskell value to MessagePack binary.
 pack :: MessagePack a => a -> L.ByteString
 pack = encode . toObject
 
--- | Unpack MessagePack binary to a Haskell value. If it fails, it returns Nothing.
-unpack :: MessagePack a => L.ByteString -> Maybe a
-unpack = fromObject . decode
+-- | Unpack MessagePack binary to a Haskell value. If it fails, it fails in the
+-- Monad. In the Maybe monad, failure returns Nothing.
+unpack :: (Applicative m, Monad m, MessagePack a)
+       => L.ByteString -> m a
+unpack = eitherToM . decodeOrFail >=> fromObject
+  where
+    eitherToM (Left  (_, _, msg)) = fail msg
+    eitherToM (Right (_, _, res)) = return res
