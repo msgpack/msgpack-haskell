@@ -1,7 +1,6 @@
 name:                 data-msgpack
 version:              0.0.2
 synopsis:             A Haskell implementation of MessagePack
-description:          A Haskell implementation of MessagePack <http://msgpack.org/>
 homepage:             http://msgpack.org/
 license:              BSD3
 license-file:         LICENSE
@@ -12,10 +11,16 @@ category:             Data
 stability:            Experimental
 cabal-version:        >= 1.10
 build-type:           Simple
+description:
+  A Haskell implementation of MessagePack <http://msgpack.org/>
+  .
+  This is a fork of msgpack-haskell <https://github.com/msgpack/msgpack-haskell>,
+  since the original author is unreachable. This fork incorporates a number of
+  bugfixes and is actively being developed.
 
 source-repository head
   type:             git
-  location:         https://github.com/TokTok/msgpack-haskell.git
+  location:         https://github.com/TokTok/hs-msgpack.git
 
 library
   default-language: Haskell2010
