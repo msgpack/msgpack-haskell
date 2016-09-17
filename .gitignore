@@ -1,18 +1,12 @@
+# Build products.
+/dist
+/*.tix
+/.*.pid
+/.*.stamp
+
+/.cabal-sandbox
+/cabal.sandbox.config
+
+# Temporary files.
 *~
-*#
-*.o
-*.hi
-*.a
-*.exe
-cabal-dev/
-dist/
-attic/
-tmp/
-*.aes
-/msgpack/.cabal-sandbox/
-/msgpack/cabal.sandbox.config
-/msgpack-rpc/.cabal-sandbox/
-/msgpack-rpc/cabal.sandbox.config
-/msgpack-aeson/cabal.sandbox.config
-/msgpack-aeson/.cabal-sandbox/
-/.stack-work/
+*.swp
