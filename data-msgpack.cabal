@@ -1,5 +1,5 @@
 name:                 data-msgpack
-version:              0.0.2
+version:              0.0.3
 synopsis:             A Haskell implementation of MessagePack
 homepage:             http://msgpack.org/
 license:              BSD3
@@ -46,6 +46,20 @@ library
     , hashable
     , text
     , unordered-containers
+
+executable msgpack-parser
+  default-language: Haskell2010
+  hs-source-dirs:
+      tools
+  ghc-options:
+      -Wall
+      -fno-warn-unused-imports
+  build-depends:
+      base < 5
+    , bytestring
+    , groom
+    , data-msgpack
+  main-is: msgpack-parser.hs
 
 test-suite testsuite
   type: exitcode-stdio-1.0
