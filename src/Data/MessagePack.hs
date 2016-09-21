@@ -13,9 +13,9 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack
+module Data.MessagePack (
   -- * Simple interface to pack and unpack msgpack binary
-  ( pack
+    pack
   , unpack
 
   -- * Re-export modules
