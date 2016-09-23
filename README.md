@@ -3,7 +3,7 @@ MessagePack for Haskell
 
 This is an implementation of msgpack for Haskell.
 
-It containes:
+It contains:
 
 * Serializer/Deserializer
 * RPC
@@ -20,7 +20,7 @@ $ cabal install network-msgpack-rpc
 
 # Document
 
-There are Haddoc documents on Hackage Database.
+There are Haddock documents on Hackage Database.
 
 * <http://hackage.haskell.org/package/data-msgpack>
 * <http://hackage.haskell.org/package/network-msgpack-rpc>

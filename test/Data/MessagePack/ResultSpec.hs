@@ -5,7 +5,7 @@ module Data.MessagePack.ResultSpec where
 import           Test.Hspec
 import           Test.QuickCheck
 
-import           Control.Applicative     (pure, (<*>))
+import           Control.Applicative     (empty, pure, (<*>), (<|>))
 import qualified Data.MessagePack.Result as R
 
 
@@ -45,6 +45,19 @@ spec = do
       property $ \x y -> do
         interchange (R.Failure "nope") y
         interchange (pure (x *)      ) y
+
+  describe "Alternative" $ do
+    it "chooses the left-most success" $ do
+      R.Success "a" <|> R.Success "b" `shouldBe` R.Success "a"
+      R.Success "a" <|> R.Failure "b" `shouldBe` R.Success "a"
+      R.Failure "a" <|> R.Success "b" `shouldBe` R.Success "b"
+
+    it "chooses the right-most failure" $
+      R.Failure "a" <|> R.Failure "b" `shouldBe` (R.Failure "b" :: R.Result ())
+
+    describe "empty" $
+      it "is a failure" $
+        empty <|> R.Success "a" `shouldBe` R.Success "a"
 
   where
     --

@@ -17,6 +17,6 @@ script:
   - cabal test
 
 after_script:
-  - TESTSUITE=data-msgpack-0.0.3
+  - TESTSUITE=data-msgpack-0.0.4
   - cp dist/hpc/mix/testsuite/*.mix dist/hpc/mix/$TESTSUITE/
   - hpc-coveralls $TESTSUITE
