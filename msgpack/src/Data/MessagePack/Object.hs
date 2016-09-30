@@ -187,12 +187,12 @@ instance (MessagePack a, MessagePack b) => MessagePack (Assoc (V.Vector (a, b)))
 
 instance MessagePack a => MessagePack (Maybe a) where
   toObject = \case
-    Just a  -> toObject a
-    Nothing -> ObjectNil
+    Just a  -> ObjectArray $ V.singleton $ toObject a
+    Nothing -> ObjectArray V.empty
 
-  fromObject = \case
-    ObjectNil -> Just Nothing
-    obj       -> Just <$> fromObject obj
+  fromObject (ObjectArray v) = maybe (Just Nothing) (Just <$> fromObject) $
+                                   v V.!? 0
+  fromObject _               = Just Nothing
 
 -- UTF8 string like
 
