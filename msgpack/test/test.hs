@@ -96,4 +96,13 @@ tests =
       \(a :: Maybe [(String, String)]) -> a == mid a
     , testProperty "maybe (Assoc [(string, int)])" $
       \(a :: Maybe (Assoc [(String, Int)])) -> a == mid a
+    -- either tests
+    , testProperty "either () ()" $
+      \(a :: Either () ()) -> a == mid a
+    , testProperty "either int int" $
+      \(a :: Either Int Int) -> a == mid a
+    , testProperty "either int double" $
+      \(a :: Either Int Double) -> a == mid a
+    , testProperty "either [string] string" $
+      \(a :: Either [String] String) -> a == mid a
     ]

@@ -194,6 +194,15 @@ instance MessagePack a => MessagePack (Maybe a) where
                                    v V.!? 0
   fromObject _               = Just Nothing
 
+instance (MessagePack a, MessagePack b) => MessagePack (Either a b) where
+  toObject = \case
+    Left a  -> toObject (False, toObject a)
+    Right b -> toObject (True,  toObject b)
+
+  fromObject e = do
+    (b, o) <- fromObject e
+    if b then Right <$> fromObject o else Left <$> fromObject o 
+
 -- UTF8 string like
 
 instance MessagePack L.ByteString where
