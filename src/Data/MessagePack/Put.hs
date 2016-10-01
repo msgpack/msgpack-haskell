@@ -48,21 +48,21 @@ putBool True  = putWord8 0xC3
 
 putInt :: Int64 -> Put
 putInt n
-  | -32 <= n && n <= 127 =
+  | -0x20 <= n && n < 0x80 =
                      putWord8     (fromIntegral n)
-  | 0 <= n && n < 0x100 =
+  | 0     <= n && n < 0x100 =
     putWord8 0xCC >> putWord8     (fromIntegral n)
-  | 0 <= n && n < 0x10000 =
+  | 0     <= n && n < 0x10000 =
     putWord8 0xCD >> putWord16be  (fromIntegral n)
-  | 0 <= n && n < 0x100000000 =
+  | 0     <= n && n < 0x100000000 =
     putWord8 0xCE >> putWord32be  (fromIntegral n)
-  | 0 <= n =
+  | 0     <= n =
     putWord8 0xCF >> putWord64be  (fromIntegral n)
   | -0x80 <= n =
     putWord8 0xD0 >> putWord8     (fromIntegral n)
   | -0x8000 <= n =
     putWord8 0xD1 >> putWord16be  (fromIntegral n)
-  | -0x80000000  <= n =
+  | -0x80000000 <= n =
     putWord8 0xD2 >> putWord32be  (fromIntegral n)
   | otherwise =
     putWord8 0xD3 >> putWord64be (fromIntegral n)
