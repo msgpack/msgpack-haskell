@@ -102,6 +102,15 @@ spec = do
           Just "" -> return () :: IO ()
           _       -> return () :: IO ()
 
+  describe "Assoc" $ do
+    it "supports read/show" $
+      property $ \(a :: Assoc [(Int, Int)]) ->
+        read (show a) `shouldBe` a
+
+    it "inherits ordering from its contained type" $
+      property $ \(a :: Assoc Int) b ->
+        (unAssoc a < unAssoc b) `shouldBe` (a < b)
+
   describe "failures" $
     it "should contain the same start of the failure message for all types" $ do
       checkMessage (unpack (pack $ ObjectInt (-1)) :: R.Result Foo)

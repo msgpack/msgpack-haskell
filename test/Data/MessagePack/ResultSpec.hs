@@ -5,8 +5,17 @@ module Data.MessagePack.ResultSpec where
 import           Test.Hspec
 import           Test.QuickCheck
 
-import           Control.Applicative     (empty, pure, (<*>), (<|>))
+import           Control.Applicative     (empty, pure, (<$>), (<*>), (<|>))
 import qualified Data.MessagePack.Result as R
+
+
+newtype F = F (Int -> R.Result Int)
+
+instance Show F where
+  show = const "<function>"
+
+instance Arbitrary F where
+  arbitrary = F <$> arbitrary
 
 
 -- | Checks that 'R.Result' satisfies the laws described in the 'Monad' and
@@ -19,13 +28,16 @@ spec :: Spec
 spec = do
   describe "Monad" $ do
     it "satisfies left identity" $
-      property $ \a -> (return' a `bind'` f) `shouldBe` f a
+      property $ \a (F f) ->
+        (return' a `bind'` f) `shouldBe` f a
 
     it "satisfies right identity" $
-      property $ \m -> (m `bind'` return') `shouldBe` m
+      property $ \m ->
+        (m `bind'` return') `shouldBe` m
 
     it "satisfies associativity" $
-      property $ \m -> ((m `bind'` f) `bind'` g) `shouldBe` (m `bind'` (\x -> f x `bind'` g))
+      property $ \m (F f) (F g) ->
+        ((m `bind'` f) `bind'` g) `shouldBe` (m `bind'` (\x -> f x `bind'` g))
 
   describe "Applicative" $ do
     it "satisfies identity" $
@@ -93,15 +105,3 @@ spec = do
     interchange :: R.Result (Int -> Int) -> Int -> Expectation
     interchange u y =
       (u <*> pure' y) `shouldBe` (pure' ($ y) <*> u)
-
-    --
-    -- Functions f and g used in Monad laws.
-    --
-
-    f = \case
-      x | x `mod` 2 == 0 -> R.Success $ x * 123
-      _                  -> R.Failure "Holla"
-
-    g = \case
-      x | x `mod` 2 == 0 -> R.Failure "Oh noes"
-      x                  -> R.Success $ x * 234
