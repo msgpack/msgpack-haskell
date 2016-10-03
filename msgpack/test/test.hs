@@ -7,6 +7,7 @@ import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.Maybe
 import           Data.MessagePack
+import           Data.Void
 import           Test.QuickCheck
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
@@ -106,3 +107,7 @@ tests =
     , testProperty "either [string] string" $
       \(a :: Either [String] String) -> a == mid a
     ]
+
+-- type-check test
+checkVoid :: Void -> Object
+checkVoid = toObject
