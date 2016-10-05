@@ -303,6 +303,8 @@ spec = do
       property $ \(a :: Maybe [(String, String)]) -> a `shouldBe` mid a
     it "maybe (Assoc [(string, int)])" $
       property $ \(a :: Maybe (Assoc [(String, Int)])) -> a `shouldBe` mid a
+    it "either int float" $
+      property $ \(a :: Either Int Float) -> a `shouldBe` mid a
 
     it "generics" $
       property $ \(a :: Foo) -> a `shouldBe` mid a

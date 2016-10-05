@@ -35,6 +35,7 @@ library
       Data.MessagePack.Class
       Data.MessagePack.Generic
       Data.MessagePack.Get
+      Data.MessagePack.Instances
       Data.MessagePack.Object
       Data.MessagePack.Put
       Data.MessagePack.Result

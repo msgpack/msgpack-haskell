@@ -23,17 +23,18 @@ module Data.MessagePack (
   , module X
   ) where
 
-import           Control.Applicative      (Applicative)
-import           Control.Monad            ((>=>))
-import           Data.Binary              (decodeOrFail, encode)
-import qualified Data.ByteString.Lazy     as L
+import           Control.Applicative        (Applicative)
+import           Control.Monad              ((>=>))
+import           Data.Binary                (decodeOrFail, encode)
+import qualified Data.ByteString.Lazy       as L
 
-import           Data.MessagePack.Assoc   as X
-import           Data.MessagePack.Class   as X
-import           Data.MessagePack.Generic ()
-import           Data.MessagePack.Get     as X
-import           Data.MessagePack.Object  as X
-import           Data.MessagePack.Put     as X
+import           Data.MessagePack.Assoc     as X
+import           Data.MessagePack.Class     as X
+import           Data.MessagePack.Generic   ()
+import           Data.MessagePack.Get       as X
+import           Data.MessagePack.Instances as X
+import           Data.MessagePack.Object    as X
+import           Data.MessagePack.Put       as X
 
 
 -- | Pack a Haskell value to MessagePack binary.
