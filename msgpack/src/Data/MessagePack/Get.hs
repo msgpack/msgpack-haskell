@@ -22,7 +22,8 @@ module Data.MessagePack.Get(
 import           Control.Applicative
 import           Control.Monad
 import           Data.Binary
-import           Data.Binary.Get
+import           Data.Binary.Get (getByteString, getWord16be,
+                                  getWord32be, getWord64be)
 import           Data.Binary.IEEE754
 import           Data.Bits
 import qualified Data.ByteString     as S
