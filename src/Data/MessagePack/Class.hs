@@ -140,18 +140,6 @@ instance MessagePack String where
   fromObject obj = T.unpack <$> fromObject obj
 
 
--- Instances for nullable types.
-
-instance MessagePack a => MessagePack (Maybe a) where
-  toObject = \case
-    Just a  -> toObject a
-    Nothing -> ObjectNil
-
-  fromObject = \case
-    ObjectNil -> return Nothing
-    obj       -> Just <$> fromObject obj
-
-
 -- Instances for binary and UTF-8 encoded string.
 
 instance MessagePack S.ByteString where

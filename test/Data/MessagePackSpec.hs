@@ -264,17 +264,8 @@ spec = do
       property $ \(a :: Maybe Int) -> a `shouldBe` mid a
     it "maybe nil" $
       property $ \(a :: Maybe ()) -> a `shouldBe` mid a
-
-   -- FIXME: this test is also failing
-   --
-   -- it should probably be decoded somewhat specially with ObjectExt ?
-   --
-   -- it "maybe maybe int" $
-   --   property $ \(a :: Maybe (Maybe Int)) -> a `shouldBe` mid a
-   --
-   -- by looking at msgpack specification it looks like Haskells Maybe
-   -- type should be probably decoded with custom ObjectExt
-   --
+    it "maybe maybe int" $
+      property $ \(a :: Maybe (Maybe Int)) -> a `shouldBe` mid a
     it "maybe bool" $
       property $ \(a :: Maybe Bool) -> a `shouldBe` mid a
     it "maybe double" $
