@@ -7,6 +7,7 @@ import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.Maybe
 import           Data.MessagePack
+import           Data.Void
 import           Test.QuickCheck
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
@@ -61,4 +62,52 @@ tests =
       \(a :: [(String, String)]) -> a == mid a
     , testProperty "Assoc [(string, int)]" $
       \(a :: Assoc [(String, Int)]) -> a == mid a
+      -- maybe tests
+    , testProperty "maybe int" $
+      \(a :: Maybe Int) -> a == mid a
+    , testProperty "maybe nil" $
+      \(a :: Maybe ()) -> a == mid a
+    , testProperty "maybe maybe int" $
+      \(a :: Maybe (Maybe Int)) -> a == mid a
+    , testProperty "maybe bool" $
+      \(a :: Maybe Bool) -> a == mid a
+    , testProperty "maybe double" $
+      \(a :: Maybe Double) -> a == mid a
+    , testProperty "maybe string" $
+      \(a :: Maybe String) -> a == mid a
+    , testProperty "maybe bytestring" $
+      \(a :: Maybe S.ByteString) -> a == mid a
+    , testProperty "maybe lazy-bytestring" $
+      \(a :: Maybe L.ByteString) -> a == mid a
+    , testProperty "maybe [int]" $
+      \(a :: Maybe [Int]) -> a == mid a
+    , testProperty "maybe [string]" $
+      \(a :: Maybe [String]) -> a == mid a
+    , testProperty "maybe (int, int)" $
+      \(a :: Maybe (Int, Int)) -> a == mid a
+    , testProperty "maybe (int, int, int)" $
+      \(a :: Maybe (Int, Int, Int)) -> a == mid a
+    , testProperty "maybe (int, int, int, int)" $
+      \(a :: Maybe (Int, Int, Int, Int)) -> a == mid a
+    , testProperty "maybe (int, int, int, int, int)" $
+      \(a :: Maybe (Int, Int, Int, Int, Int)) -> a == mid a
+    , testProperty "maybe [(int, double)]" $
+      \(a :: Maybe [(Int, Double)]) -> a == mid a
+    , testProperty "maybe [(string, string)]" $
+      \(a :: Maybe [(String, String)]) -> a == mid a
+    , testProperty "maybe (Assoc [(string, int)])" $
+      \(a :: Maybe (Assoc [(String, Int)])) -> a == mid a
+    -- either tests
+    , testProperty "either () ()" $
+      \(a :: Either () ()) -> a == mid a
+    , testProperty "either int int" $
+      \(a :: Either Int Int) -> a == mid a
+    , testProperty "either int double" $
+      \(a :: Either Int Double) -> a == mid a
+    , testProperty "either [string] string" $
+      \(a :: Either [String] String) -> a == mid a
     ]
+
+-- type-check test
+checkVoid :: Void -> Object
+checkVoid = toObject

@@ -41,7 +41,6 @@ module Network.MessagePack.Server (
   serve,
   ) where
 
-import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Catch
 import           Control.Monad.Trans
@@ -54,6 +53,8 @@ import           Data.Conduit.Serialization.Binary
 import           Data.List
 import           Data.MessagePack
 import           Data.Typeable
+import           Network.Socket                    (SocketOption (ReuseAddr),
+                                                    setSocketOption)
 
 -- ^ MessagePack RPC method
 data Method m
@@ -92,6 +93,7 @@ instance (MonadThrow m, MessagePack o, MethodType m r) => MethodType m (o -> r) 
     case fromObject x of
       Nothing -> throwM $ ServerError "argument type error"
       Just r  -> toBody (f r) xs
+  toBody _ [] = error "messagepack-rpc methodtype instance toBody failed"
 
 -- | Build a method
 method :: MethodType m f
@@ -105,29 +107,35 @@ serve :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
          => Int        -- ^ Port number
          -> [Method m] -- ^ list of methods
          -> m ()
-serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
-  (rsrc, _) <- appSource ad $$+ return ()
-  (_ :: Either ParseError ()) <- try $ processRequests rsrc (appSink ad)
-  return ()
+serve port methods =
+    runGeneralTCPServer settings $
+    \ad ->
+         do (rsrc,_) <- appSource ad $$+ return ()
+            (_ :: Either ParseError ()) <-
+                try $ processRequests rsrc (appSink ad)
+            return ()
   where
+    settings =
+        setAfterBind
+            (\s ->
+                  setSocketOption s ReuseAddr 1)
+            (serverSettings port "*")
     processRequests rsrc sink = do
-      (rsrc', res) <- rsrc $$++ do
-        obj <- sinkGet get
-        case fromObject obj of
-          Nothing  -> throwM $ ServerError "invalid request"
-          Just req -> lift $ getResponse (req :: Request)
-      _ <- CB.sourceLbs (pack res) $$ sink
-      processRequests rsrc' sink
-
-    getResponse (rtype, msgid, methodName, args) = do
-      when (rtype /= 0) $
-        throwM $ ServerError $ "request type is not 0, got " ++ show rtype
-      ret <- callMethod methodName args
-      return ((1, msgid, toObject (), ret) :: Response)
-
+        (rsrc',res) <-
+            rsrc $$++
+            do obj <- sinkGet get
+               case fromObject obj of
+                   Nothing -> throwM $ ServerError "invalid request"
+                   Just req -> lift $ getResponse (req :: Request)
+        _ <- CB.sourceLbs (pack res) $$ sink
+        processRequests rsrc' sink
+    getResponse (rtype,msgid,methodName,args) = do
+        when (rtype /= 0) $
+            throwM $ ServerError $ "request type is not 0, got " ++ show rtype
+        ret <- callMethod methodName args
+        return ((1, msgid, toObject (), ret) :: Response)
     callMethod name args =
-      case find ((== name) . methodName) methods of
-        Nothing ->
-          throwM $ ServerError $ "method '" ++ name ++ "' not found"
-        Just m ->
-          methodBody m args
+        case find ((== name) . methodName) methods of
+            Nothing ->
+                throwM $ ServerError $ "method '" ++ name ++ "' not found"
+            Just m -> methodBody m args

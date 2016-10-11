@@ -1,8 +1,13 @@
+{-# LANGUAGE DefaultSignatures    #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE EmptyCase            #-}
+{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE IncoherentInstances  #-}
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedLists      #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------
@@ -30,6 +35,7 @@ module Data.MessagePack.Object(
 import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
+import           Control.Monad
 import           Data.Binary
 import qualified Data.ByteString        as S
 import qualified Data.ByteString.Lazy   as L
@@ -41,12 +47,16 @@ import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
 import           Data.Typeable
 import qualified Data.Vector            as V
+import           Data.Void
+import           GHC.Generics       hiding (from, to)
+import qualified GHC.Generics           as G (from, to)
 
 import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
 import           Data.MessagePack.Put
 
 import           Prelude                hiding (putStr)
+
 
 -- | Object Representation of MessagePack data.
 data Object
@@ -111,7 +121,16 @@ instance Binary Object where
 
 class MessagePack a where
   toObject   :: a -> Object
+  default toObject
+    :: (Generic a, GenericMessagePack (Rep a))
+    => a -> Object
+  toObject = genericToObject . G.from
+
   fromObject :: Object -> Maybe a
+  default fromObject
+    :: (Generic a, GenericMessagePack (Rep a))
+    => Object -> Maybe a
+  fromObject = fmap G.to . genericFromObject
 
 -- core instances
 
@@ -120,10 +139,13 @@ instance MessagePack Object where
   fromObject = Just
 
 instance MessagePack () where
-  toObject _ = ObjectNil
+  toObject _ = ObjectArray V.empty
   fromObject = \case
-    ObjectNil -> Just ()
-    _         -> Nothing
+    ObjectArray v ->
+        if V.null v
+            then Just ()
+            else Nothing
+    _ -> Nothing
 
 instance MessagePack Int where
   toObject = ObjectInt
@@ -180,16 +202,11 @@ instance (MessagePack a, MessagePack b) => MessagePack (Assoc (V.Vector (a, b)))
 
 -- util instances
 
--- nullable
+instance MessagePack Void
 
-instance MessagePack a => MessagePack (Maybe a) where
-  toObject = \case
-    Just a  -> toObject a
-    Nothing -> ObjectNil
+instance MessagePack a => MessagePack (Maybe a)
 
-  fromObject = \case
-    ObjectNil -> Just Nothing
-    obj -> fromObject obj
+instance (MessagePack a, MessagePack b) => MessagePack (Either a b)
 
 -- UTF8 string like
 
@@ -231,7 +248,7 @@ instance (MessagePack k, MessagePack v, Hashable k, Eq k) => MessagePack (HashMa
   toObject = toObject . Assoc . HashMap.toList
   fromObject obj = HashMap.fromList . unAssoc <$> fromObject obj
 
--- tuples
+-- tuples (manual definition uses slightly less bytes to serialize)
 
 instance (MessagePack a1, MessagePack a2) => MessagePack (a1, a2) where
   toObject (a1, a2) = ObjectArray [toObject a1, toObject a2]
@@ -272,3 +289,45 @@ instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, Messag
   toObject (a1, a2, a3, a4, a5, a6, a7, a8, a9) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8, toObject a9]
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8, a9]) = (,,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8 <*> fromObject a9
   fromObject _ = Nothing
+
+-- generics
+
+class GenericMessagePack f where
+  genericToObject :: f a -> Object
+  genericFromObject :: Object -> Maybe (f a)
+
+instance GenericMessagePack V1 where
+  genericToObject = \case {}
+  genericFromObject _ = Nothing
+
+instance GenericMessagePack U1 where
+  genericToObject U1 = ObjectNil
+  genericFromObject ObjectNil = Just U1
+  genericFromObject _         = Nothing
+
+instance GenericMessagePack a => GenericMessagePack (M1 i c a) where
+  genericToObject (M1 x) = genericToObject x
+  genericFromObject o = M1 <$> genericFromObject o
+
+instance MessagePack a => GenericMessagePack (K1 i a) where
+  genericToObject (K1 x) = toObject x
+  genericFromObject o = K1 <$> fromObject o
+
+-- TODO: next 2 instances could be optimized
+instance (GenericMessagePack a, GenericMessagePack b)
+       => GenericMessagePack (a :+: b) where
+  genericToObject (L1 x) = toObject (False, genericToObject x)
+  genericToObject (R1 x) = toObject (True , genericToObject x)
+  genericFromObject o = case fromObject o of
+    Just (False, o') -> L1 <$> genericFromObject o'
+    Just (True , o') -> R1 <$> genericFromObject o'
+    _                -> Nothing
+
+instance (GenericMessagePack a, GenericMessagePack b)
+       => GenericMessagePack (a :*: b) where
+  genericToObject (a :*: b) = toObject (genericToObject a, genericToObject b)
+  genericFromObject o = case fromObject o of
+    Just (a, b) -> liftM2 (:*:) (genericFromObject a) (genericFromObject b)
+    _           -> Nothing
+
+

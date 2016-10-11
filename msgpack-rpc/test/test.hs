@@ -32,7 +32,7 @@ server =
     echo s = return $ "***" ++ s ++ "***"
 
 client :: IO ()
-client = execClient "localhost" port $ do
+client = execClient "127.0.0.1" port $ do
   r1 <- add 123 456
   liftIO $ r1 @?= 123 + 456
   r2 <- echo "hello"

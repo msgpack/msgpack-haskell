@@ -22,7 +22,7 @@
 -- > add :: Int -> Int -> Client Int
 -- > add = call "add"
 -- >
--- > main = runClient "localhost" 5000 $ do
+-- > main = execClient "localhost" 5000 $ do
 -- >   ret <- add 123 456
 -- >   liftIO $ print ret
 --
@@ -39,7 +39,6 @@ module Network.MessagePack.Client (
   RpcError(..),
   ) where
 
-import           Control.Applicative
 import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Catch
@@ -52,7 +51,6 @@ import           Data.Conduit.Network
 import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
 import           Data.Typeable
-import           System.IO
 
 newtype Client a
   = ClientT { runClient :: StateT Connection IO a }
@@ -83,12 +81,15 @@ instance Exception RpcError
 class RpcType r where
   rpcc :: String -> [Object] -> r
 
-instance MessagePack o => RpcType (Client o) where
-  rpcc m args = do
-    res <- rpcCall m (reverse args)
-    case fromObject res of
-      Just r  -> return r
-      Nothing -> throwM $ ResultTypeError "type mismatch"
+instance MessagePack o =>
+         RpcType (Client o) where
+    rpcc m args = do
+        res <- rpcCall m (reverse args)
+        case fromObject res of
+            Just r -> return r
+            Nothing ->
+                throwM $
+                ResultTypeError ("type mismatch, object: " ++ show res)
 
 instance (MessagePack o, RpcType r) => RpcType (o -> r) where
   rpcc m args arg = rpcc m (toObject arg:args)
