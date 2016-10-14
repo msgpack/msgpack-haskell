@@ -50,6 +50,7 @@ library
     , hashable
     , text
     , unordered-containers
+    , void
 
 executable msgpack-parser
   default-language: Haskell2010
@@ -83,6 +84,7 @@ test-suite testsuite
     , hspec
     , text
     , unordered-containers
+    , void
 
 benchmark benchmark
   type: exitcode-stdio-1.0

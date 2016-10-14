@@ -18,6 +18,9 @@ import           GHC.Generics
 import           Data.MessagePack.Class
 import           Data.MessagePack.Object (Object (..))
 
+instance GMessagePack V1 where
+  gToObject = undefined
+  gFromObject = fail "can't instantiate void type"
 
 instance GMessagePack U1 where
   gToObject U1 = ObjectNil

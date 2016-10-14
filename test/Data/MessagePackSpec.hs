@@ -19,6 +19,7 @@ import qualified Data.IntMap                as IntMap
 import qualified Data.Map                   as Map
 import qualified Data.Maybe                 as Maybe
 import qualified Data.Text.Lazy             as LT
+import           Data.Void                  (Void)
 import           Data.Word                  (Word, Word16, Word32, Word64,
                                              Word8)
 import           GHC.Generics               (Generic)
@@ -320,3 +321,6 @@ spec = do
 
     it "Record" $
       show (toObject $ Record 3 5 7) `shouldBe` "ObjectArray [ObjectInt 3,ObjectInt 5,ObjectInt 7]"
+
+voidTest :: Void -> Object
+voidTest = toObject
