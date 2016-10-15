@@ -7,6 +7,7 @@ cache:
     - $HOME/.ghc
 
 install:
+  - cabal update
   - cabal install happy
   - cabal install hpc-coveralls "aeson < 0.11"
   - cabal install --only-dependencies --enable-tests --enable-benchmarks
