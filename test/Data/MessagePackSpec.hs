@@ -87,6 +87,15 @@ instance (Arbitrary a, VS.Storable a) => Arbitrary (VS.Vector a) where
 instance (Arbitrary a, VU.Unbox a) => Arbitrary (VU.Vector a) where
   arbitrary = VU.fromList <$> arbitrary
 
+instance Arbitrary S.ByteString where
+  arbitrary = S.pack <$> arbitrary
+
+instance Arbitrary L.ByteString where
+  arbitrary = L.pack <$> arbitrary
+
+instance Arbitrary LT.Text where
+  arbitrary = LT.pack <$> arbitrary
+
 mid :: MessagePack a => a -> a
 mid = Maybe.fromJust . unpack . pack
 
