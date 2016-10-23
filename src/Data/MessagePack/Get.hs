@@ -19,6 +19,7 @@ module Data.MessagePack.Get
   ( getNil
   , getBool
   , getInt
+  , getWord
   , getFloat
   , getDouble
   , getStr
@@ -39,7 +40,7 @@ import qualified Data.ByteString     as S
 import           Data.Int            (Int16, Int32, Int64, Int8)
 import qualified Data.Text           as T
 import qualified Data.Text.Encoding  as T
-import           Data.Word           (Word8)
+import           Data.Word           (Word64, Word8)
 
 getNil :: Get ()
 getNil = tag 0xC0
@@ -52,18 +53,23 @@ getBool =
 getInt :: Get Int64
 getInt =
   getWord8 >>= \case
-    c | c .&. 0x80 == 0x00 ->
-        return $ fromIntegral c
-      | c .&. 0xE0 == 0xE0 ->
+    c | c .&. 0xE0 == 0xE0 ->
         return $ fromIntegral (fromIntegral c :: Int8)
-    0xCC -> fromIntegral <$> getWord8
-    0xCD -> fromIntegral <$> getWord16be
-    0xCE -> fromIntegral <$> getWord32be
-    0xCF -> fromIntegral <$> getWord64be
     0xD0 -> fromIntegral <$> getInt8
     0xD1 -> fromIntegral <$> getInt16be
     0xD2 -> fromIntegral <$> getInt32be
     0xD3 -> fromIntegral <$> getInt64be
+    _    -> empty
+
+getWord :: Get Word64
+getWord =
+  getWord8 >>= \case
+    c | c .&. 0x80 == 0x00 ->
+        return $ fromIntegral c
+    0xCC -> fromIntegral <$> getWord8
+    0xCD -> fromIntegral <$> getWord16be
+    0xCE -> fromIntegral <$> getWord32be
+    0xCF -> fromIntegral <$> getWord64be
     _    -> empty
 
 getFloat :: Get Float

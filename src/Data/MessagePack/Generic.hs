@@ -37,7 +37,7 @@ instance (GSumPack a, GSumPack b, SumSize a, SumSize b) => GMessagePack (a :+: b
       size = unTagged (sumSize :: Tagged (a :+: b) Word64)
 
   gFromObject = \case
-    ObjectInt code -> checkSumFromObject0 size (fromIntegral code)
+    ObjectWord code -> checkSumFromObject0 size (fromIntegral code)
     o              -> fromObject o >>= uncurry (checkSumFromObject size)
     where
       size = unTagged (sumSize :: Tagged (a :+: b) Word64)

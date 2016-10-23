@@ -14,7 +14,7 @@ import           Data.Int                  (Int64)
 import qualified Data.Text                 as T
 import qualified Data.Text.Lazy            as LT
 import           Data.Typeable             (Typeable)
-import           Data.Word                 (Word8)
+import           Data.Word                 (Word64, Word8)
 import           GHC.Generics              (Generic)
 import           Prelude                   hiding (putStr)
 import           Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -31,7 +31,9 @@ data Object
   | ObjectBool                  !Bool
     -- ^ represents true or false
   | ObjectInt    {-# UNPACK #-} !Int64
-    -- ^ represents an integer
+    -- ^ represents a negative integer
+  | ObjectWord   {-# UNPACK #-} !Word64
+    -- ^ represents a positive integer
   | ObjectFloat  {-# UNPACK #-} !Float
     -- ^ represents a floating point number
   | ObjectDouble {-# UNPACK #-} !Double
@@ -61,6 +63,7 @@ getObject =
       ObjectNil    <$  getNil
   <|> ObjectBool   <$> getBool
   <|> ObjectInt    <$> getInt
+  <|> ObjectWord   <$> getWord
   <|> ObjectFloat  <$> getFloat
   <|> ObjectDouble <$> getDouble
   <|> ObjectStr    <$> getStr
@@ -74,6 +77,7 @@ putObject = \case
   ObjectNil      -> putNil
   ObjectBool   b -> putBool b
   ObjectInt    n -> putInt n
+  ObjectWord   n -> putWord n
   ObjectFloat  f -> putFloat f
   ObjectDouble d -> putDouble d
   ObjectStr    t -> putStr t
@@ -87,7 +91,8 @@ instance Arbitrary Object where
   arbitrary = Gen.sized $ \n -> Gen.oneof
     [ return ObjectNil
     , ObjectBool   <$> arbitrary
-    , ObjectInt    <$> arbitrary
+    , ObjectInt    <$> negatives
+    , ObjectWord   <$> arbitrary
     , ObjectFloat  <$> arbitrary
     , ObjectDouble <$> arbitrary
     , ObjectStr    <$> arbitrary
@@ -96,6 +101,7 @@ instance Arbitrary Object where
     , ObjectMap    <$> Gen.resize (n `div` 4) arbitrary
     , ObjectExt    <$> arbitrary <*> arbitrary
     ]
+    where negatives = Gen.choose (-0X7FFFFFFFFFFFFFFF, -1)
 
 instance Arbitrary S.ByteString where
   arbitrary = S.pack <$> arbitrary

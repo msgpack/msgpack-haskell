@@ -17,6 +17,7 @@ module Data.MessagePack.Put
   ( putNil
   , putBool
   , putInt
+  , putWord
   , putFloat
   , putDouble
   , putStr
@@ -35,7 +36,7 @@ import qualified Data.ByteString     as S
 import           Data.Int            (Int64)
 import qualified Data.Text           as T
 import qualified Data.Text.Encoding  as T
-import           Data.Word           (Word8)
+import           Data.Word           (Word64, Word8)
 
 import           Prelude             hiding (putStr)
 
@@ -66,6 +67,19 @@ putInt n
     putWord8 0xD2 >> putWord32be  (fromIntegral n)
   | otherwise =
     putWord8 0xD3 >> putWord64be (fromIntegral n)
+
+putWord :: Word64 -> Put
+putWord n
+  | n < 0x80 =
+                     putWord8     (fromIntegral n)
+  | n < 0x100 =
+    putWord8 0xCC >> putWord8     (fromIntegral n)
+  | n < 0x10000 =
+    putWord8 0xCD >> putWord16be  (fromIntegral n)
+  | n < 0x100000000 =
+    putWord8 0xCE >> putWord32be  (fromIntegral n)
+  | otherwise =
+    putWord8 0xCF >> putWord64be  n
 
 putFloat :: Float -> Put
 putFloat f = do

@@ -81,22 +81,36 @@ toInt = fromIntegral
 fromInt :: Integral a => Int64 -> a
 fromInt = fromIntegral
 
+toWord :: Integral a => a -> Word64
+toWord = fromIntegral
+
+fromWord :: Integral a => Word64 -> a
+fromWord = fromIntegral
+
 instance MessagePack Int64 where
-  toObject = ObjectInt
+  toObject i
+    | i < 0 = ObjectInt i
+    | otherwise = ObjectWord $ toWord i
   fromObject = \case
-    ObjectInt n -> return n
-    _           -> fail "invalid encoding for integer type"
+    ObjectInt n  -> return n
+    ObjectWord n -> return $ toInt n
+    _            -> fail "invalid encoding for integer type"
+
+instance MessagePack Word64 where
+  toObject = ObjectWord
+  fromObject = \case
+    ObjectWord n -> return n
+    _            -> fail "invalid encoding for integer type"
 
 instance MessagePack Int    where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
 instance MessagePack Int8   where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
 instance MessagePack Int16  where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
 instance MessagePack Int32  where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
 
-instance MessagePack Word   where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
-instance MessagePack Word8  where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
-instance MessagePack Word16 where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
-instance MessagePack Word32 where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
-instance MessagePack Word64 where { toObject = toObject . toInt; fromObject o = fromInt <$> fromObject o }
+instance MessagePack Word   where { toObject = toObject . toWord; fromObject o = fromWord <$> fromObject o }
+instance MessagePack Word8  where { toObject = toObject . toWord; fromObject o = fromWord <$> fromObject o }
+instance MessagePack Word16 where { toObject = toObject . toWord; fromObject o = fromWord <$> fromObject o }
+instance MessagePack Word32 where { toObject = toObject . toWord; fromObject o = fromWord <$> fromObject o }
 
 
 -- Core instances.
@@ -122,6 +136,7 @@ instance MessagePack Float where
   toObject = ObjectFloat
   fromObject = \case
     ObjectInt    n -> return $ fromIntegral n
+    ObjectWord   n -> return $ fromIntegral n
     ObjectFloat  f -> return f
     ObjectDouble d -> return $ realToFrac d
     _              -> fail "invalid encoding for Float"
@@ -130,6 +145,7 @@ instance MessagePack Double where
   toObject = ObjectDouble
   fromObject = \case
     ObjectInt    n -> return $ fromIntegral n
+    ObjectWord   n -> return $ fromIntegral n
     ObjectFloat  f -> return $ realToFrac f
     ObjectDouble d -> return d
     _              -> fail "invalid encoding for Double"

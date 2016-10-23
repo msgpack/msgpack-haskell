@@ -314,13 +314,13 @@ spec = do
 
   describe "show" $ do
     it "Foo" $ do
-      show (toObject Foo1) `shouldBe` "ObjectInt 0"
-      show (toObject $ Foo3 3) `shouldBe` "ObjectArray [ObjectInt 2,ObjectInt 3]"
-      show (toObject $ Foo9 3 5) `shouldBe` "ObjectArray [ObjectInt 8,ObjectArray [ObjectInt 3,ObjectInt 5]]"
-      show (toObject $ Foo10 3 5 7) `shouldBe` "ObjectArray [ObjectInt 9,ObjectArray [ObjectInt 3,ObjectInt 5,ObjectInt 7]]"
+      show (toObject Foo1) `shouldBe` "ObjectWord 0"
+      show (toObject $ Foo3 3) `shouldBe` "ObjectArray [ObjectWord 2,ObjectWord 3]"
+      show (toObject $ Foo9 3 5) `shouldBe` "ObjectArray [ObjectWord 8,ObjectArray [ObjectWord 3,ObjectWord 5]]"
+      show (toObject $ Foo10 3 5 7) `shouldBe` "ObjectArray [ObjectWord 9,ObjectArray [ObjectWord 3,ObjectWord 5,ObjectWord 7]]"
 
     it "Record" $
-      show (toObject $ Record 3 5 7) `shouldBe` "ObjectArray [ObjectInt 3,ObjectInt 5,ObjectInt 7]"
+      show (toObject $ Record 3 5 7) `shouldBe` "ObjectArray [ObjectWord 3,ObjectWord 5,ObjectWord 7]"
 
 voidTest :: Void -> Object
 voidTest = toObject
