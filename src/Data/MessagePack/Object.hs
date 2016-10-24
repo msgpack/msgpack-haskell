@@ -101,7 +101,7 @@ instance Arbitrary Object where
     , ObjectMap    <$> Gen.resize (n `div` 4) arbitrary
     , ObjectExt    <$> arbitrary <*> arbitrary
     ]
-    where negatives = Gen.choose (-0X7FFFFFFFFFFFFFFF, -1)
+    where negatives = Gen.choose (minBound, -1)
 
 instance Arbitrary S.ByteString where
   arbitrary = S.pack <$> arbitrary
