@@ -106,8 +106,9 @@ instance MessagePack Object where
   fromObject = return
 
 instance MessagePack () where
-  toObject _ = ObjectArray []
+  toObject _ = ObjectNil
   fromObject = \case
+    ObjectNil      -> return ()
     ObjectArray [] -> return ()
     _              -> fail "invalid encoding for ()"
 
