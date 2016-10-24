@@ -11,6 +11,7 @@ import qualified Test.QuickCheck.Gen        as Gen
 
 import           Control.Applicative        ((<$>), (<*>))
 import qualified Data.ByteString.Char8      as S
+import qualified Data.ByteString.Lazy       as L8
 import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.Hashable              (Hashable)
 import qualified Data.HashMap.Strict        as HashMap
@@ -311,6 +312,10 @@ spec = do
       property $ \(a :: Foo) -> a `shouldBe` mid a
     it "arbitrary message" $
       property $ \(a :: Object) -> a `shouldBe` mid a
+
+  describe "encoding validation" $ do
+    it "word64 2^64-1" $
+      pack (0xffffffffffffffff :: Word64) `shouldBe` L8.pack [0xCF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 
   describe "show" $ do
     it "Foo" $ do
