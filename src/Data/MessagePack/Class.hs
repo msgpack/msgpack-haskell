@@ -36,6 +36,9 @@ import qualified Data.IntMap.Strict      as IntMap
 import qualified Data.Map                as Map
 import qualified Data.Text               as T
 import qualified Data.Text.Lazy          as LT
+import qualified Data.Vector             as V
+import qualified Data.Vector.Storable    as VS
+import qualified Data.Vector.Unboxed     as VU
 import           Data.Word               (Word, Word16, Word32, Word64, Word8)
 import           GHC.Generics
 
@@ -188,6 +191,23 @@ instance MessagePack a => MessagePack [a] where
     ObjectArray xs -> mapM fromObject xs
     _              -> fail "invalid encoding for list"
 
+instance MessagePack a => MessagePack (V.Vector a) where
+  toObject = ObjectArray . map toObject . V.toList
+  fromObject = \case
+    ObjectArray o -> V.fromList <$> mapM fromObject o
+    _             -> fail "invalid encoding for Vector"
+
+instance (MessagePack a, VU.Unbox a) => MessagePack (VU.Vector a) where
+  toObject = ObjectArray . map toObject . VU.toList
+  fromObject = \case
+    ObjectArray o -> VU.fromList <$> mapM fromObject o
+    _             -> fail "invalid encoding for Unboxed Vector"
+
+instance (MessagePack a, VS.Storable a) => MessagePack (VS.Vector a) where
+  toObject = ObjectArray . map toObject . VS.toList
+  fromObject = \case
+    ObjectArray o -> VS.fromList <$> mapM fromObject o
+    _             -> fail "invalid encoding for Storable Vector"
 
 -- Instances for map-like data structures.
 

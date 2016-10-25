@@ -45,6 +45,7 @@ library
     , binary >= 0.7.0.0
     , bytestring
     , containers
+    , vector
     , data-binary-ieee754
     , deepseq
     , hashable
