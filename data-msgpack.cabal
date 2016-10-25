@@ -45,12 +45,12 @@ library
     , binary >= 0.7.0.0
     , bytestring
     , containers
-    , vector
     , data-binary-ieee754
     , deepseq
     , hashable
     , text
     , unordered-containers
+    , vector
     , void
 
 executable msgpack-parser
@@ -80,12 +80,12 @@ test-suite testsuite
     , QuickCheck
     , bytestring
     , containers
-    , vector
     , data-msgpack
     , hashable
     , hspec
     , text
     , unordered-containers
+    , vector
     , void
 
 benchmark benchmark
