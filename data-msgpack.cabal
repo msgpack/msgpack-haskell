@@ -80,6 +80,7 @@ test-suite testsuite
     , QuickCheck
     , bytestring
     , containers
+    , vector
     , data-msgpack
     , hashable
     , hspec

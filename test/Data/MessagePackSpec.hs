@@ -20,6 +20,9 @@ import qualified Data.IntMap                as IntMap
 import qualified Data.Map                   as Map
 import qualified Data.Maybe                 as Maybe
 import qualified Data.Text.Lazy             as LT
+import qualified Data.Vector                as V
+import qualified Data.Vector.Storable       as VS
+import qualified Data.Vector.Unboxed        as VU
 import           Data.Void                  (Void)
 import           Data.Word                  (Word, Word16, Word32, Word64,
                                              Word8)
@@ -129,6 +132,9 @@ spec = do
       checkMessage (unpack (pack ()) :: R.Result S.ByteString)
       checkMessage (unpack (pack ()) :: R.Result LT.Text)
       checkMessage (unpack (pack "") :: R.Result [String])
+      checkMessage (unpack (pack ()) :: R.Result (V.Vector Int))
+      checkMessage (unpack (pack ()) :: R.Result (VS.Vector Int))
+      checkMessage (unpack (pack ()) :: R.Result (VU.Vector Int))
       checkMessage (unpack (pack "") :: R.Result (Assoc [(Int, Int)]))
       checkMessage (unpack (pack ()) :: R.Result (Int, Int))
       checkMessage (unpack (pack ()) :: R.Result (Int, Int, Int))
@@ -178,6 +184,18 @@ spec = do
 
     it "list encodings" $ do
       let rt n = let a = replicate n "hello" in a `shouldBe` mid a
+      mapM_ rt sizes
+
+    it "vector encodings" $ do
+      let rt n = let a = V.fromList [0..n] in a `shouldBe` mid a
+      mapM_ rt sizes
+
+    it "storable-vector encodings" $ do
+      let rt n = let a = VS.fromList [0..n] in a `shouldBe` mid a
+      mapM_ rt sizes
+
+    it "unboxed-vector encodings" $ do
+      let rt n = let a = VU.fromList [0..n] in a `shouldBe` mid a
       mapM_ rt sizes
 
     it "string encodings" $ do
@@ -241,6 +259,18 @@ spec = do
       property $ \(a :: (Maybe Int)) -> a `shouldBe` mid a
     it "[int]" $
       property $ \(a :: [Int]) -> a `shouldBe` mid a
+    it "vector int" $
+      property $ \(a :: [Int]) ->
+        let v = V.fromList a
+         in v `shouldBe` mid v
+    it "storable-vector int" $
+      property $ \(a :: [Int]) ->
+        let v = VS.fromList a
+         in v `shouldBe` mid v
+    it "unboxed-vector int" $
+      property $ \(a :: [Int]) ->
+        let v = VU.fromList a
+         in v `shouldBe` mid v
     it "[string]" $
       property $ \(a :: [String]) -> a `shouldBe` mid a
     it "(int, int)" $
