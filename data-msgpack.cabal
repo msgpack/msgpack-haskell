@@ -42,7 +42,7 @@ library
   build-depends:
       base < 5
     , QuickCheck
-    , binary
+    , binary >= 0.7.0.0
     , bytestring
     , containers
     , data-binary-ieee754
