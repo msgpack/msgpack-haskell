@@ -78,6 +78,14 @@ instance (Hashable k, Ord k, Eq k, Arbitrary k, Arbitrary v)
     => Arbitrary (HashMap.HashMap k v) where
   arbitrary = HashMap.fromList . Map.assocs <$> arbitrary
 
+instance Arbitrary a => Arbitrary (V.Vector a) where
+  arbitrary = V.fromList <$> arbitrary
+
+instance (Arbitrary a, VS.Storable a) => Arbitrary (VS.Vector a) where
+  arbitrary = VS.fromList <$> arbitrary
+
+instance (Arbitrary a, VU.Unbox a) => Arbitrary (VU.Vector a) where
+  arbitrary = VU.fromList <$> arbitrary
 
 mid :: MessagePack a => a -> a
 mid = Maybe.fromJust . unpack . pack
@@ -260,17 +268,11 @@ spec = do
     it "[int]" $
       property $ \(a :: [Int]) -> a `shouldBe` mid a
     it "vector int" $
-      property $ \(a :: [Int]) ->
-        let v = V.fromList a
-         in v `shouldBe` mid v
+      property $ \(a :: V.Vector Int) -> a `shouldBe` mid a
     it "storable-vector int" $
-      property $ \(a :: [Int]) ->
-        let v = VS.fromList a
-         in v `shouldBe` mid v
+      property $ \(a :: VS.Vector Int) -> a `shouldBe` mid a
     it "unboxed-vector int" $
-      property $ \(a :: [Int]) ->
-        let v = VU.fromList a
-         in v `shouldBe` mid v
+      property $ \(a :: VU.Vector Int) -> a `shouldBe` mid a
     it "[string]" $
       property $ \(a :: [String]) -> a `shouldBe` mid a
     it "(int, int)" $
