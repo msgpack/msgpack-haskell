@@ -349,6 +349,9 @@ spec = do
     it "word64 2^64-1" $
       pack (0xffffffffffffffff :: Word64) `shouldBe` L8.pack [0xCF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 
+    it "decodes empty array as ()" $
+      unpack (pack ([] :: [Int])) `shouldBe` Just ()
+
   describe "show" $ do
     it "Foo" $ do
       show (toObject Foo1) `shouldBe` "ObjectWord 0"
