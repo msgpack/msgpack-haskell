@@ -18,6 +18,12 @@ description:
   since the original author is unreachable. This fork incorporates a number of
   bugfixes and is actively being developed.
 
+extra-source-files:
+  bench/Data/MessagePack/*.hs
+  bench/Data/*.hs
+  test/Data/MessagePack/*.hs
+  test/Data/*.hs
+
 source-repository head
   type:             git
   location:         https://github.com/TokTok/hs-msgpack.git
