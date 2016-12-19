@@ -37,6 +37,7 @@ library
       Data.MessagePack.Get
       Data.MessagePack.Instances
       Data.MessagePack.Object
+      Data.MessagePack.Option
       Data.MessagePack.Put
       Data.MessagePack.Result
   build-depends:
@@ -73,6 +74,7 @@ test-suite testsuite
   hs-source-dirs: test
   main-is: testsuite.hs
   other-modules:
+      Data.MessagePack.OptionSpec
       Data.MessagePack.ResultSpec
       Data.MessagePackSpec
   ghc-options:

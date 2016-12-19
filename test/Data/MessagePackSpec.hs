@@ -312,6 +312,8 @@ spec = do
       property $ \(a :: IntMap.IntMap Int) -> a `shouldBe` mid a
     it "HashMap String Int" $
       property $ \(a :: HashMap.HashMap String Int) -> a `shouldBe` mid a
+    it "Option Int" $
+      property $ \(a :: Option Int) -> a `shouldBe` mid a
     it "maybe int" $
       property $ \(a :: Maybe Int) -> a `shouldBe` mid a
     it "maybe nil" $

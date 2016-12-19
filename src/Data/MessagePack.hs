@@ -34,6 +34,7 @@ import           Data.MessagePack.Generic   ()
 import           Data.MessagePack.Get       as X
 import           Data.MessagePack.Instances as X
 import           Data.MessagePack.Object    as X
+import           Data.MessagePack.Option    as X
 import           Data.MessagePack.Put       as X
 
 
