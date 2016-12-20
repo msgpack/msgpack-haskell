@@ -102,4 +102,3 @@ instance Arbitrary Object where
     , ObjectExt    <$> arbitrary <*> (S.pack <$> arbitrary)
     ]
     where negatives = Gen.choose (minBound, -1)
-

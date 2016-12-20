@@ -31,15 +31,16 @@ library
       -fno-warn-unused-imports
   exposed-modules:
       Data.MessagePack
+      Data.MessagePack.Option
+      Data.MessagePack.Result
+  other-modules:
       Data.MessagePack.Assoc
       Data.MessagePack.Class
       Data.MessagePack.Generic
       Data.MessagePack.Get
       Data.MessagePack.Instances
       Data.MessagePack.Object
-      Data.MessagePack.Option
       Data.MessagePack.Put
-      Data.MessagePack.Result
   build-depends:
       base < 5
     , QuickCheck

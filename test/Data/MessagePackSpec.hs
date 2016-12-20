@@ -38,7 +38,17 @@ data Unit = Unit
 instance MessagePack Unit
 
 
-data Record = Record Int Int Int
+data TyConArgs = TyConArgs Int Int Int
+  deriving (Eq, Show, Generic)
+
+instance MessagePack TyConArgs
+
+
+data Record = Record
+  { recordField1 :: Int
+  , recordField2 :: Double
+  , recordField3 :: String
+  }
   deriving (Eq, Show, Generic)
 
 instance MessagePack Record
@@ -137,9 +147,12 @@ spec = do
     it "should contain the same start of the failure message for all types" $ do
       checkMessage (unpack (pack $ ObjectInt (-1)) :: R.Result Foo)
       checkMessage (unpack (pack [ObjectInt (-1), ObjectInt 0]) :: R.Result Foo)
+      checkMessage (unpack (pack $ ObjectArray []) :: R.Result TyConArgs)
+      checkMessage (unpack (pack [0 :: Int, 1, 2, 3]) :: R.Result TyConArgs)
       checkMessage (unpack (pack $ ObjectArray []) :: R.Result Record)
       checkMessage (unpack (pack [0 :: Int, 1, 2, 3]) :: R.Result Record)
       checkMessage (unpack (pack "") :: R.Result Unit)
+      checkMessage (unpack (pack "") :: R.Result TyConArgs)
       checkMessage (unpack (pack "") :: R.Result Record)
       checkMessage (unpack (pack "") :: R.Result ())
       checkMessage (unpack (pack ()) :: R.Result Int)
@@ -373,8 +386,11 @@ spec = do
       show (toObject $ Foo10 3 5 7) `shouldBe` "ObjectArray [ObjectWord 9,ObjectArray [ObjectWord 3,ObjectWord 5,ObjectWord 7]]"
       show (toObject $ Foo10 (-3) (-5) 7) `shouldBe` "ObjectArray [ObjectWord 9,ObjectArray [ObjectInt (-3),ObjectInt (-5),ObjectWord 7]]"
 
+    it "TyConArgs" $
+      show (toObject $ TyConArgs 3 5 7) `shouldBe` "ObjectArray [ObjectWord 3,ObjectWord 5,ObjectWord 7]"
+
     it "Record" $
-      show (toObject $ Record 3 5 7) `shouldBe` "ObjectArray [ObjectWord 3,ObjectWord 5,ObjectWord 7]"
+      show (toObject $ Record 3 5 "7") `shouldBe` "ObjectArray [ObjectWord 3,ObjectDouble 5.0,ObjectStr \"7\"]"
 
 voidTest :: Void -> Object
 voidTest = toObject
