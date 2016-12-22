@@ -1,0 +1,5 @@
+inherits: haskell
+
+package:
+  name: data-msgpack
+  version: 0.0.8

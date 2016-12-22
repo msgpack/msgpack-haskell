@@ -49,9 +49,9 @@ spec = do
 
     it "satisfies composition" $
       property $ \x y w -> do
-        composition (O.None          ) (O.None            ) w
-        composition (O.None          ) (pure (y *)        ) w
-        composition (pure (x *)      ) (O.None            ) w
+        composition  O.None             O.None              w
+        composition  O.None            (pure (y *)        ) w
+        composition (pure (x *)      )  O.None              w
         composition (pure (x *)      ) (pure (y *)        ) w
 
     it "satisfies homomorphism" $
@@ -59,7 +59,7 @@ spec = do
 
     it "satisfies interchange" $
       property $ \x y -> do
-        interchange (O.None          ) y
+        interchange  O.None            y
         interchange (pure (x *)      ) y
 
   describe "Alternative" $ do
