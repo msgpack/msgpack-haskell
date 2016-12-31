@@ -21,3 +21,10 @@ after_script:
   - TESTSUITE=data-msgpack-0.0.8
   - cp dist/hpc/mix/testsuite/*.mix dist/hpc/mix/$TESTSUITE/
   - hpc-coveralls $TESTSUITE
+
+branches:
+  only:
+  - master
+
+git:
+  depth: 1
