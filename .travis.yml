@@ -13,7 +13,7 @@ addons:
 after_script:
 - rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
 - rm -f $HOME/.ghc && ln -s $HOME/.ghc-tools $HOME/.ghc
-- hpc-coveralls data-msgpack-0.0.8
+- hpc-coveralls data-msgpack-0.0.9
 branches:
   only:
   - master
@@ -26,12 +26,11 @@ cache:
 env: CABALVER=1.18 GHCVER=7.8.4
 git:
   depth: 1
-haskell:
-  cabal: 1.18
-  ghc: 7.8.4
-  packages: []
 install:
-- export PATH=$HOME/.cabal/bin:/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:/opt/alex/3.1.7/bin:/opt/happy/1.19.5/bin:$PATH
+- export PATH=$HOME/.cabal/bin:$PATH
+- export PATH=$HOME/.cabal-build/bin:$PATH
+- export PATH=$HOME/.cabal-tools/bin:$PATH
+- export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:/opt/alex/3.1.7/bin:/opt/happy/1.19.5/bin:$PATH
 - rm -rf $HOME/.cabal $HOME/.ghc
 - mkdir -p $HOME/.cabal-tools $HOME/.ghc-tools
 - rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
@@ -42,9 +41,6 @@ install:
 - rm -f $HOME/.ghc && ln -s $HOME/.ghc-build $HOME/.ghc
 - cabal update
 language: generic
-package:
-  name: data-msgpack
-  version: 0.0.8
 script:
 - rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
 - rm -f $HOME/.ghc && ln -s $HOME/.ghc-tools $HOME/.ghc
