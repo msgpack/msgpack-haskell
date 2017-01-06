@@ -12,4 +12,4 @@ test_script:
 
 branches:
   only:
-  - appveyor
+  - master
