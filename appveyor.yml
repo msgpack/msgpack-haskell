@@ -1,0 +1,15 @@
+install:
+- choco install ghc
+- refreshenv
+
+build_script:
+- cabal update
+- cabal install happy
+- cabal install --enable-tests --enable-benchmarks --only-dependencies
+
+test_script:
+- cabal test
+
+branches:
+  only:
+  - appveyor
