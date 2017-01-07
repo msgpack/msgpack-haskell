@@ -24,8 +24,6 @@ cache:
   - $HOME/.ghc-build
   - $HOME/.ghc-tools
 env: CABALVER=1.18 GHCVER=7.8.4
-git:
-  depth: 1
 install:
 - export PATH=$HOME/.cabal/bin:$PATH
 - export PATH=$HOME/.cabal-build/bin:$PATH
