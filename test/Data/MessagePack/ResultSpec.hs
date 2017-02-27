@@ -5,8 +5,9 @@ module Data.MessagePack.ResultSpec where
 import           Test.Hspec
 import           Test.QuickCheck
 
-import           Control.Applicative     (empty, pure, (<$>), (<*>), (<|>))
-import qualified Data.MessagePack.Result as R
+import           Control.Applicative           (empty, pure, (<$>), (<*>),
+                                                (<|>))
+import qualified Data.MessagePack.Types.Result as R
 
 
 newtype F = F (Int -> R.Result Int)

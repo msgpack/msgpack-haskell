@@ -1,4 +1,5 @@
 {-# LANGUAGE Safe #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack
@@ -23,19 +24,15 @@ module Data.MessagePack (
   , module X
   ) where
 
-import           Control.Applicative        (Applicative)
-import           Control.Monad              ((>=>))
-import           Data.Binary                (decodeOrFail, encode)
-import qualified Data.ByteString.Lazy       as L
+import           Control.Applicative    (Applicative, (<|>))
+import           Control.Monad          ((>=>))
+import           Data.Binary            (Binary (..), decodeOrFail, encode)
+import qualified Data.ByteString.Lazy   as L
+import           Prelude                hiding (putStr)
 
-import           Data.MessagePack.Assoc     as X
-import           Data.MessagePack.Class     as X
-import           Data.MessagePack.Generic   ()
-import           Data.MessagePack.Get       as X
-import           Data.MessagePack.Instances as X
-import           Data.MessagePack.Object    as X
-import           Data.MessagePack.Option    as X
-import           Data.MessagePack.Put       as X
+import           Data.MessagePack.Get   as X
+import           Data.MessagePack.Put   as X
+import           Data.MessagePack.Types as X
 
 
 -- | Pack a Haskell value to MessagePack binary.
@@ -50,3 +47,11 @@ unpack = eitherToM . decodeOrFail >=> fromObject
   where
     eitherToM (Left  (_, _, msg)) = fail msg
     eitherToM (Right (_, _, res)) = return res
+
+
+instance Binary Object where
+  get = getObject
+  {-# INLINE get #-}
+
+  put = putObject
+  {-# INLINE put #-}

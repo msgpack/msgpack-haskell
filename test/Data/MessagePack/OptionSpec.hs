@@ -5,9 +5,10 @@ module Data.MessagePack.OptionSpec where
 import           Test.Hspec
 import           Test.QuickCheck
 
-import           Control.Applicative     (empty, pure, (<$>), (<*>), (<|>))
-import           Control.Monad           (mplus, mzero)
-import qualified Data.MessagePack.Option as O
+import           Control.Applicative           (empty, pure, (<$>), (<*>),
+                                                (<|>))
+import           Control.Monad                 (mplus, mzero)
+import qualified Data.MessagePack.Types.Option as O
 
 
 newtype F = F (Int -> O.Option Int)

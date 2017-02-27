@@ -1,5 +1,5 @@
 name:                 data-msgpack
-version:              0.0.9
+version:              0.1.0
 synopsis:             A Haskell implementation of MessagePack
 homepage:             http://msgpack.org/
 license:              BSD3
@@ -31,29 +31,16 @@ library
       -fno-warn-unused-imports
   exposed-modules:
       Data.MessagePack
-      Data.MessagePack.Option
-      Data.MessagePack.Result
   other-modules:
-      Data.MessagePack.Assoc
-      Data.MessagePack.Class
-      Data.MessagePack.Generic
       Data.MessagePack.Get
-      Data.MessagePack.Instances
-      Data.MessagePack.Object
       Data.MessagePack.Put
   build-depends:
       base < 5
-    , QuickCheck
     , binary >= 0.7.0.0
     , bytestring
-    , containers
     , data-binary-ieee754
-    , deepseq
-    , hashable
+    , data-msgpack-types >= 0.1.0
     , text
-    , unordered-containers
-    , vector
-    , void
 
 executable msgpack-parser
   default-language: Haskell2010
@@ -87,6 +74,7 @@ test-suite testsuite
     , bytestring
     , containers
     , data-msgpack
+    , data-msgpack-types
     , hashable
     , hspec
     , text

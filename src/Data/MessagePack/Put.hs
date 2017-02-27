@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase  #-}
 {-# LANGUAGE Trustworthy #-}
 --------------------------------------------------------------------
 -- |
@@ -14,7 +15,8 @@
 --------------------------------------------------------------------
 
 module Data.MessagePack.Put
-  ( putNil
+  ( putObject
+  , putNil
   , putBool
   , putInt
   , putWord
@@ -27,18 +29,36 @@ module Data.MessagePack.Put
   , putExt
   ) where
 
-import           Data.Binary         (Put)
-import           Data.Binary.IEEE754 (putFloat32be, putFloat64be)
-import           Data.Binary.Put     (putByteString, putWord16be, putWord32be,
-                                      putWord64be, putWord8, putWord8)
-import           Data.Bits           ((.|.))
-import qualified Data.ByteString     as S
-import           Data.Int            (Int64)
-import qualified Data.Text           as T
-import qualified Data.Text.Encoding  as T
-import           Data.Word           (Word64, Word8)
+import           Data.Binary            (Put)
+import           Data.Binary.IEEE754    (putFloat32be, putFloat64be)
+import           Data.Binary.Put        (putByteString, putWord16be,
+                                         putWord32be, putWord64be, putWord8,
+                                         putWord8)
+import           Data.Bits              ((.|.))
+import qualified Data.ByteString        as S
+import           Data.Int               (Int64)
+import qualified Data.Text              as T
+import qualified Data.Text.Encoding     as T
+import           Data.Word              (Word64, Word8)
 
-import           Prelude             hiding (putStr)
+import           Prelude                hiding (putStr)
+
+import           Data.MessagePack.Types (Object (..))
+
+
+putObject :: Object -> Put
+putObject = \case
+  ObjectNil      -> putNil
+  ObjectBool   b -> putBool b
+  ObjectInt    n -> putInt n
+  ObjectWord   n -> putWord n
+  ObjectFloat  f -> putFloat f
+  ObjectDouble d -> putDouble d
+  ObjectStr    t -> putStr t
+  ObjectBin    b -> putBin b
+  ObjectArray  a -> putArray putObject a
+  ObjectMap    m -> putMap putObject putObject m
+  ObjectExt  b r -> putExt b r
 
 putNil :: Put
 putNil = putWord8 0xC0
