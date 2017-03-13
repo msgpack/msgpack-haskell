@@ -39,7 +39,7 @@ library
     , binary >= 0.7.0.0
     , bytestring
     , data-binary-ieee754
-    , data-msgpack-types >= 0.1.0
+    , data-msgpack-types >= 0.0.1 && < 0.1.0
     , text
 
 executable msgpack-parser
