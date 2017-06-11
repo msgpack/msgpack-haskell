@@ -48,7 +48,7 @@ script:
 - chmod +x $HOME/.cabal/bin/stylish-haskell-lhs
 - hlint .
 - stylish-haskell-lhs -i .
-- git diff
+- git diff --exit-code
 - rm -f $HOME/.cabal && ln -s $HOME/.cabal-build $HOME/.cabal
 - rm -f $HOME/.ghc && ln -s $HOME/.ghc-build $HOME/.ghc
 - cabal install --enable-tests --enable-benchmarks --only-dependencies ./
