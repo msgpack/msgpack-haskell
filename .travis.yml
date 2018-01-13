@@ -13,7 +13,7 @@ addons:
 after_script:
 - rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
 - rm -f $HOME/.ghc && ln -s $HOME/.ghc-tools $HOME/.ghc
-- hpc-coveralls data-msgpack-0.0.9
+- hpc-coveralls data-msgpack-0.0.11
 branches:
   only:
   - master
