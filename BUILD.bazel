@@ -1,4 +1,4 @@
-load("@io_tweag_rules_haskell//haskell:haskell.bzl", "haskell_library")
+load("@io_tweag_rules_haskell//haskell:haskell.bzl", "haskell_library", "haskell_test")
 
 haskell_library(
     name = "hs-msgpack",
@@ -14,5 +14,27 @@ haskell_library(
         "//hs-msgpack-types",
         "@haskell_data_binary_ieee754//:data-binary-ieee754",
         "@haskell_text//:text",
+    ],
+)
+
+haskell_test(
+    name = "test",
+    srcs = glob(["test/**/*.hs"]),
+    main_file = "test/testsuite.hs",
+    prebuilt_dependencies = [
+        "base",
+        "bytestring",
+        "containers",
+    ],
+    src_strip_prefix = "test",
+    deps = [
+        ":hs-msgpack",
+        "//hs-msgpack-types",
+        "@haskell_QuickCheck//:QuickCheck",
+        "@haskell_hashable//:hashable",
+        "@haskell_hspec//:hspec",
+        "@haskell_text//:text",
+        "@haskell_unordered_containers//:unordered-containers",
+        "@haskell_vector//:vector",
     ],
 )
