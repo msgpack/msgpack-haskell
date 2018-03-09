@@ -24,7 +24,7 @@ module Data.MessagePack (
   , module X
   ) where
 
-import           Control.Applicative    (Applicative, (<|>))
+import           Control.Applicative    (Applicative)
 import           Control.Monad          ((>=>))
 import           Data.Binary            (Binary (..), decodeOrFail, encode)
 import qualified Data.ByteString.Lazy   as L
