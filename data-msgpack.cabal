@@ -62,8 +62,6 @@ test-suite testsuite
   hs-source-dirs: test
   main-is: testsuite.hs
   other-modules:
-      Data.MessagePack.OptionSpec
-      Data.MessagePack.ResultSpec
       Data.MessagePackSpec
   ghc-options:
       -Wall
