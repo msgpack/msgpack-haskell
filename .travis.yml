@@ -1,58 +1,16 @@
-# DO NOT EDIT: This file was generated using the following command:
-# github-tools/tools/expand-yaml hs-msgpack/.leaf.yml hs-msgpack/.travis.yml
----
-addons:
-  apt:
-    packages:
-    - alex-3.1.7
-    - happy-1.19.5
-    - cabal-install-1.18
-    - ghc-7.8.4
-    sources:
-    - hvr-ghc
-after_script:
-- rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
-- rm -f $HOME/.ghc && ln -s $HOME/.ghc-tools $HOME/.ghc
-- hpc-coveralls data-msgpack-0.0.11
-branches:
-  only:
-  - master
+language: generic
+
 cache:
   directories:
-  - $HOME/.cabal-build
-  - $HOME/.cabal-tools
-  - $HOME/.ghc-build
-  - $HOME/.ghc-tools
-env: CABALVER=1.18 GHCVER=7.8.4
-install:
-- export PATH=$HOME/.cabal/bin:$PATH
-- export PATH=$HOME/.cabal-build/bin:$PATH
-- export PATH=$HOME/.cabal-tools/bin:$PATH
-- export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:/opt/alex/3.1.7/bin:/opt/happy/1.19.5/bin:$PATH
-- rm -rf $HOME/.cabal $HOME/.ghc
-- mkdir -p $HOME/.cabal-tools $HOME/.ghc-tools
-- rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
-- rm -f $HOME/.ghc && ln -s $HOME/.ghc-tools $HOME/.ghc
-- cabal update
-- mkdir -p $HOME/.cabal-build $HOME/.ghc-build
-- rm -f $HOME/.cabal && ln -s $HOME/.cabal-build $HOME/.cabal
-- rm -f $HOME/.ghc && ln -s $HOME/.ghc-build $HOME/.ghc
-- cabal update
-language: generic
+  - $HOME/.stack
+
+before_install:
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://github.com/TokTok/hs-tools/releases/download/v0.1/hs-tools-v0.1.tar.gz | tar xz -C $HOME
+
 script:
-- rm -f $HOME/.cabal && ln -s $HOME/.cabal-tools $HOME/.cabal
-- rm -f $HOME/.ghc && ln -s $HOME/.ghc-tools $HOME/.ghc
-- cabal install hpc-coveralls stylish-haskell hlint aeson-0.9.0.1
-- curl https://raw.githubusercontent.com/TokTok/toktok-stack/master/tools/stylish-haskell-lhs
-  -o $HOME/.cabal/bin/stylish-haskell-lhs
-- chmod +x $HOME/.cabal/bin/stylish-haskell-lhs
 - hlint .
 - stylish-haskell-lhs -i .
 - git diff --exit-code
-- rm -f $HOME/.cabal && ln -s $HOME/.cabal-build $HOME/.cabal
-- rm -f $HOME/.ghc && ln -s $HOME/.ghc-build $HOME/.ghc
-- cabal install --enable-tests --enable-benchmarks --only-dependencies ./
-- if [ -n "" ]; then cabal install ; fi
-- cabal configure --enable-tests --enable-benchmarks --enable-library-coverage
-- cabal test
-- cabal check
+- travis_wait stack --no-terminal test --coverage
+- shc data-msgpack testsuite

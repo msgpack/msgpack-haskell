@@ -28,7 +28,6 @@ import           Control.Applicative    (Applicative)
 import           Control.Monad          ((>=>))
 import           Data.Binary            (Binary (..), decodeOrFail, encode)
 import qualified Data.ByteString.Lazy   as L
-import           Prelude                hiding (putStr)
 
 import           Data.MessagePack.Get   as X
 import           Data.MessagePack.Put   as X
