@@ -8,13 +8,10 @@ haskell_binary(
         "-Werror",
         "-Wno-unused-imports",
     ],
-    main_file = "msgpack-parser.hs",
-    prebuilt_dependencies = [
-        "base",
-        "bytestring",
-    ],
     deps = [
         "//hs-msgpack",
+        "//third_party/haskell:base",
+        "//third_party/haskell:bytestring",
         "@haskell_groom//:groom",
     ],
 )
