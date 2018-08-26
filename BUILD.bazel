@@ -1,3 +1,4 @@
+load("@ai_formation_hazel//:hazel.bzl", "hazel_library")
 load("@io_tweag_rules_haskell//haskell:haskell.bzl", "haskell_library", "haskell_test")
 load("//tools/project:build_defs.bzl", "project")
 
@@ -18,11 +19,11 @@ haskell_library(
     visibility = ["//visibility:public"],
     deps = [
         "//hs-msgpack-types",
-        "//third_party/haskell:base",
-        "//third_party/haskell:binary",
-        "//third_party/haskell:bytestring",
-        "//third_party/haskell:text",
-        "@haskell_data_binary_ieee754//:data-binary-ieee754",
+        hazel_library("base"),
+        hazel_library("binary"),
+        hazel_library("bytestring"),
+        hazel_library("data-binary-ieee754"),
+        hazel_library("text"),
     ],
 )
 
@@ -38,14 +39,14 @@ haskell_test(
     deps = [
         ":hs-msgpack",
         "//hs-msgpack-types",
-        "//third_party/haskell:base",
-        "//third_party/haskell:bytestring",
-        "//third_party/haskell:containers",
-        "//third_party/haskell:text",
-        "@haskell_QuickCheck//:QuickCheck",
-        "@haskell_hashable//:hashable",
-        "@haskell_hspec//:hspec",
-        "@haskell_unordered_containers//:unordered-containers",
-        "@haskell_vector//:vector",
+        hazel_library("QuickCheck"),
+        hazel_library("base"),
+        hazel_library("bytestring"),
+        hazel_library("containers"),
+        hazel_library("hashable"),
+        hazel_library("hspec"),
+        hazel_library("text"),
+        hazel_library("unordered-containers"),
+        hazel_library("vector"),
     ],
 )
