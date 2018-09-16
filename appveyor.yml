@@ -1,16 +1,16 @@
+---
 cache:
-- '%APPDATA%\cabal'
-- '%APPDATA%\ghc'
+  - '%APPDATA%\cabal'
+  - '%APPDATA%\ghc'
 
 install:
-- choco install ghc --version 8.2.2
-- refreshenv
-- set PATH=%PATH%;C:\ProgramData\chocolatey\lib\ghc\tools\ghc-8.2.2\bin
+  - choco install ghc --version 8.2.2
+  - refreshenv
 
 build_script:
-- cabal update
-- cabal install happy
-- cabal install --enable-tests --enable-benchmarks --disable-documentation --only-dependencies
+  - cabal update
+  - cabal install happy
+  - cabal install --enable-tests --enable-benchmarks --disable-documentation --only-dependencies
 
 test_script:
-- cabal test
+  - cabal test
