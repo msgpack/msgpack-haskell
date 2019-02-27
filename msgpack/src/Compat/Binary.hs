@@ -7,7 +7,7 @@ module Compat.Binary
     ( Binary(put, get)
 
     , runPut', Bin.runPut, Bin.PutM, Put
-    , runGet', Bin.runGet, Get
+    , runGet', runGet, Get
 
     , Bin.getWord64be, Bin.putWord64be
     , Bin.getWord32be, Bin.putWord32be
@@ -40,15 +40,21 @@ import           GHC.ST               (ST, runST)
 
 runGet' :: BS.ByteString -> Get a -> Either String a
 runGet' bs0 g = case Bin.pushEndOfInput (Bin.runGetIncremental g `Bin.pushChunk` bs0) of
-                  Bin.Done bs _ x
+                  Bin.Done bs ofs x
                     | BS.null bs -> Right x
-                    | otherwise -> Left "unexpected trailing data"
+                    | otherwise -> Left ("unexpected trailing data (ofs="++show ofs++")")
                   Bin.Partial _ -> Left "truncated data"
-                  Bin.Fail _ _ msg -> Left msg
+                  Bin.Fail _ ofs e -> Left (e ++ " (ofs=" ++ show ofs ++ ")")
 
 runPut' :: Put -> BS.ByteString
 runPut' = BL.toStrict . Bin.runPut
 
+runGet :: BL.ByteString -> Get a -> Either String a
+runGet bs0 g = case Bin.runGetOrFail g bs0 of
+                 Left (_,ofs,e) -> Left (e ++ " (ofs=" ++ show ofs ++ ")")
+                 Right (bs,ofs,x)
+                   | BL.null bs -> Right x
+                   | otherwise -> Left ("unexpected trailing data (ofs="++show ofs++")")
 
 -- NB: once we drop support for binary < 0.8.1 we can drop the ops below
 

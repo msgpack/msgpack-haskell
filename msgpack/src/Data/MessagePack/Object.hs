@@ -107,6 +107,7 @@ getObject =
   <|> ObjectArray  <$> getArray getObject
   <|> ObjectMap    <$> getMap getObject getObject
   <|> uncurry ObjectExt <$> getExt
+  <|> fail "invalid MessagePack object"
 
 putObject :: Object -> Put
 putObject = \case
