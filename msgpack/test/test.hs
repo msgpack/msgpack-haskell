@@ -45,6 +45,8 @@ tests =
       \(a :: S.ByteString) -> a == mid a
     , testProperty "lazy-bytestring" $
       \(a :: L.ByteString) -> a == mid a
+    , testProperty "maybe int" $
+      \(a :: (Maybe Int)) -> a == mid a
     , testProperty "[int]" $
       \(a :: [Int]) -> a == mid a
     , testProperty "[string]" $
