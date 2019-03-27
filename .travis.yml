@@ -9,23 +9,29 @@ cache:
    - $HOME/.cabal/store
 
 cabal: 2.4
-ghc:
-  - "8.6.4"
-  - "8.4.4"
-  - "8.2.2"
-  - "8.0.2"
-  - "7.10.3"
-  - "7.8.4"
-#  - "7.6.3"
-#  - "7.4.2"
-#  - "7.0.4"
+
+matrix:
+  include:
+    - ghc: "8.6.4"
+    - ghc: "8.4.4"
+    - ghc: "8.2.2"
+    - ghc: "8.0.2"
+    - ghc: "7.10.3"
+    - ghc: "7.8.4"
+
+    # configuration for testing with lower bounds
+    - ghc: "7.8.4"
+      env: 'PROJCONF=floor-ghc-7.8.4'
 
 install:
  - cabal --version
  - ghc --version
 
 script:
+ - '[ -z "$PROJCONF" ] || cp -v "cabal.project.$PROJCONF" cabal.project.local'
+
  - cabal v2-update
  - cabal v2-build all
+ - cabal v2-test all
 #- cabal check
  - cabal v2-sdist all

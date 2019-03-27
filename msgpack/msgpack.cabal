@@ -1,24 +1,27 @@
+cabal-version:      1.12
 name:               msgpack
 version:            1.0.0
+
 synopsis:           A Haskell implementation of MessagePack
 description:        A Haskell implementation of MessagePack <http://msgpack.org/>
 homepage:           http://msgpack.org/
+bug-reports:        https://github.com/msgpack/msgpack-haskell/issues
 license:            BSD3
 license-file:       LICENSE
 author:             Hideyuki Tanaka
-maintainer:         Hideyuki Tanaka <tanaka.hideyuki@gmail.com>
+maintainer:         Herbert Valerio Riedel <hvr@gnu.org>
 copyright:          Copyright (c) 2009-2015, Hideyuki Tanaka
 category:           Data
-stability:          Experimental
-cabal-version:      >= 1.10
 build-type:         Simple
 
 source-repository head
   type:             git
-  location:         git://github.com/msgpack/msgpack-haskell.git
+  location:         http://github.com/msgpack/msgpack-haskell.git
+  subdir:           msgpack
 
 library
   default-language: Haskell2010
+  other-extensions: LambdaCase, OverloadedLists
   hs-source-dirs:   src
 
   exposed-modules:  Data.MessagePack
@@ -27,18 +30,19 @@ library
                     Data.MessagePack.Get
                     Data.MessagePack.Put
 
-  build-depends:    base                 ==4.*
-                  , mtl                  >=2.1
-                  , bytestring           >=0.10
-                  , text                 >=1.2
-                  , containers           >=0.5.5
-                  , unordered-containers >=0.2.5
-                  , hashable
-                  , vector               >=0.10
-                  , blaze-builder        >=0.4
-                  , deepseq              >=1.3
-                  , binary               >=0.8.1.0
-                  , data-binary-ieee754
+  build-depends:    base                 >= 4.7     && < 4.13
+                  , mtl                  >= 2.1.3.1 && < 2.3
+                  , bytestring           >= 0.10.4  && < 0.11
+                  , text                 >= 1.2     && < 1.3
+                  , containers           >= 0.5.5   && < 0.7
+                  , unordered-containers >= 0.2.5   && < 0.3
+                  , hashable             >= 1.1.2.4 && < 1.3
+                  , vector               >= 0.10.11 && < 0.13
+                  , deepseq              >= 1.3     && < 1.5
+                  , binary               >= 0.7.1   && < 0.9
+                  , data-binary-ieee754  >= 0.4.4   && < 0.5
+
+  ghc-options: -Wall
 
 test-suite msgpack-tests
   type:             exitcode-stdio-1.0
@@ -47,9 +51,12 @@ test-suite msgpack-tests
 
   main-is:          test.hs
 
-  build-depends:    base
+  build-depends:    msgpack
+                  -- inherited constraints via `msgpack`
+                  , base
                   , bytestring
-                  , QuickCheck           >=2.7
-                  , tasty                >=0.10
-                  , tasty-quickcheck     >=0.8
-                  , msgpack
+                  -- test-specific dependencies
+                  , async              == 2.2.*
+                  , tasty              == 1.2.*
+                  , tasty-quickcheck   == 0.10.*
+                  , QuickCheck         == 2.12.*

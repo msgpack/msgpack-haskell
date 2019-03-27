@@ -5,16 +5,10 @@
 *.a
 *.exe
 cabal-dev/
-dist/
+/dist/
 attic/
 tmp/
 *.aes
-/msgpack/.cabal-sandbox/
-/msgpack/cabal.sandbox.config
-/msgpack-rpc/.cabal-sandbox/
-/msgpack-rpc/cabal.sandbox.config
-/msgpack-aeson/cabal.sandbox.config
-/msgpack-aeson/.cabal-sandbox/
 /.stack-work/
 /dist-newstyle/
 /.ghc.environment.*

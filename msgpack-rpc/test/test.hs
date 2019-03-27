@@ -6,9 +6,9 @@ import           Control.Monad.Trans
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Network                    (withSocketsDo)
 import           Network.MessagePack.Client
 import           Network.MessagePack.Server
+import           Network.Socket             (withSocketsDo)
 
 port :: Int
 port = 5000
