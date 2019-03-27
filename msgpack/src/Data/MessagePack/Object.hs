@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE IncoherentInstances  #-}
 {-# LANGUAGE LambdaCase           #-}
@@ -41,6 +42,7 @@ import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
 import           Data.Typeable
 import qualified Data.Vector            as V
+import           GHC.Generics           (Generic)
 
 import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
@@ -71,7 +73,7 @@ data Object
   | ObjectExt    {-# UNPACK #-} !Word8 !S.ByteString
     -- ^ represents a tuple of an integer and a byte array where
     -- the integer represents type information and the byte array represents data.
-  deriving (Show, Eq, Ord, Typeable)
+  deriving (Show, Eq, Ord, Typeable, Generic)
 
 instance NFData Object where
   rnf obj = case obj of
@@ -236,7 +238,7 @@ instance (MessagePack k, MessagePack v, Hashable k, Eq k) => MessagePack (HashMa
 instance (MessagePack a1, MessagePack a2) => MessagePack (a1, a2) where
   toObject (a1, a2) = ObjectArray [toObject a1, toObject a2]
   fromObject (ObjectArray [a1, a2]) = (,) <$> fromObject a1 <*> fromObject a2
-  fromObject _ = Nothing
+  fromObject _                      = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3) => MessagePack (a1, a2, a3) where
   toObject (a1, a2, a3) = ObjectArray [toObject a1, toObject a2, toObject a3]
