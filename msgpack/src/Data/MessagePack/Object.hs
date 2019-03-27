@@ -105,20 +105,24 @@ putObject = \case
   ObjectMap    m -> putMap putObject putObject m
   ObjectExt  b r -> putExt b r
 
+-- | This 'Binary' instance encodes\/decodes to\/from MessagePack format
 instance Binary Object where
   get = getObject
   put = putObject
 
+-- | Class for converting between MessagePack 'Object's and native Haskell types.
 class MessagePack a where
   toObject   :: a -> Object
   fromObject :: Object -> Maybe a
 
 -- core instances
 
+-- | The trivial identity 'MessagePack' instance
 instance MessagePack Object where
   toObject = id
   fromObject = Just
 
+-- | Encodes as 'ObjectNil'
 instance MessagePack () where
   toObject _ = ObjectNil
   fromObject = \case
@@ -182,6 +186,9 @@ instance (MessagePack a, MessagePack b) => MessagePack (Assoc (V.Vector (a, b)))
 
 -- nullable
 
+-- | 'Maybe's are encoded as nullable types, i.e. 'Nothing' is encoded as @nil@.
+--
+-- __NOTE__: Encoding nested 'Maybe's or 'Maybe's enclosing types which encode to @nil@ (such as '()') will break round-tripping
 instance MessagePack a => MessagePack (Maybe a) where
   toObject = \case
     Just a  -> toObject a
