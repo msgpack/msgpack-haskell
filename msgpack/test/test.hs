@@ -35,6 +35,8 @@ tests =
       \(a :: ()) -> a == mid a
     , testProperty "bool" $
       \(a :: Bool) -> a == mid a
+    , testProperty "float" $
+      \(a :: Float) -> a == mid a
     , testProperty "double" $
       \(a :: Double) -> a == mid a
     , testProperty "string" $
