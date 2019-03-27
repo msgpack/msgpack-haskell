@@ -26,4 +26,4 @@ import           Data.Typeable
 -- (ie. you would want to write custom instances for each type using specialized mapM-like functions)
 newtype Assoc a
   = Assoc { unAssoc :: a }
-  deriving (Show, Eq, Ord, Typeable, NFData)
+  deriving (Show, Read, Eq, Ord, Typeable, NFData)
