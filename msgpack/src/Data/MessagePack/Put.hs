@@ -17,7 +17,8 @@ module Data.MessagePack.Put (
 
 import           Data.Binary
 import           Data.Binary.IEEE754 (putFloat32be, putFloat64be)
-import           Data.Binary.Put
+import           Data.Binary.Put     (putByteString, putWord16be, putWord32be,
+                                      putWord64be, putWord8)
 import           Data.Bits
 import qualified Data.ByteString     as S
 import           Data.Int
