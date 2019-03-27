@@ -22,7 +22,7 @@ module Data.MessagePack.Get(
 import           Control.Applicative
 import           Control.Monad
 import           Data.Binary
-import           Data.Binary.Get
+import           Data.Binary.Get     as Bin
 import           Data.Binary.IEEE754
 import           Data.Bits
 import qualified Data.ByteString     as S
@@ -50,10 +50,10 @@ getInt =
     0xCD -> fromIntegral <$> getWord16be
     0xCE -> fromIntegral <$> getWord32be
     0xCF -> fromIntegral <$> getWord64be
-    0xD0 -> fromIntegral <$> getInt8
-    0xD1 -> fromIntegral <$> getInt16be
-    0xD2 -> fromIntegral <$> getInt32be
-    0xD3 -> fromIntegral <$> getInt64be
+    0xD0 -> fromIntegral <$> Bin.getInt8
+    0xD1 -> fromIntegral <$> Bin.getInt16be
+    0xD2 -> fromIntegral <$> Bin.getInt32be
+    0xD3 -> fromIntegral <$> Bin.getInt64be
     _    -> empty
 
 getFloat :: Get Float
@@ -73,7 +73,7 @@ getStr = do
     _    -> empty
   bs <- getByteString len
   case T.decodeUtf8' bs of
-    Left _ -> empty
+    Left _  -> empty
     Right v -> return v
 
 getBin :: Get S.ByteString
