@@ -31,7 +31,8 @@ import           Control.DeepSeq
 import           Data.Binary
 import qualified Data.ByteString        as S
 import qualified Data.ByteString.Lazy   as L
-import           Data.Hashable
+import qualified Data.ByteString.Short  as SBS
+import           Data.Hashable          (Hashable)
 import qualified Data.HashMap.Strict    as HashMap
 import qualified Data.IntMap.Strict     as IntMap
 import qualified Data.Map               as Map
@@ -195,6 +196,11 @@ instance MessagePack a => MessagePack (Maybe a) where
 instance MessagePack L.ByteString where
   toObject = ObjectBin . L.toStrict
   fromObject obj = L.fromStrict <$> fromObject obj
+
+-- | @since 1.0.1.0
+instance MessagePack SBS.ShortByteString where
+  toObject = ObjectBin . SBS.fromShort
+  fromObject obj = SBS.toShort <$> fromObject obj
 
 instance MessagePack T.Text where
   toObject = ObjectStr
