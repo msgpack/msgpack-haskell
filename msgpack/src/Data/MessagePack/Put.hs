@@ -10,15 +10,17 @@
 --------------------------------------------------------------------
 
 module Data.MessagePack.Put (
-  putNil, putBool, putInt, putFloat, putDouble,
+  putNil, putBool, putFloat, putDouble,
+  putInt, putWord, putInt64, putWord64,
   putStr, putBin, putArray, putMap, putExt,
   ) where
 
 import           Data.Binary
-import           Data.Binary.IEEE754
+import           Data.Binary.IEEE754 (putFloat32be, putFloat64be)
 import           Data.Binary.Put
 import           Data.Bits
 import qualified Data.ByteString     as S
+import           Data.Int
 import qualified Data.Text           as T
 import qualified Data.Text.Encoding  as T
 import qualified Data.Vector         as V
@@ -33,25 +35,39 @@ putBool False = putWord8 0xC2
 putBool True  = putWord8 0xC3
 
 putInt :: Int -> Put
-putInt n
-  | -32 <= n && n <= 127 =
-    putWord8 $ fromIntegral n
-  | 0 <= n && n < 0x100 =
-    putWord8 0xCC >> putWord8     (fromIntegral n)
-  | 0 <= n && n < 0x10000 =
-    putWord8 0xCD >> putWord16be  (fromIntegral n)
-  | 0 <= n && n < 0x100000000 =
-    putWord8 0xCE >> putWord32be  (fromIntegral n)
-  | 0 <= n =
-    putWord8 0xCF >> putWord64be  (fromIntegral n)
-  | -0x80 <= n =
-    putWord8 0xD0 >> putWord8     (fromIntegral n)
-  | -0x8000 <= n =
-    putWord8 0xD1 >> putWord16be  (fromIntegral n)
-  | -0x80000000  <= n =
-    putWord8 0xD2 >> putWord32be  (fromIntegral n)
-  | otherwise =
-    putWord8 0xD3 >> putWord64be (fromIntegral n)
+putInt n = putInt64 (fromIntegral n)
+
+-- | @since 1.0.1.0
+putWord :: Word -> Put
+putWord n = putWord64 (fromIntegral n)
+
+-- | @since 1.0.1.0
+putInt64 :: Int64 -> Put
+putInt64 n
+    -- positive fixnum stores 7-bit positive integer
+    -- negative fixnum stores 5-bit negative integer
+  | -32 <= n && n <= 127 = putWord8 $ fromIntegral n
+
+    -- unsigned int encoding
+  | n >= 0 = putWord64 (fromIntegral n)
+
+    -- signed int encoding
+  | -0x80       <= n = putWord8 0xD0 >> putWord8     (fromIntegral n)
+  | -0x8000     <= n = putWord8 0xD1 >> putWord16be  (fromIntegral n)
+  | -0x80000000 <= n = putWord8 0xD2 >> putWord32be  (fromIntegral n)
+  | otherwise        = putWord8 0xD3 >> putWord64be  (fromIntegral n)
+
+-- | @since 1.0.1.0
+putWord64 :: Word64 -> Put
+putWord64 n
+    -- positive fixnum stores 7-bit positive integer
+  | n < 0x80        = putWord8 $ fromIntegral n
+
+    -- unsigned int encoding
+  | n < 0x100       = putWord8 0xCC >> putWord8     (fromIntegral n)
+  | n < 0x10000     = putWord8 0xCD >> putWord16be  (fromIntegral n)
+  | n < 0x100000000 = putWord8 0xCE >> putWord32be  (fromIntegral n)
+  | otherwise       = putWord8 0xCF >> putWord64be  (fromIntegral n)
 
 putFloat :: Float -> Put
 putFloat f = do

@@ -49,6 +49,8 @@ tests =
       \(a :: (Maybe Int)) -> a == mid a
     , testProperty "[int]" $
       \(a :: [Int]) -> a == mid a
+    , testProperty "[()]" $
+      \(a :: [()]) -> a == mid a
     , testProperty "[string]" $
       \(a :: [String]) -> a == mid a
     , testProperty "(int, int)" $
@@ -65,4 +67,6 @@ tests =
       \(a :: [(String, String)]) -> a == mid a
     , testProperty "Assoc [(string, int)]" $
       \(a :: Assoc [(String, Int)]) -> a == mid a
+    , testProperty "maybe (Int,Bool,String)" $
+      \(a :: (Maybe ((),Maybe Int,Maybe Float,Maybe Bool,Maybe Double,Maybe String))) -> a == mid a
     ]

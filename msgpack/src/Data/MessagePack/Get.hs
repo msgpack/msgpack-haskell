@@ -22,7 +22,7 @@ import           Control.Monad
 import           Data.Binary
 import           Data.Binary.Get     (getByteString, getWord16be, getWord32be,
                                       getWord64be)
-import           Data.Binary.IEEE754
+import           Data.Binary.IEEE754 (getFloat32be, getFloat64be)
 import           Data.Bits
 import qualified Data.ByteString     as S
 import           Data.Int
@@ -35,25 +35,98 @@ getNil = tag 0xC0
 
 getBool :: Get Bool
 getBool =
-  False <$ tag 0xC2 <|>
-  True  <$ tag 0xC3
+  getWord8 >>= \case
+    0xC2 -> return False
+    0xC3 -> return True
 
+    _    -> empty
+
+-- | Deserialize an integer into an 'Int'
+--
+-- __WARNING__: Currently this function silently wraps around integers to make them fit into an 'Int'. This will be changed in the next major version (i.e. @msgpack-1.1.0@).
 getInt :: Get Int
 getInt =
   getWord8 >>= \case
-    c | c .&. 0x80 == 0x00 ->
-        return $ fromIntegral c
-      | c .&. 0xE0 == 0xE0 ->
-        return $ fromIntegral (fromIntegral c :: Int8)
+    c | c .&. 0x80 == 0x00 -> return $ fromIntegral c
+      | c .&. 0xE0 == 0xE0 -> return $ fromIntegral (fromIntegral c :: Int8)
+
     0xCC -> fromIntegral <$> getWord8
     0xCD -> fromIntegral <$> getWord16be
     0xCE -> fromIntegral <$> getWord32be
     0xCF -> fromIntegral <$> getWord64be
+
     0xD0 -> fromIntegral <$> getInt8
     0xD1 -> fromIntegral <$> getInt16be
     0xD2 -> fromIntegral <$> getInt32be
     0xD3 -> fromIntegral <$> getInt64be
+
     _    -> empty
+
+-- | Deserialize an integer into a 'Word'
+--
+-- This operation will fail if the encoded integer doesn't fit into the value range of the 'Word' type.
+--
+-- @since 1.0.1.0
+getWord :: Get Word
+getWord
+  | maxWord == maxBound  = fromIntegral <$> getWord64
+  | otherwise = do
+      w <- getWord64
+      if w <= maxWord
+        then return (fromIntegral w)
+        else empty
+  where
+    maxWord :: Word64
+    maxWord = fromIntegral (maxBound :: Word)
+
+-- | Deserialize an integer into an 'Int64'
+--
+-- This operation will fail if the encoded integer doesn't fit into the value range of the 'Int64' type.
+--
+-- @since 1.0.1.0
+getInt64 :: Get Int64
+getInt64 =
+  getWord8 >>= \case
+    c | c .&. 0x80 == 0x00 -> return $ fromIntegral c
+      | c .&. 0xE0 == 0xE0 -> return $ fromIntegral (fromIntegral c :: Int8)
+
+    0xCC -> fromIntegral <$> getWord8
+    0xCD -> fromIntegral <$> getWord16be
+    0xCE -> fromIntegral <$> getWord32be
+    0xCF -> do
+      x <- fromIntegral <$> getWord64be
+      if x >= 0 then return x else empty
+
+    0xD0 -> fromIntegral <$> getInt8
+    0xD1 -> fromIntegral <$> getInt16be
+    0xD2 -> fromIntegral <$> getInt32be
+    0xD3 ->                  getInt64be
+
+    _    -> empty
+
+-- | Deserialize an integer into a 'Word'
+--
+-- This operation will fail if the encoded integer doesn't fit into the value range of the 'Word64' type.
+--
+-- @since 1.0.1.0
+getWord64 :: Get Word64
+getWord64 =
+  getWord8 >>= \case
+    c | c .&. 0x80 == 0x00 -> return $ fromIntegral c
+      | c .&. 0xE0 == 0xE0 -> return $ fromIntegral (fromIntegral c :: Int8)
+
+    0xCC -> fromIntegral <$> getWord8
+    0xCD -> fromIntegral <$> getWord16be
+    0xCE -> fromIntegral <$> getWord32be
+    0xCF ->                  getWord64be
+
+    0xD0 -> do { x <- getInt8    ; if x >= 0 then return (fromIntegral x) else empty }
+    0xD1 -> do { x <- getInt16be ; if x >= 0 then return (fromIntegral x) else empty }
+    0xD2 -> do { x <- getInt32be ; if x >= 0 then return (fromIntegral x) else empty }
+    0xD3 -> do { x <- getInt64be ; if x >= 0 then return (fromIntegral x) else empty }
+
+    _    -> empty
+
 
 getFloat :: Get Float
 getFloat = tag 0xCA >> getFloat32be
@@ -118,6 +191,12 @@ getExt = do
     _ -> empty
   (,) <$> getWord8 <*> getByteString len
 
+tag :: Word8 -> Get ()
+tag t = do
+  b <- getWord8
+  guard $ t == b
+
+-- internal helpers for operations missing from older `binary` versions
 getInt8 :: Get Int8
 getInt8 = fromIntegral <$> getWord8
 
@@ -129,8 +208,3 @@ getInt32be = fromIntegral <$> getWord32be
 
 getInt64be :: Get Int64
 getInt64be = fromIntegral <$> getWord64be
-
-tag :: Word8 -> Get ()
-tag t = do
-  b <- getWord8
-  guard $ t == b

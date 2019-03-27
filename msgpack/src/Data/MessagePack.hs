@@ -22,7 +22,7 @@ module Data.MessagePack (
   module Data.MessagePack.Put,
   ) where
 
-import           Data.Binary
+import           Data.Binary             (decode, encode)
 import qualified Data.ByteString.Lazy    as L
 
 import           Data.MessagePack.Assoc
