@@ -3,12 +3,12 @@ MessagePack for Haskell [![Build Status](https://travis-ci.org/msgpack/msgpack-h
 
 This is an implementation of [MessagePack](https://en.wikipedia.org/wiki/MessagePack) for [Haskell](https://www.haskell.org).
 
-It containes:
+It contains:
 
 * Serializer/Deserializer
 * RPC
 
-# Install
+# Installation
 
 Execute following instructions:
 
@@ -18,7 +18,7 @@ $ cabal install msgpack
 $ cabal install msgpack-rpc
 ~~~
 
-# Document
+# Documentation
 
 [Haddock](https://www.haskell.org/haddock) documentation can be found on Hackage:
 
