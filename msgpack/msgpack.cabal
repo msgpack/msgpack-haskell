@@ -1,16 +1,28 @@
 cabal-version:      1.12
 name:               msgpack
-version:            1.0.0
+version:            1.0.1.0
 
 synopsis:           A Haskell implementation of MessagePack
-description:        A Haskell implementation of MessagePack <http://msgpack.org/>
+description:
+  A Haskell implementation of the <http://msgpack.org/ MessagePack> data interchange format.
+  MessagePack is a binary format which aims to be compact and supports encoding a superset of the <http://json.org/ JSON> data-model.
+  .
+  == Related Packages
+  .
+  A JSON adapter for the <https://hackage.haskell.org/package/aeson aeson> library is provided by the <https://hackage.haskell.org/package/msgpack-aeson msgpack-aeson> package.
+  .
+  The <http://hackage.haskell.org/package/msgpack-rpc msgpack-rpc> package provides an implementation of the MessagePack-RPC protocol.
+
+
 homepage:           http://msgpack.org/
 bug-reports:        https://github.com/msgpack/msgpack-haskell/issues
 license:            BSD3
 license-file:       LICENSE
 author:             Hideyuki Tanaka
 maintainer:         Herbert Valerio Riedel <hvr@gnu.org>
-copyright:          Copyright (c) 2009-2015, Hideyuki Tanaka
+copyright:          Copyright (c) Hideyuki Tanaka 2009-2015,
+                              (c) Herbert Valerio Riedel 2019
+
 category:           Data
 build-type:         Simple
 
@@ -22,6 +34,7 @@ source-repository head
 library
   default-language: Haskell2010
   other-extensions: LambdaCase, OverloadedLists
+  default-extensions: Trustworthy
   hs-source-dirs:   src
 
   exposed-modules:  Data.MessagePack

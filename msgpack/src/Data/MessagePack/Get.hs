@@ -3,19 +3,17 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Get
--- Copyright : (c) Hideyuki Tanaka, 2009-2015
+-- Copyright : © Hideyuki Tanaka 2009-2015
+--           , © Herbert Valerio Riedel 2019
 -- License   : BSD3
 --
--- Maintainer:  tanaka.hideyuki@gmail.com
--- Stability :  experimental
--- Portability: portable
---
--- MessagePack Deserializer using @Data.Binary@
+-- MessagePack Deserializer using "Data.Binary"
 --
 --------------------------------------------------------------------
 
 module Data.MessagePack.Get(
-  getNil, getBool, getInt, getFloat, getDouble,
+  getNil, getBool, getFloat, getDouble,
+  getInt, getWord, getInt64, getWord64,
   getStr, getBin, getArray, getMap, getExt,
   ) where
 

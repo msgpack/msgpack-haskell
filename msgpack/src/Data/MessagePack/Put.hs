@@ -1,14 +1,11 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Put
--- Copyright : (c) Hideyuki Tanaka, 2009-2015
+-- Copyright : © Hideyuki Tanaka 2009-2015
+--           , © Herbert Valerio Riedel 2019
 -- License   : BSD3
 --
--- Maintainer:  tanaka.hideyuki@gmail.com
--- Stability :  experimental
--- Portability: portable
---
--- MessagePack Serializer using @Data.Binary@
+-- MessagePack Serializer using "Data.Binary".
 --
 --------------------------------------------------------------------
 

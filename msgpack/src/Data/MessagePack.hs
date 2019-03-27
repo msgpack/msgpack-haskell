@@ -1,14 +1,12 @@
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack
--- Copyright : (c) Hideyuki Tanaka, 2009-2015
+-- Copyright : © Hideyuki Tanaka 2009-2015
+--           , © Herbert Valerio Riedel 2019
 -- License   : BSD3
 --
--- Maintainer:  tanaka.hideyuki@gmail.com
--- Stability :  experimental
--- Portability: portable
+-- Simple interface to encode\/decode to\/from the [MessagePack](https://msgpack.org/) format.
 --
--- Simple interface to pack and unpack MessagePack data.
 --
 --------------------------------------------------------------------
 
@@ -18,7 +16,6 @@ module Data.MessagePack (
 
   -- * Re-export modules
   -- $reexports
-  -- module X,
   module Data.MessagePack.Assoc,
   module Data.MessagePack.Get,
   module Data.MessagePack.Object,
