@@ -1,0 +1,68 @@
+# number-negative
+#
+# signed 32bit integer
+
+# 0xFFFFFFFF
+- number: -1
+  msgpack:
+    - "ff"                          # -1 ... -32
+    - "d0-ff"                       # signed int8
+    - "d1-ff-ff"                    # signed int16
+    - "d2-ff-ff-ff-ff"              # signed int32
+    - "d3-ff-ff-ff-ff-ff-ff-ff-ff"  # signed int64
+    - "ca-bf-80-00-00"              # float
+    - "cb-bf-f0-00-00-00-00-00-00"  # double
+
+# 0xFFFFFFE0
+- number: -32
+  msgpack:
+    - "e0"
+    - "d0-e0"
+    - "d1-ff-e0"
+    - "d2-ff-ff-ff-e0"
+    - "d3-ff-ff-ff-ff-ff-ff-ff-e0"
+    - "ca-c2-00-00-00"
+    - "cb-c0-40-00-00-00-00-00-00"
+
+# 0xFFFFFFDF
+- number: -33
+  msgpack:
+    - "d0-df"
+    - "d1-ff-df"
+    - "d2-ff-ff-ff-df"
+    - "d3-ff-ff-ff-ff-ff-ff-ff-df"
+
+# 0xFFFFFF80
+- number: -128
+  msgpack:
+    - "d0-80"
+    - "d1-ff-80"
+    - "d2-ff-ff-ff-80"
+    - "d3-ff-ff-ff-ff-ff-ff-ff-80"
+
+# 0xFFFFFF00
+- number: -256
+  msgpack:
+    - "d1-ff-00"
+    - "d2-ff-ff-ff-00"
+    - "d3-ff-ff-ff-ff-ff-ff-ff-00"
+
+# 0xFFFF8000
+- number: -32768
+  msgpack:
+    - "d1-80-00"
+    - "d2-ff-ff-80-00"
+    - "d3-ff-ff-ff-ff-ff-ff-80-00"
+
+# 0xFFFF0000
+- number: -65536
+  msgpack:
+    - "d2-ff-ff-00-00"
+    - "d3-ff-ff-ff-ff-ff-ff-00-00"
+
+# 0x80000000
+- number: -2147483648
+  msgpack:
+    - "d2-80-00-00-00"
+    - "d3-ff-ff-ff-ff-80-00-00-00"
+    - "cb-c1-e0-00-00-00-00-00-00"

@@ -1,0 +1,15 @@
+# number-float
+#
+# decimal fraction
+
+# +0.5
+- number: 0.5
+  msgpack:
+    - "ca-3f-00-00-00"
+    - "cb-3f-e0-00-00-00-00-00-00"
+
+# -0.5
+- number: -0.5
+  msgpack:
+    - "ca-bf-00-00-00"
+    - "cb-bf-e0-00-00-00-00-00-00"

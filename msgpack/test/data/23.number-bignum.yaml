@@ -1,0 +1,64 @@
+# number-bignum
+#
+# 64bit integer
+
+# +0x0000000100000000 = +4294967296
+- number: 4294967296
+  bignum: "4294967296"
+  msgpack:
+    - "cf-00-00-00-01-00-00-00-00"  # unsigned int64
+    - "d3-00-00-00-01-00-00-00-00"  # signed int64
+    - "ca-4f-80-00-00"              # float
+    - "cb-41-f0-00-00-00-00-00-00"  # double
+
+# -0x0000000100000000 = -4294967296
+- number: -4294967296
+  bignum: "-4294967296"
+  msgpack:
+    - "d3-ff-ff-ff-ff-00-00-00-00"  # signed int64
+    - "cb-c1-f0-00-00-00-00-00-00"  # double
+
+# +0x0001000000000000 = +281474976710656
+- number: 281474976710656
+  bignum: "281474976710656"
+  msgpack:
+    - "cf-00-01-00-00-00-00-00-00"  # unsigned int64
+    - "d3-00-01-00-00-00-00-00-00"  # signed int64
+    - "ca-57-80-00-00"              # float
+    - "cb-42-f0-00-00-00-00-00-00"  # double
+
+# -0x0001000000000000 = -281474976710656
+- number: -281474976710656
+  bignum: "-281474976710656"
+  msgpack:
+    - "d3-ff-ff-00-00-00-00-00-00"  # signed int64
+    - "ca-d7-80-00-00"              # float
+    - "cb-c2-f0-00-00-00-00-00-00"  # double
+
+# JSON could not hold big numbers below
+
+# +0x7FFFFFFFFFFFFFFF = +9223372036854775807
+- bignum: "9223372036854775807"
+  msgpack:
+    - "d3-7f-ff-ff-ff-ff-ff-ff-ff"  # signed int64
+    - "cf-7f-ff-ff-ff-ff-ff-ff-ff"  # unsigned int64
+
+# -0x7FFFFFFFFFFFFFFF = -9223372036854775807
+- bignum: "-9223372036854775807"
+  msgpack:
+    - "d3-80-00-00-00-00-00-00-01"  # signed int64
+
+# +0x8000000000000000 = +9223372036854775808
+- bignum: "9223372036854775808"
+  msgpack:
+    - "cf-80-00-00-00-00-00-00-00"  # unsigned int64
+
+# -0x8000000000000000 = -9223372036854775808
+- bignum: "-9223372036854775808"
+  msgpack:
+    - "d3-80-00-00-00-00-00-00-00"  # signed int64
+
+# +0xFFFFFFFFFFFFFFFF = +18446744073709551615
+- bignum: "18446744073709551615"
+  msgpack:
+    - "cf-ff-ff-ff-ff-ff-ff-ff-ff"  # unsigned int64

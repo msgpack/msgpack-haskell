@@ -1,0 +1,11 @@
+# bool
+
+# false
+- bool: false
+  msgpack:
+    - "c2"
+
+# true
+- bool: true
+  msgpack:
+    - "c3"

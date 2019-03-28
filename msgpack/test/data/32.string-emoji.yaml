@@ -1,0 +1,13 @@
+# string-emoji
+
+# "❤" // U+2764 HEAVY BLACK HEART
+- string: "❤"
+  msgpack:
+    - "a3-e2-9d-a4"
+    - "d9-03-e2-9d-a4"
+
+# "🍺" // U+1F37A BEER MUG
+- string: "🍺"
+  msgpack:
+    - "a4-f0-9f-8d-ba"
+    - "d9-04-f0-9f-8d-ba"
