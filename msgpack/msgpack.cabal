@@ -41,6 +41,7 @@ library
 
   exposed-modules:  Data.MessagePack
                     Data.MessagePack.Assoc
+                    Data.MessagePack.Generic
                     Data.MessagePack.Integer
                     Data.MessagePack.Object
                     Data.MessagePack.Get

@@ -135,6 +135,12 @@ instance MessagePack Int where
     ObjectInt n -> Just n
     _           -> Nothing
 
+instance MessagePack Word64 where
+  toObject = ObjectInt . fromIntegral -- FIXME
+  fromObject = \case
+    ObjectInt n -> Just (fromIntegral n) -- FIXME
+    _           -> Nothing
+
 instance MessagePack Bool where
   toObject = ObjectBool
   fromObject = \case
