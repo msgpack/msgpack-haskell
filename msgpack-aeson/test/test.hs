@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
+import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.TH
@@ -49,8 +50,8 @@ test v = do
 
 roundTrip :: (Show a, Eq a, ToJSON a, FromJSON a) => a -> IO ()
 roundTrip v = do
-  let mp = packToJSON v
-      v' = unpackFromJSON mp
+  let mp = packAeson v
+      v' = unpackAeson mp
   v' @?= pure v
 
 main :: IO ()
