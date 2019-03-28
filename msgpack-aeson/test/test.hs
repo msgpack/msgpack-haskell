@@ -49,9 +49,9 @@ test v = do
 
 roundTrip :: (Show a, Eq a, ToJSON a, FromJSON a) => a -> IO ()
 roundTrip v = do
-  let mp = pack (AsMessagePack v)
-      v' = unpack mp
-  v' @?= Just (AsMessagePack v)
+  let mp = packToJSON v
+      v' = unpackFromJSON mp
+  v' @?= pure v
 
 main :: IO ()
 main =
