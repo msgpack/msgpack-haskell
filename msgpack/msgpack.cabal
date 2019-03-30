@@ -26,7 +26,24 @@ copyright:          Copyright (c) Hideyuki Tanaka 2009-2015,
 category:           Data
 build-type:         Simple
 
-extra-source-files: CHANGES.md
+extra-source-files:
+  CHANGES.md
+  test/data/README.md
+  test/data/10.nil.yaml
+  test/data/11.bool.yaml
+  test/data/12.binary.yaml
+  test/data/20.number-positive.yaml
+  test/data/21.number-negative.yaml
+  test/data/22.number-float.yaml
+  test/data/23.number-bignum.yaml
+  test/data/30.string-ascii.yaml
+  test/data/31.string-utf8.yaml
+  test/data/32.string-emoji.yaml
+  test/data/40.array.yaml
+  test/data/41.map.yaml
+  test/data/42.nested.yaml
+  test/data/50.timestamp.yaml
+  test/data/60.ext.yaml
 
 source-repository head
   type:             git
@@ -74,13 +91,24 @@ test-suite msgpack-tests
   hs-source-dirs:   test
 
   main-is:          test.hs
+  other-modules:    Properties
+                    DataCases
+
+  ghc-options: -Wall
 
   build-depends:    msgpack
                   -- inherited constraints via `msgpack`
                   , base
+                  , binary
                   , bytestring
+                  , containers
+                  , text
+                  , time
                   -- test-specific dependencies
                   , async              == 2.2.*
+                  , filepath           == 1.3.* || == 1.4.*
+                  , HsYAML             >= 0.1.1 && < 0.2
                   , tasty              == 1.2.*
                   , tasty-quickcheck   == 0.10.*
+                  , tasty-hunit        == 0.10.*
                   , QuickCheck         == 2.12.*
