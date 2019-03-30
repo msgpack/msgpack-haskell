@@ -19,8 +19,7 @@ module Data.MessagePack.Assoc (
   Assoc(..)
   ) where
 
-import           Control.DeepSeq
-import           Data.Typeable
+import           Compat.Prelude
 
 -- not defined for general Functor for performance reason.
 -- (ie. you would want to write custom instances for each type using specialized mapM-like functions)

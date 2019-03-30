@@ -12,10 +12,8 @@ module Data.MessagePack.Generic
     , genericFromObject
     ) where
 
-import           Control.Applicative
-import           Control.Monad           ((>=>))
-import           Data.Bits               (shiftR)
-import           Data.Word               (Word64)
+import           Compat.Prelude
+
 import           GHC.Generics
 
 import           Data.MessagePack.Object

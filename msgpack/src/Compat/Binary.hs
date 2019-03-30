@@ -23,24 +23,18 @@ module Compat.Binary
     , getFloat64be, putFloat64be
 
     , Bin.getByteString, Bin.putByteString
-
-      -- convenience
-    , Data.Word.Word, Word8, Word16, Word32, Word64
-    , Data.Int.Int, Int8, Int16, Int32, Int64
     ) where
 
-import           Control.Applicative
+import           Compat.Prelude
+
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BL
-import           Data.IntCast
 
 import           Data.Array.ST        (MArray, STUArray, newArray, readArray)
 import           Data.Array.Unsafe    (castSTUArray)
 import           Data.Binary          (Binary (get, put), Get, Put)
 import qualified Data.Binary.Get      as Bin
 import qualified Data.Binary.Put      as Bin
-import           Data.Int
-import           Data.Word
 import           GHC.ST               (ST, runST)
 
 

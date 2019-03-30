@@ -16,9 +16,7 @@
 --
 module Data.MessagePack.Tags where
 
-import           Data.Bits    (complement, (.&.))
-import           Data.IntCast
-import           Data.Word
+import           Compat.Prelude
 
 -- | Test whether tag is a fixint
 is_TAG_fixint :: Word8 -> Bool

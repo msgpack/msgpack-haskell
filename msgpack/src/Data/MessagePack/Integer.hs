@@ -16,11 +16,10 @@ module Data.MessagePack.Integer
     , fromIntegerTry
     ) where
 
-import           Control.Applicative
-import           Control.DeepSeq       (NFData (rnf))
+import           Compat.Prelude
+
 import           Control.Exception     (ArithException (DivideByZero, Overflow, Underflow),
                                         throw)
-import           Data.IntCast
 
 import           Compat.Binary
 import           Data.MessagePack.Tags

@@ -18,11 +18,9 @@ module Data.MessagePack.Get(
   getStr, getBin, getArray, getMap, getExt, getExt'
   ) where
 
-import           Control.Applicative
-import           Control.Monad
+import           Compat.Prelude
+
 import qualified Data.ByteString          as S
-import           Data.Int
-import           Data.IntCast
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as T
 import qualified Data.Vector              as V

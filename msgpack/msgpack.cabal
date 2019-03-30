@@ -67,6 +67,7 @@ library
 
   other-modules:    Data.MessagePack.Tags
                     Compat.Binary
+                    Compat.Prelude
 
   build-depends:    base                 >= 4.7     && < 4.13
                   , mtl                  >= 2.2.1   && < 2.3

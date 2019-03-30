@@ -17,15 +17,13 @@ module Data.MessagePack.Put (
   putStr, putBin, putArray, putMap, putExt, putExt'
   ) where
 
-import           Control.Applicative
-import           Data.Bits
+import           Compat.Prelude
+import           Prelude                  hiding (putStr)
+
 import qualified Data.ByteString          as S
-import           Data.IntCast
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as T
 import qualified Data.Vector              as V
-
-import           Prelude                  hiding (putStr)
 
 import           Compat.Binary
 import           Data.MessagePack.Integer

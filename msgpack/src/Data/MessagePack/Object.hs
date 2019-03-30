@@ -25,22 +25,20 @@ module Data.MessagePack.Object (
   MessagePack(..),
   ) where
 
-import           Control.Applicative
+import           Compat.Prelude
+import           Prelude                  hiding (putStr)
+
 import           Control.Arrow
-import           Control.DeepSeq
 import qualified Data.ByteString          as S
 import qualified Data.ByteString.Lazy     as L
 import qualified Data.ByteString.Short    as SBS
 import           Data.Hashable            (Hashable)
 import qualified Data.HashMap.Strict      as HashMap
-import           Data.Int
 import qualified Data.IntMap.Strict       as IntMap
 import qualified Data.Map                 as Map
 import qualified Data.Text                as T
 import qualified Data.Text.Lazy           as LT
-import           Data.Typeable
 import qualified Data.Vector              as V
-import           GHC.Generics             (Generic)
 
 import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
@@ -48,8 +46,6 @@ import           Data.MessagePack.Integer
 import           Data.MessagePack.Put
 
 import           Compat.Binary
-
-import           Prelude                  hiding (putStr)
 
 
 -- | Object Representation of MessagePack data.

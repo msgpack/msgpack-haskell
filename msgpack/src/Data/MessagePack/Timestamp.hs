@@ -25,13 +25,10 @@ module Data.MessagePack.Timestamp
     , mptsFromUTCTimeLossy
     ) where
 
-import           Control.Applicative
-import           Control.DeepSeq         (NFData (rnf))
-import           Control.Monad
-import           Data.Bits
+import           Compat.Prelude
+
 import qualified Data.ByteString         as S
 import           Data.Fixed
-import           Data.IntCast
 import qualified Data.Time.Clock         as Time
 import qualified Data.Time.Clock.POSIX   as Time
 
