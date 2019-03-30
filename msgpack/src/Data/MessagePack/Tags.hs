@@ -16,8 +16,8 @@
 --
 module Data.MessagePack.Tags where
 
-import           Data.Bits ((.&.))
-import           Data.Word (Word8)
+import           Data.Bits (complement, (.&.))
+import           Data.Word
 
 -- | Test whether tag is a fixint
 is_TAG_fixint :: Word8 -> Bool
@@ -31,11 +31,32 @@ pattern TAG_MASK_fixintn  = 0xe0 -- 0b11100000
 pattern TAG_fixintp       = 0x00 -- 0b0xxxxxxx [0x00 .. 0x7f] / [0 .. 127]
 pattern TAG_MASK_fixintp  = 0x80 -- 0b10000000
 
+-- | Test whether tag is a fixmap and return embedded-size if it is
+is_TAG_fixmap :: Word8 -> Maybe Word32
+is_TAG_fixmap t
+  | t .&. TAG_MASK_fixmap == TAG_fixmap = Just $! fromIntegral (t .&. complement TAG_MASK_fixmap)
+  | otherwise                               = Nothing
+{-# INLINE is_TAG_fixmap #-}
+
 pattern TAG_fixmap        = 0x80 -- 0b1000xxxx [0x80 .. 0x8f]
 pattern TAG_MASK_fixmap   = 0xf0 -- 0b11110000
 
+-- | Test whether tag is a fixarray and return embedded-size if it is
+is_TAG_fixarray :: Word8 -> Maybe Word32
+is_TAG_fixarray t
+  | t .&. TAG_MASK_fixarray == TAG_fixarray = Just $! fromIntegral (t .&. complement TAG_MASK_fixarray)
+  | otherwise                               = Nothing
+{-# INLINE is_TAG_fixarray #-}
+
 pattern TAG_fixarray      = 0x90 -- 0b1001xxxx [0x90 .. 0x9f]
 pattern TAG_MASK_fixarray = 0xf0 -- 0b11110000
+
+-- | Test whether tag is a fixstr and return embedded-size if it is
+is_TAG_fixstr :: Word8 -> Maybe Word32
+is_TAG_fixstr t
+  | t .&. TAG_MASK_fixstr == TAG_fixstr = Just $! fromIntegral (t .&. complement TAG_MASK_fixstr)
+  | otherwise                           = Nothing
+{-# INLINE is_TAG_fixstr #-}
 
 pattern TAG_fixstr        = 0xa0 -- 0b101xxxxx [0xa0 .. 0xbf]
 pattern TAG_MASK_fixstr   = 0xe0 -- 0b11100000
