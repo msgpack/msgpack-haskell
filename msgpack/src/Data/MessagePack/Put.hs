@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 --------------------------------------------------------------------
 -- |
 -- Module    : Data.MessagePack.Put
@@ -15,9 +17,10 @@ module Data.MessagePack.Put (
   putStr, putBin, putArray, putMap, putExt, putExt'
   ) where
 
+import           Control.Applicative
 import           Data.Binary
 import           Data.Binary.IEEE754      (putFloat32be, putFloat64be)
-import           Data.Binary.Put          (putByteString, putWord16be,
+import           Data.Binary.Put          (PutM, putByteString, putWord16be,
                                            putWord32be)
 import           Data.Bits
 import qualified Data.ByteString          as S
@@ -65,7 +68,7 @@ putDouble d = putWord8 TAG_float64 >> putFloat64be d
 putStr :: T.Text -> Put
 putStr t = do
   let bs = T.encodeUtf8 t
-  case S.length bs of
+  toSizeM ("putStr: data exceeds 2^32-1 byte limit of MessagePack") (S.length bs) >>= \case
     len | len < 32      -> putWord8 (TAG_fixstr .|. fromIntegral len)
         | len < 0x100   -> putWord8 TAG_str8  >> putWord8    (fromIntegral len)
         | len < 0x10000 -> putWord8 TAG_str16 >> putWord16be (fromIntegral len)
@@ -74,7 +77,7 @@ putStr t = do
 
 putBin :: S.ByteString -> Put
 putBin bs = do
-  case S.length bs of
+  toSizeM ("putBin: data exceeds 2^32-1 byte limit of MessagePack") (S.length bs) >>= \case
     len | len < 0x100   -> putWord8 TAG_bin8  >> putWord8    (fromIntegral len)
         | len < 0x10000 -> putWord8 TAG_bin16 >> putWord16be (fromIntegral len)
         | otherwise     -> putWord8 TAG_bin32 >> putWord32be (fromIntegral len)
@@ -82,7 +85,7 @@ putBin bs = do
 
 putArray :: (a -> Put) -> V.Vector a -> Put
 putArray p xs = do
-  case V.length xs of
+  toSizeM ("putArray: data exceeds 2^32-1 element limit of MessagePack") (V.length xs) >>= \case
     len | len < 16      -> putWord8 (TAG_fixarray .|. fromIntegral len)
         | len < 0x10000 -> putWord8 TAG_array16 >> putWord16be (fromIntegral len)
         | otherwise     -> putWord8 TAG_array32 >> putWord32be (fromIntegral len)
@@ -90,7 +93,7 @@ putArray p xs = do
 
 putMap :: (a -> Put) -> (b -> Put) -> V.Vector (a, b) -> Put
 putMap p q xs = do
-  case V.length xs of
+  toSizeM ("putMap: data exceeds 2^32-1 element limit of MessagePack") (V.length xs) >>= \case
     len | len < 16      -> putWord8 (TAG_fixmap .|. fromIntegral len)
         | len < 0x10000 -> putWord8 TAG_map16 >> putWord16be (fromIntegral len)
         | otherwise     -> putWord8 TAG_map32 >> putWord32be (fromIntegral len)
@@ -98,9 +101,9 @@ putMap p q xs = do
 
 -- | __NOTE__: MessagePack is limited to maximum extended data payload size of \( 2^{32}-1 \) bytes.
 putExt :: Word8 -> S.ByteString -> Put
-putExt typ dat
-  | Just sz <- int2w32 (S.length dat) = putExt' typ (sz, putByteString dat)
-  | otherwise = fail "putExt: data exceeds 2^32-1 byte limit of MessagePack"
+putExt typ dat = do
+  sz <- toSizeM "putExt: data exceeds 2^32-1 byte limit of MessagePack" (S.length dat)
+  putExt' typ (sz, putByteString dat)
 
 -- | @since 1.1.0.0
 putExt' :: Word8 -- ^ type-tag of extended data
@@ -119,12 +122,17 @@ putExt' typ (sz,putdat) = do
   putWord8 typ
   putdat
 
--- TODO: switch to @int-cast@ package
-int2w32 :: Int -> Maybe Word32
-int2w32 j
-  | j < 0                         = Nothing
-  | intLargerThanWord32, j > maxI = Nothing
-  | otherwise                     = Just $! fromIntegral j
+----------------------------------------------------------------------------
+
+toSizeM :: String -> Int -> PutM Word32
+toSizeM label len0 = maybe (fail label) pure (int2w32 len0)
   where
-    intLargerThanWord32 = not (maxI < (0 `asTypeOf` j))
-    maxI = fromIntegral (maxBound :: Word32)
+    -- TODO: switch to @int-cast@ package
+    int2w32 :: Int -> Maybe Word32
+    int2w32 j
+      | j < 0                         = Nothing
+      | intLargerThanWord32, j > maxI = Nothing
+      | otherwise                     = Just $! fromIntegral j
+      where
+        intLargerThanWord32 = not (maxI < (0 `asTypeOf` j))
+        maxI = fromIntegral (maxBound :: Word32)
