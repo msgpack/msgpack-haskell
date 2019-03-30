@@ -17,7 +17,7 @@
 --
 --------------------------------------------------------------------
 
-module Data.MessagePack.Object(
+module Data.MessagePack.Object (
   -- * MessagePack Object
   Object(..),
 
@@ -29,48 +29,63 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
 import           Data.Binary
-import qualified Data.ByteString        as S
-import qualified Data.ByteString.Lazy   as L
-import qualified Data.ByteString.Short  as SBS
-import           Data.Hashable          (Hashable)
-import qualified Data.HashMap.Strict    as HashMap
-import qualified Data.IntMap.Strict     as IntMap
-import qualified Data.Map               as Map
-import qualified Data.Text              as T
-import qualified Data.Text.Lazy         as LT
+import qualified Data.ByteString          as S
+import qualified Data.ByteString.Lazy     as L
+import qualified Data.ByteString.Short    as SBS
+import           Data.Hashable            (Hashable)
+import qualified Data.HashMap.Strict      as HashMap
+import           Data.Int
+import qualified Data.IntMap.Strict       as IntMap
+import qualified Data.Map                 as Map
+import qualified Data.Text                as T
+import qualified Data.Text.Lazy           as LT
 import           Data.Typeable
-import qualified Data.Vector            as V
-import           GHC.Generics           (Generic)
+import qualified Data.Vector              as V
+import           GHC.Generics             (Generic)
 
 import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
+import           Data.MessagePack.Integer
 import           Data.MessagePack.Put
 
-import           Prelude                hiding (putStr)
+import           Prelude                  hiding (putStr)
+
 
 -- | Object Representation of MessagePack data.
+--
+-- @since 1.1.0.0
 data Object
   = ObjectNil
     -- ^ represents nil
   | ObjectBool                  !Bool
     -- ^ represents true or false
-  | ObjectInt    {-# UNPACK #-} !Int
-    -- ^ represents an integer
+  | ObjectInt    {-# UNPACK #-} !MPInteger
+    -- ^ represents an integer (__NOTE__: Changed from 'Int' to 'MPInteger' in @msgpack-1.1.0.0@)
   | ObjectFloat  {-# UNPACK #-} !Float
     -- ^ represents a floating point number
   | ObjectDouble {-# UNPACK #-} !Double
     -- ^ represents a floating point number
   | ObjectStr                   !T.Text
-    -- ^ extending Raw type represents a UTF-8 string
+    -- ^ represents an UTF-8 string
+    --
+    -- __NOTE__: MessagePack is limited to maximum UTF-8 encoded size of \( 2^{32}-1 \) octets.
   | ObjectBin                   !S.ByteString
-    -- ^ extending Raw type represents a byte array
+    -- ^ represents opaque binary data
+    --
+    -- __NOTE__: MessagePack is limited to maximum data size of \( 2^{32}-1 \) bytes.
   | ObjectArray                 !(V.Vector Object)
     -- ^ represents a sequence of objects
+    --
+    -- __NOTE__: MessagePack is limited to maximum of \( 2^{32}-1 \) array items.
   | ObjectMap                   !(V.Vector (Object, Object))
     -- ^ represents key-value pairs of objects
+    --
+    -- __NOTE__: MessagePack is limited to maximum of \( 2^{32}-1 \) map entries.
   | ObjectExt    {-# UNPACK #-} !Word8 !S.ByteString
     -- ^ represents a tuple of an integer and a byte array where
     -- the integer represents type information and the byte array represents data.
+    --
+    -- __NOTE__: MessagePack is limited to maximum data size of \( 2^{32}-1 \) bytes.
   deriving (Show, Read, Eq, Ord, Typeable, Generic)
 
 instance NFData Object where
@@ -83,7 +98,7 @@ getObject :: Get Object
 getObject =
       ObjectNil    <$  getNil
   <|> ObjectBool   <$> getBool
-  <|> ObjectInt    <$> getInt
+  <|> ObjectInt    <$> get
   <|> ObjectFloat  <$> getFloat
   <|> ObjectDouble <$> getDouble
   <|> ObjectStr    <$> getStr
@@ -96,7 +111,7 @@ putObject :: Object -> Put
 putObject = \case
   ObjectNil      -> putNil
   ObjectBool   b -> putBool b
-  ObjectInt    n -> putInt n
+  ObjectInt    n -> put n
   ObjectFloat  f -> putFloat f
   ObjectDouble d -> putDouble d
   ObjectStr    t -> putStr t
@@ -129,37 +144,106 @@ instance MessagePack () where
     ObjectNil -> Just ()
     _         -> Nothing
 
-instance MessagePack Int where
-  toObject = ObjectInt
-  fromObject = \case
-    ObjectInt n -> Just n
-    _           -> Nothing
-
-instance MessagePack Word64 where
-  toObject = ObjectInt . fromIntegral -- FIXME
-  fromObject = \case
-    ObjectInt n -> Just (fromIntegral n) -- FIXME
-    _           -> Nothing
-
 instance MessagePack Bool where
   toObject = ObjectBool
   fromObject = \case
     ObjectBool b -> Just b
     _            -> Nothing
 
+----------------------------------------------------------------------------
+
+-- | @since 1.1.0.0
+instance MessagePack MPInteger where
+  toObject = ObjectInt
+  fromObject = \case
+    ObjectInt n -> Just n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Word64 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Word32 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Word16 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Word8 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Word where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+
+-- | @since 1.1.0.0
+instance MessagePack Int64 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Int32 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Int16 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+-- | @since 1.1.0.0
+instance MessagePack Int8 where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+instance MessagePack Int where
+  toObject = ObjectInt . toMPInteger
+  fromObject = \case
+    ObjectInt n -> fromMPInteger n
+    _           -> Nothing
+
+----------------------------------------------------------------------------
+
 instance MessagePack Float where
   toObject = ObjectFloat
   fromObject = \case
-    ObjectInt    n -> Just $ fromIntegral n
+    ObjectInt    n -> Just $! fromIntegral n
     ObjectFloat  f -> Just f
-    ObjectDouble d -> Just $ realToFrac d
+    ObjectDouble d -> Just $! realToFrac d
     _              -> Nothing
 
 instance MessagePack Double where
   toObject = ObjectDouble
   fromObject = \case
-    ObjectInt    n -> Just $ fromIntegral n
-    ObjectFloat  f -> Just $ realToFrac f
+    ObjectInt    n -> Just $! fromIntegral n
+    ObjectFloat  f -> Just $! realToFrac f
     ObjectDouble d -> Just d
     _              -> Nothing
 
