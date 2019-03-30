@@ -1,4 +1,6 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE PatternSynonyms     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Module    : Data.MessagePack.Integer
@@ -11,24 +13,26 @@ module Data.MessagePack.Integer
     ( MPInteger
     , ToMPInteger(..)
     , FromMPInteger(..)
+    , fromIntegerTry
 
     , putMPInteger
     , getMPInteger
     ) where
 
 import           Control.Applicative
-import           Control.DeepSeq     (NFData (rnf))
-import           Control.Exception   (ArithException (DivideByZero, Overflow, Underflow),
-                                      throw)
+import           Control.DeepSeq       (NFData (rnf))
+import           Control.Exception     (ArithException (DivideByZero, Overflow, Underflow),
+                                        throw)
 import           Data.Int
 import           Data.Word
 
-import           Data.Binary         (Binary (get, put))
-import           Data.Binary.Get     (Get, getWord16be, getWord32be,
-                                      getWord64be, getWord8)
-import           Data.Binary.Put     (Put, putWord16be, putWord32be,
-                                      putWord64be, putWord8)
-import           Data.Bits
+import           Data.Binary           (Binary (get, put))
+import           Data.Binary.Get       (Get, getWord16be, getWord32be,
+                                        getWord64be, getWord8)
+import           Data.Binary.Put       (Put, putWord16be, putWord32be,
+                                        putWord64be, putWord8)
+
+import           Data.MessagePack.Tags
 
 -- | Integer type that represents the value range of integral numbers in MessagePack; i.e. \( \left[ -2^{63}, 2^{64}-1 \right] \).
 -- In other words, `MPInteger` provides the union of the value ranges of `Word64` and `Int64`.
@@ -38,36 +42,30 @@ data MPInteger = MPInteger  {- isW64 -} !Bool
                             {- value -} {-# UNPACK #-} !Int64
   deriving (Eq,Ord)
 
+-- NOTE: Internal invariant of 'MPInteger'
+--
+-- 'isW64' MUST be true IFF the value range of `Int64` cannot represent the semantic value of 'value'
+--
+-- Consequently, when 'isW64' is true, 'value :: Int64' must be negative.
+
 -- NB: only valid if isW64 is true
 toW64 :: Int64 -> Word64
 toW64 = fromIntegral
 
-
 class ToMPInteger a where
   toMPInteger :: a -> MPInteger
-
-instance ToMPInteger Word64 where
-  toMPInteger w = MPInteger (i<0) i
-    where
-      i = fromIntegral w
-
-instance ToMPInteger Int64 where
-  toMPInteger = MPInteger False
 
 instance ToMPInteger Int8  where toMPInteger i = MPInteger False (fromIntegral i)
 instance ToMPInteger Int16 where toMPInteger i = MPInteger False (fromIntegral i)
 instance ToMPInteger Int32 where toMPInteger i = MPInteger False (fromIntegral i)
+instance ToMPInteger Int64 where toMPInteger   = MPInteger False
 instance ToMPInteger Int   where toMPInteger i = MPInteger False (fromIntegral i)
 
 instance ToMPInteger Word8  where toMPInteger w = MPInteger False (fromIntegral w)
 instance ToMPInteger Word16 where toMPInteger w = MPInteger False (fromIntegral w)
 instance ToMPInteger Word32 where toMPInteger w = MPInteger False (fromIntegral w)
-
-instance ToMPInteger Word where
-  toMPInteger w = MPInteger (i<0) i
-    where
-      i = fromIntegral w
-
+instance ToMPInteger Word64 where toMPInteger w = MPInteger (i<0) i where i = fromIntegral w
+instance ToMPInteger Word   where toMPInteger w = MPInteger (i<0) i where i = fromIntegral w
 
 -- | Convert a 'MPInteger' value to something else if possible
 --
@@ -78,24 +76,64 @@ instance ToMPInteger Word where
 class FromMPInteger a where
   fromMPInteger :: MPInteger -> Maybe a
 
+instance FromMPInteger Word where
+  fromMPInteger (MPInteger isW64 i)
+    | 0 <= i || isW64
+    , toW64 i <= maxW  = Just $! fromIntegral i
+    | otherwise                = Nothing
+    where
+      maxW = fromIntegral (maxBound :: Word) :: Word64
+
 instance FromMPInteger Word64 where
-  fromMPInteger (MPInteger True w) = Just (toW64 w)
+  fromMPInteger (MPInteger True w) = Just $! toW64 w
   fromMPInteger (MPInteger False i)
-    | i < 0     = Nothing
-    | otherwise = Just (toW64 i)
+    | 0 <= i    = Just (toW64 i)
+    | otherwise = Nothing
+
+instance FromMPInteger Word32 where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
+
+instance FromMPInteger Word16 where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
+
+instance FromMPInteger Word8 where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
+
+-----
+
+instance FromMPInteger Int where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
 
 instance FromMPInteger Int64 where
   fromMPInteger (MPInteger True _)  = Nothing
   fromMPInteger (MPInteger False i) = Just i
 
+instance FromMPInteger Int32 where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
 
+instance FromMPInteger Int16 where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
 
--- NOTE: Internal invariant of 'MPInteger'
---
--- 'isW64' MUST be true IFF the value range of `Int64` cannot represent the semantic value of 'value'
---
--- Consequently, when 'isW64' is true, 'value :: Int64' must be negative.
+instance FromMPInteger Int8 where
+  fromMPInteger (MPInteger True _)  = Nothing
+  fromMPInteger (MPInteger False i) = int64toInt i
 
+{-# INLINE int64toInt #-}
+int64toInt :: forall i . (Integral i, Bounded i) => Int64 -> Maybe i
+int64toInt i
+  | minI <= i, i <= maxI = Just $! fromIntegral i
+  | otherwise            = Nothing
+  where
+    minI = fromIntegral (minBound :: i) :: Int64
+    maxI = fromIntegral (maxBound :: i) :: Int64
+
+----------------------------------------------------------------------------
 
 instance Bounded MPInteger where
   minBound = MPInteger False minBound
@@ -110,16 +148,25 @@ instance Show MPInteger where
   showsPrec p (MPInteger False v) = showsPrec p v
   showsPrec p (MPInteger True  v) = showsPrec p (toW64 v)
 
+instance Read MPInteger where
+  readsPrec p s = [ (i, rest) | (j, rest) <- readsPrec p s, Right i <- [fromIntegerTry j] ]
+
 instance NFData MPInteger where
   rnf (MPInteger _ _) = ()
 
+-- | Try to convert 'Integer' into 'MPInteger'
+--
+-- Will return @'Left' 'Underflow'@ or @'Left' 'Overflow'@ respectively if out of range
+fromIntegerTry :: Integer -> Either ArithException MPInteger
+fromIntegerTry i
+  | i <  toInteger (minBound :: Int64)  = Left Underflow
+  | i <= toInteger (maxBound :: Int64)  = Right $! MPInteger False (fromInteger i)
+  | i <= toInteger (maxBound :: Word64) = Right $! MPInteger True (fromInteger i)
+  | otherwise = Left Overflow
+
 -- | This instance will throw the respective arithmetic 'Underflow' and 'Overflow' exception if the range of 'MPInteger' is exceeded.
 instance Num MPInteger where
-  fromInteger i
-    | i <  toInteger (minBound :: Int64)  = throw Underflow
-    | i <= toInteger (maxBound :: Int64)  = MPInteger False (fromInteger i)
-    | i <= toInteger (maxBound :: Word64) = MPInteger True (fromInteger i)
-    | otherwise = throw Overflow
+  fromInteger i = either throw id (fromIntegerTry i)
 
   negate (MPInteger False v)
     | v == minBound = MPInteger True  v -- NB: for the usual twos complement integers, `negate minBound == minBound`
@@ -127,7 +174,6 @@ instance Num MPInteger where
   negate (MPInteger True v)
     | v == minBound = MPInteger False v
     | otherwise     = throw Underflow
-
 
   -- addition
   MPInteger False 0 + x = x
@@ -207,17 +253,17 @@ putMPInteger (MPInteger False i)
 
     -- unsigned int encoding
   | i >= 0 = case () of
-      _ | i < 0x100       -> putWord8 0xCC >> putWord8     (fromIntegral i)
-        | i < 0x10000     -> putWord8 0xCD >> putWord16be  (fromIntegral i)
-        | i < 0x100000000 -> putWord8 0xCE >> putWord32be  (fromIntegral i)
-        | otherwise       -> putWord8 0xCF >> putWord64be  (fromIntegral i)
+      _ | i < 0x100       -> putWord8 TAG_uint8  >> putWord8     (fromIntegral i)
+        | i < 0x10000     -> putWord8 TAG_uint16 >> putWord16be  (fromIntegral i)
+        | i < 0x100000000 -> putWord8 TAG_uint32 >> putWord32be  (fromIntegral i)
+        | otherwise       -> putWord8 TAG_uint64 >> putWord64be  (fromIntegral i)
 
     -- signed int encoding
-  | -0x80       <= i = putWord8 0xD0 >> putWord8     (fromIntegral i)
-  | -0x8000     <= i = putWord8 0xD1 >> putWord16be  (fromIntegral i)
-  | -0x80000000 <= i = putWord8 0xD2 >> putWord32be  (fromIntegral i)
-  | otherwise        = putWord8 0xD3 >> putWord64be  (fromIntegral i)
-putMPInteger (MPInteger True w) = putWord8 0xCF >> putWord64be (toW64 w)
+  | -0x80       <= i = putWord8 TAG_int8  >> putWord8     (fromIntegral i)
+  | -0x8000     <= i = putWord8 TAG_int16 >> putWord16be  (fromIntegral i)
+  | -0x80000000 <= i = putWord8 TAG_int32 >> putWord32be  (fromIntegral i)
+  | otherwise        = putWord8 TAG_int64 >> putWord64be  (fromIntegral i)
+putMPInteger (MPInteger True w) = putWord8 TAG_uint64 >> putWord64be (toW64 w)
 
 -- | Deserializes 'MPInteger' from MessagePack
 --
@@ -226,18 +272,16 @@ getMPInteger :: Get MPInteger
 getMPInteger = getWord8 >>= \case
   -- positive fixnum stores 7-bit positive integer
   -- negative fixnum stores 5-bit negative integer
-  c | c .&. 0x80 == 0x00 -> pure $! toMPInteger (c :: Word8)
-    | c .&. 0xE0 == 0xE0 -> pure $! toMPInteger (fromIntegral c :: Int8)
+  c | is_TAG_fixint c -> pure $! toMPInteger (fromIntegral c :: Int8)
 
-  0xCC -> toMPInteger <$> getWord8
-  0xCD -> toMPInteger <$> getWord16be
-  0xCE -> toMPInteger <$> getWord32be
-  0xCF -> toMPInteger <$> getWord64be
+  TAG_uint8  -> toMPInteger <$> getWord8
+  TAG_uint16 -> toMPInteger <$> getWord16be
+  TAG_uint32 -> toMPInteger <$> getWord32be
+  TAG_uint64 -> toMPInteger <$> getWord64be
 
-  0xD0 -> toMPInteger <$> (fromIntegral <$> getWord8    :: Get Int8)
-  0xD1 -> toMPInteger <$> (fromIntegral <$> getWord16be :: Get Int16)
-  0xD2 -> toMPInteger <$> (fromIntegral <$> getWord32be :: Get Int32)
-  0xD3 -> toMPInteger <$> (fromIntegral <$> getWord64be :: Get Int64)
+  TAG_int8   -> toMPInteger <$> (fromIntegral <$> getWord8    :: Get Int8)
+  TAG_int16  -> toMPInteger <$> (fromIntegral <$> getWord16be :: Get Int16)
+  TAG_int32  -> toMPInteger <$> (fromIntegral <$> getWord32be :: Get Int32)
+  TAG_int64  -> toMPInteger <$> (fromIntegral <$> getWord64be :: Get Int64)
 
-  _    -> empty
-
+  _          -> empty
