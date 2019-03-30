@@ -31,6 +31,7 @@ import           Control.Monad
 import           Data.Bits
 import qualified Data.ByteString         as S
 import           Data.Fixed
+import           Data.IntCast
 import qualified Data.Time.Clock         as Time
 import qualified Data.Time.Clock.POSIX   as Time
 
@@ -158,7 +159,9 @@ mptsEncode :: MPTimestamp -> S.ByteString
 mptsEncode = runPut' . snd . mptsPutExtData
 
 mptsDecode :: S.ByteString -> Maybe MPTimestamp
-mptsDecode bs = runGet' bs (mptsGetExtData (fromIntegral $ S.length bs)) -- FIXME: overflow-check
+mptsDecode bs = do
+  len <- intCastMaybe (S.length bs)
+  runGet' bs (mptsGetExtData len)
 
 -- | This 'Binary' instance encodes\/decodes to\/from MessagePack format
 instance Bin.Binary MPTimestamp where
@@ -170,31 +173,31 @@ instance Bin.Binary MPTimestamp where
 
 mptsPutExtData :: MPTimestamp -> (Word32,Bin.Put)
 mptsPutExtData (MPTimestamp sec ns)
-  | ns == 0, 0 <= sec, sec <= 0xffffffff = (4, Bin.putWord32be (fromIntegral sec))
+  | ns == 0, Just sec' <- intCastMaybe sec = (4, Bin.putWord32be sec')
   | 0 <= sec, sec <= 0x3ffffffff = (8, do
-      let s' = ((fromIntegral ns :: Word64) `shiftL` 34) .|. (fromIntegral sec)
+      let s' = ((intCast ns :: Word64) `shiftL` 34) .|. (fromIntegral sec)
       Bin.putWord64be s')
   | otherwise = (12, do
       Bin.putWord32be ns
-      Bin.putWord64be (fromIntegral sec))
+      Bin.putInt64be sec)
 
 mptsGetExtData :: Word32 -> Bin.Get MPTimestamp
 mptsGetExtData = \case
   4 -> do
     s <- Bin.getWord32be
-    pure $! MPTimestamp (fromIntegral s) 0
+    pure $! MPTimestamp (intCast s) 0
 
   8 -> do
     dat <- Bin.getWord64be
-    let s = fromIntegral (dat .&. 0x3ffffffff)
+    let s  = fromIntegral (dat .&. 0x3ffffffff)
         ns = fromIntegral (dat `shiftR` 34)
     when (ns > 999999999) $ fail "invalid nanosecond value"
     pure $! MPTimestamp s ns
 
   12 -> do
     ns <- Bin.getWord32be
-    s  <- Bin.getWord64be
+    s  <- Bin.getInt64be
     when (ns > 999999999) $ fail "invalid nanosecond value"
-    pure $! MPTimestamp (fromIntegral s) ns
+    pure $! MPTimestamp s ns
 
   _ -> fail "unsupported timestamp encoding"

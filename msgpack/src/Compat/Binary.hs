@@ -6,65 +6,106 @@
 module Compat.Binary
     ( Binary(put, get)
 
-    , runPut', runPut, PutM, Put
-    , runGet', runGet, Get
+    , runPut', Bin.runPut, Bin.PutM, Put
+    , runGet', Bin.runGet, Get
 
-    , getWord64be, putWord64be
-    , getWord32be, putWord32be
-    , getWord16be, putWord16be
-    , getWord8   , putWord8
+    , Bin.getWord64be, Bin.putWord64be
+    , Bin.getWord32be, Bin.putWord32be
+    , Bin.getWord16be, Bin.putWord16be
+    , Bin.getWord8   , Bin.putWord8
+
+    , getInt64be, putInt64be
+    , getInt32be, putInt32be
+    , getInt16be, putInt16be
+    , getInt8   , putInt8
 
     , getFloat32be, putFloat32be
     , getFloat64be, putFloat64be
 
-    , getByteString, putByteString
+    , Bin.getByteString, Bin.putByteString
 
       -- convenience
     , Data.Word.Word, Word8, Word16, Word32, Word64
     , Data.Int.Int, Int8, Int16, Int32, Int64
     ) where
 
+import           Control.Applicative
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BL
+import           Data.IntCast
 
 import           Data.Array.ST        (MArray, STUArray, newArray, readArray)
 import           Data.Array.Unsafe    (castSTUArray)
-import           Data.Binary
-import           Data.Binary.Get
-import           Data.Binary.Put
+import           Data.Binary          (Binary (get, put), Get, Put)
+import qualified Data.Binary.Get      as Bin
+import qualified Data.Binary.Put      as Bin
 import           Data.Int
 import           Data.Word
 import           GHC.ST               (ST, runST)
 
 
 runGet' :: BS.ByteString -> Get a -> Maybe a
-runGet' bs0 g = case pushEndOfInput (runGetIncremental g `pushChunk` bs0) of
-                  Done bs _ x
+runGet' bs0 g = case Bin.pushEndOfInput (Bin.runGetIncremental g `Bin.pushChunk` bs0) of
+                  Bin.Done bs _ x
                     | BS.null bs -> return x
                     | otherwise -> fail "trailing data"
-                  Partial _ -> fail "eof"
-                  Fail _ _ msg -> fail msg
+                  Bin.Partial _ -> fail "eof"
+                  Bin.Fail _ _ msg -> fail msg
 
 runPut' :: Put -> BS.ByteString
-runPut' = BL.toStrict . runPut
+runPut' = BL.toStrict . Bin.runPut
 
+
+-- NB: once we drop support for binary < 0.8.1 we can drop the ops below
+
+{-# INLINE getInt8 #-}
+getInt8 :: Get Int8
+getInt8 = intCastIso <$> Bin.getWord8
+
+{-# INLINE getInt16be #-}
+getInt16be :: Get Int16
+getInt16be = intCastIso <$> Bin.getWord16be
+
+{-# INLINE getInt32be #-}
+getInt32be :: Get Int32
+getInt32be = intCastIso <$> Bin.getWord32be
+
+{-# INLINE getInt64be #-}
+getInt64be :: Get Int64
+getInt64be = intCastIso <$> Bin.getWord64be
+
+{-# INLINE putInt8 #-}
+putInt8 :: Int8 -> Put
+putInt8 x = Bin.putWord8 (intCastIso x)
+
+{-# INLINE putInt16be #-}
+putInt16be :: Int16 -> Put
+putInt16be x = Bin.putWord16be (intCastIso x)
+
+{-# INLINE putInt32be #-}
+putInt32be :: Int32 -> Put
+putInt32be x = Bin.putWord32be (intCastIso x)
+
+{-# INLINE putInt64be #-}
+putInt64be :: Int64 -> Put
+putInt64be x = Bin.putWord64be (intCastIso x)
 
 -- NB: Once we drop support for binary < 0.8.4 we can use @binary@'s own {get,put}{Double,Float}be operations
 
 putFloat32be :: Float -> Put
-putFloat32be x = putWord32be (runST (cast x))
+putFloat32be x = Bin.putWord32be (runST (cast x))
 
 putFloat64be :: Double -> Put
-putFloat64be x = putWord64be (runST (cast x))
+putFloat64be x = Bin.putWord64be (runST (cast x))
 
 getFloat32be :: Get Float
 getFloat32be = do
-  x <- getWord32be
+  x <- Bin.getWord32be
   return (runST (cast x))
 
 getFloat64be :: Get Double
 getFloat64be = do
-  x <- getWord64be
+  x <- Bin.getWord64be
   return (runST (cast x))
 
 -- See https://stackoverflow.com/questions/6976684/converting-ieee-754-floating-point-in-haskell-word32-64-to-and-from-haskell-floa/7002812#7002812

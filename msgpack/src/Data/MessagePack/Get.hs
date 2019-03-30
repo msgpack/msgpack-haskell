@@ -22,6 +22,7 @@ import           Control.Applicative
 import           Control.Monad
 import qualified Data.ByteString          as S
 import           Data.Int
+import           Data.IntCast
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as T
 import qualified Data.Vector              as V
@@ -86,8 +87,8 @@ getStr :: Get T.Text
 getStr = do
   len <- getWord8 >>= \case
     t | Just sz <- is_TAG_fixstr t -> pure sz
-    TAG_str8  -> fromIntegral <$> getWord8
-    TAG_str16 -> fromIntegral <$> getWord16be
+    TAG_str8  -> intCast <$> getWord8
+    TAG_str16 -> intCast <$> getWord16be
     TAG_str32 -> getWord32be
     _         -> empty
 
@@ -100,8 +101,8 @@ getStr = do
 getBin :: Get S.ByteString
 getBin = do
   len <- getWord8 >>= \case
-    TAG_bin8  -> fromIntegral <$> getWord8
-    TAG_bin16 -> fromIntegral <$> getWord16be
+    TAG_bin8  -> intCast <$> getWord8
+    TAG_bin16 -> intCast <$> getWord16be
     TAG_bin32 -> getWord32be
     _         -> empty
   len' <- fromSizeM "getBin: data exceeds capacity of ByteString" len
@@ -111,7 +112,7 @@ getArray :: Get a -> Get (V.Vector a)
 getArray g = do
   len <- getWord8 >>= \case
     t | Just sz <- is_TAG_fixarray t -> pure sz
-    TAG_array16 -> fromIntegral <$> getWord16be
+    TAG_array16 -> intCast <$> getWord16be
     TAG_array32 -> getWord32be
     _           -> empty
   len' <- fromSizeM "getArray: data exceeds capacity of Vector" len
@@ -121,7 +122,7 @@ getMap :: Get a -> Get b -> Get (V.Vector (a, b))
 getMap k v = do
   len <- getWord8 >>= \case
     t | Just sz <- is_TAG_fixmap t -> pure sz
-    TAG_map16 -> fromIntegral <$> getWord16be
+    TAG_map16 -> intCast <$> getWord16be
     TAG_map32 -> getWord32be
     _         -> empty
   len' <- fromSizeM "getMap: data exceeds capacity of Vector" len
@@ -141,24 +142,12 @@ getExt' getdat = do
     TAG_fixext4  -> return 4
     TAG_fixext8  -> return 8
     TAG_fixext16 -> return 16
-    TAG_ext8     -> fromIntegral <$> getWord8
-    TAG_ext16    -> fromIntegral <$> getWord16be
+    TAG_ext8     -> intCast <$> getWord8
+    TAG_ext16    -> intCast <$> getWord16be
     TAG_ext32    -> getWord32be
     _            -> empty
   typ <- getWord8
   getdat typ len
 
 fromSizeM :: String -> Word32 -> Get Int
-fromSizeM label sz = maybe (fail label) pure (intFromW32 sz)
-  where
-    -- TODO: switch to @int-cast@ package
-    intFromW32 :: Word32 -> Maybe Int
-    intFromW32 w
-      | intLargerThanWord32 = Just $! j
-      | w > maxW            = Nothing
-      | otherwise           = Just $! j
-      where
-        j = fromIntegral w
-        intLargerThanWord32 = not (maxI < (0 :: Int))
-        maxI = fromIntegral (maxBound :: Word32)
-        maxW = fromIntegral (maxBound :: Int)
+fromSizeM label sz = maybe (fail label) pure (intCastMaybe sz)

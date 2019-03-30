@@ -20,6 +20,7 @@ module Data.MessagePack.Put (
 import           Control.Applicative
 import           Data.Bits
 import qualified Data.ByteString          as S
+import           Data.IntCast
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as T
 import qualified Data.Vector              as V
@@ -121,14 +122,4 @@ putExt' typ (sz,putdat) = do
 ----------------------------------------------------------------------------
 
 toSizeM :: String -> Int -> PutM Word32
-toSizeM label len0 = maybe (fail label) pure (int2w32 len0)
-  where
-    -- TODO: switch to @int-cast@ package
-    int2w32 :: Int -> Maybe Word32
-    int2w32 j
-      | j < 0                         = Nothing
-      | intLargerThanWord32, j > maxI = Nothing
-      | otherwise                     = Just $! fromIntegral j
-      where
-        intLargerThanWord32 = not (maxI < (0 `asTypeOf` j))
-        maxI = fromIntegral (maxBound :: Word32)
+toSizeM label len0 = maybe (fail label) pure (intCastMaybe len0)
