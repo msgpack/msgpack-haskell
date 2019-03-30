@@ -12,131 +12,119 @@
 module Data.MessagePack.Put (
   putNil, putBool, putFloat, putDouble,
   putInt, putWord, putInt64, putWord64,
-  putStr, putBin, putArray, putMap, putExt,
+  putStr, putBin, putArray, putMap, putExt, putExt'
   ) where
 
 import           Data.Binary
-import           Data.Binary.IEEE754 (putFloat32be, putFloat64be)
-import           Data.Binary.Put     (putByteString, putWord16be, putWord32be,
-                                      putWord64be, putWord8)
+import           Data.Binary.IEEE754      (putFloat32be, putFloat64be)
+import           Data.Binary.Put          (putByteString, putWord16be,
+                                           putWord32be)
 import           Data.Bits
-import qualified Data.ByteString     as S
+import qualified Data.ByteString          as S
 import           Data.Int
-import qualified Data.Text           as T
-import qualified Data.Text.Encoding  as T
-import qualified Data.Vector         as V
+import qualified Data.Text                as T
+import qualified Data.Text.Encoding       as T
+import qualified Data.Vector              as V
 
-import           Prelude             hiding (putStr)
+import           Prelude                  hiding (putStr)
+
+import           Data.MessagePack.Integer
+import           Data.MessagePack.Tags
 
 putNil :: Put
-putNil = putWord8 0xC0
+putNil = putWord8 TAG_nil
 
 putBool :: Bool -> Put
-putBool False = putWord8 0xC2
-putBool True  = putWord8 0xC3
+putBool False = putWord8 TAG_false
+putBool True  = putWord8 TAG_true
 
+-- | Encodes an 'Int' to MessagePack
+--
+-- See also 'MPInteger' and its 'Binary' instance.
 putInt :: Int -> Put
-putInt n = putInt64 (fromIntegral n)
+putInt = put . toMPInteger
 
 -- | @since 1.0.1.0
 putWord :: Word -> Put
-putWord n = putWord64 (fromIntegral n)
+putWord = put . toMPInteger
 
 -- | @since 1.0.1.0
 putInt64 :: Int64 -> Put
-putInt64 n
-    -- positive fixnum stores 7-bit positive integer
-    -- negative fixnum stores 5-bit negative integer
-  | -32 <= n && n <= 127 = putWord8 $ fromIntegral n
-
-    -- unsigned int encoding
-  | n >= 0 = putWord64 (fromIntegral n)
-
-    -- signed int encoding
-  | -0x80       <= n = putWord8 0xD0 >> putWord8     (fromIntegral n)
-  | -0x8000     <= n = putWord8 0xD1 >> putWord16be  (fromIntegral n)
-  | -0x80000000 <= n = putWord8 0xD2 >> putWord32be  (fromIntegral n)
-  | otherwise        = putWord8 0xD3 >> putWord64be  (fromIntegral n)
+putInt64 = put . toMPInteger
 
 -- | @since 1.0.1.0
 putWord64 :: Word64 -> Put
-putWord64 n
-    -- positive fixnum stores 7-bit positive integer
-  | n < 0x80        = putWord8 $ fromIntegral n
-
-    -- unsigned int encoding
-  | n < 0x100       = putWord8 0xCC >> putWord8     (fromIntegral n)
-  | n < 0x10000     = putWord8 0xCD >> putWord16be  (fromIntegral n)
-  | n < 0x100000000 = putWord8 0xCE >> putWord32be  (fromIntegral n)
-  | otherwise       = putWord8 0xCF >> putWord64be  (fromIntegral n)
+putWord64 = put . toMPInteger
 
 putFloat :: Float -> Put
-putFloat f = do
-  putWord8 0xCA
-  putFloat32be f
+putFloat f = putWord8 TAG_float32 >> putFloat32be f
 
 putDouble :: Double -> Put
-putDouble d = do
-  putWord8 0xCB
-  putFloat64be d
+putDouble d = putWord8 TAG_float64 >> putFloat64be d
 
 putStr :: T.Text -> Put
 putStr t = do
   let bs = T.encodeUtf8 t
   case S.length bs of
-    len | len <= 31 ->
-          putWord8 $ 0xA0 .|. fromIntegral len
-        | len < 0x100 ->
-          putWord8 0xD9 >> putWord8    (fromIntegral len)
-        | len < 0x10000 ->
-          putWord8 0xDA >> putWord16be (fromIntegral len)
-        | otherwise ->
-          putWord8 0xDB >> putWord32be (fromIntegral len)
+    len | len < 32      -> putWord8 (TAG_fixstr .|. fromIntegral len)
+        | len < 0x100   -> putWord8 TAG_str8  >> putWord8    (fromIntegral len)
+        | len < 0x10000 -> putWord8 TAG_str16 >> putWord16be (fromIntegral len)
+        | otherwise     -> putWord8 TAG_str32 >> putWord32be (fromIntegral len)
   putByteString bs
 
 putBin :: S.ByteString -> Put
 putBin bs = do
   case S.length bs of
-    len | len < 0x100 ->
-          putWord8 0xC4 >> putWord8    (fromIntegral len)
-        | len < 0x10000 ->
-          putWord8 0xC5 >> putWord16be (fromIntegral len)
-        | otherwise ->
-          putWord8 0xC6 >> putWord32be (fromIntegral len)
+    len | len < 0x100   -> putWord8 TAG_bin8  >> putWord8    (fromIntegral len)
+        | len < 0x10000 -> putWord8 TAG_bin16 >> putWord16be (fromIntegral len)
+        | otherwise     -> putWord8 TAG_bin32 >> putWord32be (fromIntegral len)
   putByteString bs
 
 putArray :: (a -> Put) -> V.Vector a -> Put
 putArray p xs = do
   case V.length xs of
-    len | len <= 15 ->
-          putWord8 $ 0x90 .|. fromIntegral len
-        | len < 0x10000 ->
-          putWord8 0xDC >> putWord16be (fromIntegral len)
-        | otherwise ->
-          putWord8 0xDD >> putWord32be (fromIntegral len)
+    len | len < 16      -> putWord8 (TAG_fixarray .|. fromIntegral len)
+        | len < 0x10000 -> putWord8 TAG_array16 >> putWord16be (fromIntegral len)
+        | otherwise     -> putWord8 TAG_array32 >> putWord32be (fromIntegral len)
   V.mapM_ p xs
 
 putMap :: (a -> Put) -> (b -> Put) -> V.Vector (a, b) -> Put
 putMap p q xs = do
   case V.length xs of
-    len | len <= 15 ->
-          putWord8 $ 0x80 .|. fromIntegral len
-        | len < 0x10000 ->
-          putWord8 0xDE >> putWord16be (fromIntegral len)
-        | otherwise ->
-          putWord8 0xDF >> putWord32be (fromIntegral len)
-  V.mapM_ (\(a, b) -> p a >> q b ) xs
+    len | len < 16      -> putWord8 (TAG_fixmap .|. fromIntegral len)
+        | len < 0x10000 -> putWord8 TAG_map16 >> putWord16be (fromIntegral len)
+        | otherwise     -> putWord8 TAG_map32 >> putWord32be (fromIntegral len)
+  V.mapM_ (\(a, b) -> p a >> q b) xs
 
+-- | __NOTE__: MessagePack is limited to maximum extended data payload size of \( 2^{32}-1 \) bytes.
 putExt :: Word8 -> S.ByteString -> Put
-putExt typ dat = do
-  case S.length dat of
-    1  -> putWord8 0xD4
-    2  -> putWord8 0xD5
-    4  -> putWord8 0xD6
-    8  -> putWord8 0xD7
-    16 -> putWord8 0xD8
-    len | len < 0x100   -> putWord8 0xC7 >> putWord8    (fromIntegral len)
-        | len < 0x10000 -> putWord8 0xC8 >> putWord16be (fromIntegral len)
-        | otherwise     -> putWord8 0xC9 >> putWord32be (fromIntegral len)
+putExt typ dat
+  | Just sz <- int2w32 (S.length dat) = putExt' typ (sz, putByteString dat)
+  | otherwise = fail "putExt: data exceeds 2^32-1 byte limit of MessagePack"
+
+-- | @since 1.1.0.0
+putExt' :: Word8 -- ^ type-tag of extended data
+        -> (Word32,Put) -- ^ @(size-of-data, data-'Put'-action)@ (__NOTE__: it's the responsibility of the caller to ensure that the declared size matches exactly the data generated by the 'Put' action)
+        -> Put
+putExt' typ (sz,putdat) = do
+  case sz of
+    1                   -> putWord8 TAG_fixext1
+    2                   -> putWord8 TAG_fixext2
+    4                   -> putWord8 TAG_fixext4
+    8                   -> putWord8 TAG_fixext8
+    16                  -> putWord8 TAG_fixext16
+    len | len < 0x100   -> putWord8 TAG_ext8  >> putWord8    (fromIntegral len)
+        | len < 0x10000 -> putWord8 TAG_ext16 >> putWord16be (fromIntegral len)
+        | otherwise     -> putWord8 TAG_ext32 >> putWord32be (fromIntegral len)
   putWord8 typ
-  putByteString dat
+  putdat
+
+-- TODO: switch to @int-cast@ package
+int2w32 :: Int -> Maybe Word32
+int2w32 j
+  | j < 0                         = Nothing
+  | intLargerThanWord32, j > maxI = Nothing
+  | otherwise                     = Just $! fromIntegral j
+  where
+    intLargerThanWord32 = not (maxI < (0 `asTypeOf` j))
+    maxI = fromIntegral (maxBound :: Word32)
