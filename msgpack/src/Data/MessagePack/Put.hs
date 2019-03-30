@@ -18,19 +18,15 @@ module Data.MessagePack.Put (
   ) where
 
 import           Control.Applicative
-import           Data.Binary
-import           Data.Binary.IEEE754      (putFloat32be, putFloat64be)
-import           Data.Binary.Put          (PutM, putByteString, putWord16be,
-                                           putWord32be)
 import           Data.Bits
 import qualified Data.ByteString          as S
-import           Data.Int
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as T
 import qualified Data.Vector              as V
 
 import           Prelude                  hiding (putStr)
 
+import           Compat.Binary
 import           Data.MessagePack.Integer
 import           Data.MessagePack.Tags
 

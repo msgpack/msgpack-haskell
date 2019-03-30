@@ -20,15 +20,8 @@ import           Control.Applicative
 import           Control.DeepSeq       (NFData (rnf))
 import           Control.Exception     (ArithException (DivideByZero, Overflow, Underflow),
                                         throw)
-import           Data.Int
-import           Data.Word
 
-import           Data.Binary           (Binary (get, put))
-import           Data.Binary.Get       (Get, getWord16be, getWord32be,
-                                        getWord64be, getWord8)
-import           Data.Binary.Put       (Put, putWord16be, putWord32be,
-                                        putWord64be, putWord8)
-
+import           Compat.Binary
 import           Data.MessagePack.Tags
 
 -- | Integer type that represents the value range of integral numbers in MessagePack; i.e. \( \left[ -2^{63}, 2^{64}-1 \right] \).

@@ -28,7 +28,6 @@ module Data.MessagePack.Object (
 import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
-import           Data.Binary
 import qualified Data.ByteString          as S
 import qualified Data.ByteString.Lazy     as L
 import qualified Data.ByteString.Short    as SBS
@@ -47,6 +46,8 @@ import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
 import           Data.MessagePack.Integer
 import           Data.MessagePack.Put
+
+import           Compat.Binary
 
 import           Prelude                  hiding (putStr)
 

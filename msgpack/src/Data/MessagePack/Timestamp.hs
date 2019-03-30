@@ -28,18 +28,13 @@ module Data.MessagePack.Timestamp
 import           Control.Applicative
 import           Control.DeepSeq         (NFData (rnf))
 import           Control.Monad
-import qualified Data.Binary             as Bin
-import qualified Data.Binary.Get         as Bin
-import qualified Data.Binary.Put         as Bin
 import           Data.Bits
 import qualified Data.ByteString         as S
-import qualified Data.ByteString.Lazy    as L
 import           Data.Fixed
-import           Data.Int
 import qualified Data.Time.Clock         as Time
 import qualified Data.Time.Clock.POSIX   as Time
-import           Data.Word
 
+import           Compat.Binary           as Bin
 import           Data.MessagePack.Get
 import           Data.MessagePack.Object
 import           Data.MessagePack.Put
@@ -160,18 +155,10 @@ instance MessagePack MPTimestamp where
 
 -- helpers for 'MessagePack' instance
 mptsEncode :: MPTimestamp -> S.ByteString
-mptsEncode = L.toStrict . Bin.runPut . snd . mptsPutExtData
+mptsEncode = runPut' . snd . mptsPutExtData
 
 mptsDecode :: S.ByteString -> Maybe MPTimestamp
 mptsDecode bs = runGet' bs (mptsGetExtData (fromIntegral $ S.length bs)) -- FIXME: overflow-check
-
-runGet' :: S.ByteString -> Bin.Get a -> Maybe a
-runGet' bs0 g = case Bin.pushEndOfInput (Bin.runGetIncremental g `Bin.pushChunk` bs0) of
-                  Bin.Done bs _ x
-                    | S.null bs -> pure x
-                    | otherwise -> fail "trailing data"
-                  Bin.Partial _ -> fail "eof"
-                  Bin.Fail _ _ msg -> fail msg
 
 -- | This 'Binary' instance encodes\/decodes to\/from MessagePack format
 instance Bin.Binary MPTimestamp where

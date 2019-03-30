@@ -20,16 +20,13 @@ module Data.MessagePack.Get(
 
 import           Control.Applicative
 import           Control.Monad
-import           Data.Binary
-import           Data.Binary.Get          (getByteString, getWord16be,
-                                           getWord32be)
-import           Data.Binary.IEEE754      (getFloat32be, getFloat64be)
 import qualified Data.ByteString          as S
 import           Data.Int
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as T
 import qualified Data.Vector              as V
 
+import           Compat.Binary
 import           Data.MessagePack.Integer
 import           Data.MessagePack.Tags
 
