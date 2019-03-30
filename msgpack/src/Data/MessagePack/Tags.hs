@@ -102,3 +102,7 @@ pattern TAG_array32       = 0xdd -- 0b11011101
 
 pattern TAG_map16         = 0xde -- 0b11011110
 pattern TAG_map32         = 0xdf -- 0b11011111
+
+-- used by "Data.MessagePack.Timestamp"
+pattern XTAG_Timestamp = 0xff
+
