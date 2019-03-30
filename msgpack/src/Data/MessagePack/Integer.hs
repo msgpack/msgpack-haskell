@@ -14,9 +14,6 @@ module Data.MessagePack.Integer
     , ToMPInteger(..)
     , FromMPInteger(..)
     , fromIntegerTry
-
-    , putMPInteger
-    , getMPInteger
     ) where
 
 import           Control.Applicative
@@ -236,6 +233,13 @@ instance Integral MPInteger where
 ----------------------------------------------------------------------------
 
 -- | This 'Binary' instance encodes\/decodes to\/from MessagePack format
+--
+-- When serializing 'MPInteger's via 'get' the shortest encoding is
+-- used. Moreoever, for non-negative integers the unsigned encoding is
+-- always used.
+--
+-- Deserialization via 'get' will only fail if a non-integer MessagePack tag is encountered.
+--
 instance Binary MPInteger where
   get = getMPInteger
   put = putMPInteger
