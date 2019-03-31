@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE PatternSynonyms     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -44,7 +45,7 @@ import           Data.MessagePack.Tags
 --
 -- @since 1.1.0.0
 data MPTimestamp = MPTimestamp !Int64 !Word32
-                 deriving (Eq,Ord,Show,Read)
+                 deriving (Eq,Ord,Show,Read,Typeable)
 
 instance Bounded MPTimestamp where
   minBound = MPTimestamp minBound 0

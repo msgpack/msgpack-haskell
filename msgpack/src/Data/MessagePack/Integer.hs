@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE PatternSynonyms     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -30,7 +31,7 @@ import           Data.MessagePack.Tags
 -- This type can be unboxed (i.e. via @{-# UNPACK #-}@).
 data MPInteger = MPInteger  {- isW64 -} !Bool
                             {- value -} {-# UNPACK #-} !Int64
-  deriving (Eq,Ord)
+  deriving (Eq,Ord,Typeable)
 
 -- NOTE: Internal invariant of 'MPInteger'
 --
