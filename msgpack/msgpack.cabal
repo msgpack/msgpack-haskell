@@ -67,6 +67,7 @@ library
 
   other-modules:    Data.MessagePack.Tags
                     Data.MessagePack.Result
+                    Data.MessagePack.Get.Internal
                     Compat.Binary
                     Compat.Prelude
 
