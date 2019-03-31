@@ -239,23 +239,17 @@ instance MessagePack Int where
 
 ----------------------------------------------------------------------------
 
+-- | This instance decodes only 32bit floats and will fail to decode 64bit floats from MessagePack streams
 instance MessagePack Float where
   toObject = ObjectFloat
   toBinary = putFloat
-  fromObject = \case
-    ObjectInt    n -> pure $! fromIntegral n
-    ObjectFloat  f -> pure f
-    ObjectDouble d -> pure $! realToFrac d
-    obj            -> typeMismatch "Float" obj
+  fromObject = withFloat "Float" pure
 
+-- | This instance decodes 64bit and 32bit floats from MessagePack streams into a 'Double'
 instance MessagePack Double where
   toObject = ObjectDouble
   toBinary = putDouble
-  fromObject = \case
-    ObjectInt    n -> pure $! fromIntegral n
-    ObjectFloat  f -> pure $! realToFrac f
-    ObjectDouble d -> pure d
-    obj            -> typeMismatch "Double" obj
+  fromObject = withDouble "Double" pure
 
 instance MessagePack S.ByteString where
   toObject = ObjectBin
@@ -422,6 +416,15 @@ withInt :: String -> (MPInteger -> Result a) -> Object -> Result a
 withInt _ f (ObjectInt i) = f i
 withInt expected _ got    = typeMismatch expected got
 
+withFloat :: String -> (Float -> Result a) -> Object -> Result a
+withFloat _ f (ObjectFloat x) = f x
+withFloat expected _ got      = typeMismatch expected got
+
+withDouble :: String -> (Double -> Result a) -> Object -> Result a
+withDouble _ f (ObjectFloat x)  = f $! (realToFrac x)
+withDouble _ f (ObjectDouble x) = f x
+withDouble expected _ got       = typeMismatch expected got
+
 withBin :: String -> (S.ByteString -> Result a) -> Object -> Result a
 withBin _ f (ObjectBin i) = f i
 withBin expected _ got    = typeMismatch expected got
@@ -433,7 +436,6 @@ withStr expected _ got    = typeMismatch expected got
 withArray :: String -> (V.Vector Object -> Result a) -> Object -> Result a
 withArray _ f (ObjectArray xs) = f xs
 withArray expected _ got       = typeMismatch expected got
-
 
 withMap :: String -> (V.Vector (Object,Object) -> Result a) -> Object -> Result a
 withMap _ f (ObjectMap xs) = f xs
