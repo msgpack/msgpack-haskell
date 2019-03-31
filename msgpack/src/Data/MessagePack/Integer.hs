@@ -15,6 +15,9 @@ module Data.MessagePack.Integer
     , ToMPInteger(..)
     , FromMPInteger(..)
     , fromIntegerTry
+
+      -- ** Internal helper
+    , tryMPInteger
     ) where
 
 import           Compat.Prelude
@@ -252,19 +255,23 @@ putMPInteger (MPInteger True w) = putWord8 TAG_uint64 >> putWord64be (toW64 w)
 --
 -- This operation will only fail if a non-integer MessagePack tag is encountered.
 getMPInteger :: Get MPInteger
-getMPInteger = getWord8 >>= \case
+getMPInteger = do
+  tag <- getWord8
+  tryMPInteger tag id (fail "getMPInteger")
+
+-- | @since 1.1.0.0
+{-# INLINE tryMPInteger #-}
+tryMPInteger :: Word8 -> (MPInteger -> a) -> Get a -> Get a
+tryMPInteger tag' f cont = case tag' of
   -- positive fixnum stores 7-bit positive integer
   -- negative fixnum stores 5-bit negative integer
-  c | is_TAG_fixint c -> pure $! toMPInteger (intCastIso c :: Int8)
-
-  TAG_uint8  -> toMPInteger <$> getWord8
-  TAG_uint16 -> toMPInteger <$> getWord16be
-  TAG_uint32 -> toMPInteger <$> getWord32be
-  TAG_uint64 -> toMPInteger <$> getWord64be
-
-  TAG_int8   -> toMPInteger <$> getInt8
-  TAG_int16  -> toMPInteger <$> getInt16be
-  TAG_int32  -> toMPInteger <$> getInt32be
-  TAG_int64  -> toMPInteger <$> getInt64be
-
-  _          -> empty
+  c | is_TAG_fixint c -> pure $! f $! toMPInteger (intCastIso c :: Int8)
+  TAG_int8            -> f . toMPInteger <$> getInt8
+  TAG_int16           -> f . toMPInteger <$> getInt16be
+  TAG_int32           -> f . toMPInteger <$> getInt32be
+  TAG_int64           -> f . toMPInteger <$> getInt64be
+  TAG_uint8           -> f . toMPInteger <$> getWord8
+  TAG_uint16          -> f . toMPInteger <$> getWord16be
+  TAG_uint32          -> f . toMPInteger <$> getWord32be
+  TAG_uint64          -> f . toMPInteger <$> getWord64be
+  _                   -> cont

@@ -26,25 +26,26 @@ module Data.MessagePack.Object (
   ) where
 
 import           Compat.Prelude
-import           Prelude                  hiding (putStr)
+import           Prelude                       hiding (putStr)
 
 import           Control.Arrow
-import qualified Data.ByteString          as S
-import qualified Data.ByteString.Lazy     as L
-import qualified Data.ByteString.Short    as SBS
-import           Data.Hashable            (Hashable)
-import qualified Data.HashMap.Strict      as HashMap
-import qualified Data.IntMap.Strict       as IntMap
-import qualified Data.Map                 as Map
-import qualified Data.Text                as T
-import qualified Data.Text.Lazy           as LT
-import qualified Data.Vector              as V
+import qualified Data.ByteString               as S
+import qualified Data.ByteString.Lazy          as L
+import qualified Data.ByteString.Short         as SBS
+import           Data.Hashable                 (Hashable)
+import qualified Data.HashMap.Strict           as HashMap
+import qualified Data.IntMap.Strict            as IntMap
+import qualified Data.Map                      as Map
+import qualified Data.Text                     as T
+import qualified Data.Text.Lazy                as LT
+import qualified Data.Vector                   as V
 
 import           Data.MessagePack.Assoc
-import           Data.MessagePack.Get
+import           Data.MessagePack.Get.Internal
 import           Data.MessagePack.Integer
 import           Data.MessagePack.Put
 import           Data.MessagePack.Result
+import           Data.MessagePack.Tags
 
 import           Compat.Binary
 
@@ -96,18 +97,22 @@ instance NFData Object where
     _             -> ()
 
 getObject :: Get Object
-getObject =
-      ObjectNil    <$  getNil
-  <|> ObjectBool   <$> getBool
-  <|> ObjectInt    <$> get
-  <|> ObjectFloat  <$> getFloat
-  <|> ObjectDouble <$> getDouble
-  <|> ObjectStr    <$> getStr
-  <|> ObjectBin    <$> getBin
-  <|> ObjectArray  <$> getArray getObject
-  <|> ObjectMap    <$> getMap getObject getObject
-  <|> uncurry ObjectExt <$> getExt
-  <|> fail "invalid MessagePack object"
+getObject = do
+  -- NB: <|> has the side-effect of un-consuming on failure
+  tag <- do { t <- getWord8; guard (t /= TAG_reserved_C1); pure t }
+         <|> (fail "encountered reserved MessagePack tag 0xC1")
+
+  tryNil tag (const ObjectNil) $
+    tryBool                    tag ObjectBool $
+    tryMPInteger               tag ObjectInt $
+    tryFloat                   tag ObjectFloat $
+    tryDouble                  tag ObjectDouble $
+    tryStr                     tag ObjectStr $
+    tryBin                     tag ObjectBin $
+    tryArray getObject         tag ObjectArray $
+    tryMap getObject getObject tag ObjectMap $
+    tryExt                     tag (uncurry ObjectExt) $
+    fail ("getObject: internal error " ++ show tag) -- should never happen
 
 putObject :: Object -> Put
 putObject = \case

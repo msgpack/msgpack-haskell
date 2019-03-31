@@ -62,7 +62,7 @@ pattern TAG_fixstr        = 0xa0 -- 0b101xxxxx [0xa0 .. 0xbf]
 pattern TAG_MASK_fixstr   = 0xe0 -- 0b11100000
 
 pattern TAG_nil           = 0xc0 -- 0b11000000
--- reserved               = 0xc1 -- 0b11000001
+pattern TAG_reserved_C1   = 0xc1 -- 0b11000001
 pattern TAG_false         = 0xc2 -- 0b11000010
 pattern TAG_true          = 0xc3 -- 0b11000011
 
