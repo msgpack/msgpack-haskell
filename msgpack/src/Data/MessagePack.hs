@@ -22,7 +22,8 @@ module Data.MessagePack (
   module Data.MessagePack.Put,
   ) where
 
-import           Data.Binary             (decode, encode)
+import           Data.Binary             (decode)
+import           Data.Binary.Put         (runPut)
 import qualified Data.ByteString.Lazy    as L
 
 import           Data.MessagePack.Assoc
@@ -32,7 +33,7 @@ import           Data.MessagePack.Put
 
 -- | Pack a Haskell value to MessagePack binary.
 pack :: MessagePack a => a -> L.ByteString
-pack = encode . toObject
+pack = runPut . toBinary
 
 -- | Unpack MessagePack binary to a Haskell value. If it fails, it returns Nothing.
 unpack :: MessagePack a => L.ByteString -> Maybe a

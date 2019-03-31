@@ -128,6 +128,13 @@ instance Binary Object where
 -- | Class for converting between MessagePack 'Object's and native Haskell types.
 class MessagePack a where
   toObject   :: a -> Object
+
+  -- | Encodes directly to 'Put' monad bypassing the intermediate 'Object' AST
+  --
+  -- @since 1.1.0.0
+  toBinary :: a -> Put
+  toBinary = putObject . toObject
+
   fromObject :: Object -> Maybe a
 
 -- core instances
@@ -135,17 +142,20 @@ class MessagePack a where
 -- | The trivial identity 'MessagePack' instance
 instance MessagePack Object where
   toObject = id
+  toBinary = putObject
   fromObject = Just
 
 -- | Encodes as 'ObjectNil'
 instance MessagePack () where
   toObject _ = ObjectNil
+  toBinary _ = putNil
   fromObject = \case
     ObjectNil -> Just ()
     _         -> Nothing
 
 instance MessagePack Bool where
   toObject = ObjectBool
+  toBinary = putBool
   fromObject = \case
     ObjectBool b -> Just b
     _            -> Nothing
@@ -155,6 +165,7 @@ instance MessagePack Bool where
 -- | @since 1.1.0.0
 instance MessagePack MPInteger where
   toObject = ObjectInt
+  toBinary = put
   fromObject = \case
     ObjectInt n -> Just n
     _           -> Nothing
@@ -162,6 +173,7 @@ instance MessagePack MPInteger where
 -- | @since 1.1.0.0
 instance MessagePack Word64 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -169,6 +181,7 @@ instance MessagePack Word64 where
 -- | @since 1.1.0.0
 instance MessagePack Word32 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -176,6 +189,7 @@ instance MessagePack Word32 where
 -- | @since 1.1.0.0
 instance MessagePack Word16 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -183,6 +197,7 @@ instance MessagePack Word16 where
 -- | @since 1.1.0.0
 instance MessagePack Word8 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -190,6 +205,7 @@ instance MessagePack Word8 where
 -- | @since 1.1.0.0
 instance MessagePack Word where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -198,6 +214,7 @@ instance MessagePack Word where
 -- | @since 1.1.0.0
 instance MessagePack Int64 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -205,6 +222,7 @@ instance MessagePack Int64 where
 -- | @since 1.1.0.0
 instance MessagePack Int32 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -212,6 +230,7 @@ instance MessagePack Int32 where
 -- | @since 1.1.0.0
 instance MessagePack Int16 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -219,12 +238,14 @@ instance MessagePack Int16 where
 -- | @since 1.1.0.0
 instance MessagePack Int8 where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
 
 instance MessagePack Int where
   toObject = ObjectInt . toMPInteger
+  toBinary = put . toMPInteger
   fromObject = \case
     ObjectInt n -> fromMPInteger n
     _           -> Nothing
@@ -233,6 +254,7 @@ instance MessagePack Int where
 
 instance MessagePack Float where
   toObject = ObjectFloat
+  toBinary = putFloat
   fromObject = \case
     ObjectInt    n -> Just $! fromIntegral n
     ObjectFloat  f -> Just f
@@ -241,6 +263,7 @@ instance MessagePack Float where
 
 instance MessagePack Double where
   toObject = ObjectDouble
+  toBinary = putDouble
   fromObject = \case
     ObjectInt    n -> Just $! fromIntegral n
     ObjectFloat  f -> Just $! realToFrac f
@@ -249,6 +272,7 @@ instance MessagePack Double where
 
 instance MessagePack S.ByteString where
   toObject = ObjectBin
+  toBinary = putBin
   fromObject = \case
     ObjectBin r -> Just r
     _           -> Nothing
@@ -256,21 +280,22 @@ instance MessagePack S.ByteString where
 -- Because of overlapping instance, this must be above [a]
 instance MessagePack String where
   toObject = toObject . T.pack
+  toBinary = putStr . T.pack
   fromObject obj = T.unpack <$> fromObject obj
 
 instance MessagePack a => MessagePack (V.Vector a) where
   toObject = ObjectArray . V.map toObject
+  toBinary = putArray toBinary
   fromObject = \case
     ObjectArray xs -> V.mapM fromObject xs
     _              -> Nothing
 
 instance (MessagePack a, MessagePack b) => MessagePack (Assoc (V.Vector (a, b))) where
   toObject (Assoc xs) = ObjectMap $ V.map (toObject *** toObject) xs
+  toBinary (Assoc xs) = putMap toBinary toBinary xs
   fromObject = \case
-    ObjectMap xs ->
-      Assoc <$> V.mapM (\(k, v) -> (,) <$> fromObject k <*> fromObject v) xs
-    _ ->
-      Nothing
+    ObjectMap xs -> Assoc <$> V.mapM (\(k, v) -> (,) <$> fromObject k <*> fromObject v) xs
+    _            -> Nothing
 
 -- util instances
 
@@ -283,6 +308,9 @@ instance MessagePack a => MessagePack (Maybe a) where
   toObject = \case
     Just a  -> toObject a
     Nothing -> ObjectNil
+  toBinary = \case
+    Just a  -> toBinary a
+    Nothing -> putNil
 
   fromObject = \case
     ObjectNil -> Just Nothing
@@ -292,85 +320,102 @@ instance MessagePack a => MessagePack (Maybe a) where
 
 instance MessagePack L.ByteString where
   toObject = ObjectBin . L.toStrict
+  toBinary = putBin . L.toStrict
   fromObject obj = L.fromStrict <$> fromObject obj
 
 -- | @since 1.0.1.0
 instance MessagePack SBS.ShortByteString where
   toObject = ObjectBin . SBS.fromShort
+  toBinary = putBin . SBS.fromShort
   fromObject obj = SBS.toShort <$> fromObject obj
 
 instance MessagePack T.Text where
   toObject = ObjectStr
+  toBinary = putStr
   fromObject = \case
     ObjectStr s -> Just s
     _           -> Nothing
 
 instance MessagePack LT.Text where
   toObject = toObject . LT.toStrict
+  toBinary = putStr . LT.toStrict
   fromObject obj = LT.fromStrict <$> fromObject obj
 
 -- array like
 
 instance MessagePack a => MessagePack [a] where
   toObject = toObject . V.fromList
+  toBinary = putArray toBinary . V.fromList
   fromObject obj = V.toList <$> fromObject obj
 
 -- map like
 
 instance (MessagePack k, MessagePack v) => MessagePack (Assoc [(k, v)]) where
   toObject = toObject . Assoc . V.fromList . unAssoc
+  toBinary = putMap toBinary toBinary . V.fromList . unAssoc
   fromObject obj = Assoc . V.toList . unAssoc <$> fromObject obj
 
 instance (MessagePack k, MessagePack v, Ord k) => MessagePack (Map.Map k v) where
   toObject = toObject . Assoc . Map.toList
+  toBinary = putMap toBinary toBinary . V.fromList . Map.toList
   fromObject obj = Map.fromList . unAssoc <$> fromObject obj
 
 instance MessagePack v => MessagePack (IntMap.IntMap v) where
   toObject = toObject . Assoc . IntMap.toList
+  toBinary = putMap toBinary toBinary . V.fromList . IntMap.toList
   fromObject obj = IntMap.fromList . unAssoc <$> fromObject obj
 
 instance (MessagePack k, MessagePack v, Hashable k, Eq k) => MessagePack (HashMap.HashMap k v) where
   toObject = toObject . Assoc . HashMap.toList
+  toBinary = putMap toBinary toBinary . V.fromList . HashMap.toList
   fromObject obj = HashMap.fromList . unAssoc <$> fromObject obj
 
 -- tuples
 
 instance (MessagePack a1, MessagePack a2) => MessagePack (a1, a2) where
   toObject (a1, a2) = ObjectArray [toObject a1, toObject a2]
+  toBinary (a1, a2) = putArray' 2 $ do { toBinary a1; toBinary a2 }
   fromObject (ObjectArray [a1, a2]) = (,) <$> fromObject a1 <*> fromObject a2
   fromObject _                      = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3) => MessagePack (a1, a2, a3) where
   toObject (a1, a2, a3) = ObjectArray [toObject a1, toObject a2, toObject a3]
+  toBinary (a1, a2, a3) = putArray' 3 $ do { toBinary a1; toBinary a2; toBinary a3 }
   fromObject (ObjectArray [a1, a2, a3]) = (,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3
   fromObject _ = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4) => MessagePack (a1, a2, a3, a4) where
   toObject (a1, a2, a3, a4) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4]
+  toBinary (a1, a2, a3, a4) = putArray' 4 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4 }
   fromObject (ObjectArray [a1, a2, a3, a4]) = (,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4
   fromObject _ = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5) => MessagePack (a1, a2, a3, a4, a5) where
   toObject (a1, a2, a3, a4, a5) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5]
+  toBinary (a1, a2, a3, a4, a5) = putArray' 5 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5]) = (,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5
   fromObject _ = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6) => MessagePack (a1, a2, a3, a4, a5, a6) where
   toObject (a1, a2, a3, a4, a5, a6) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6]
+  toBinary (a1, a2, a3, a4, a5, a6) = putArray' 6 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6]) = (,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6
   fromObject _ = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7) => MessagePack (a1, a2, a3, a4, a5, a6, a7) where
   toObject (a1, a2, a3, a4, a5, a6, a7) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7]
+  toBinary (a1, a2, a3, a4, a5, a6, a7) = putArray' 7 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6; toBinary a7 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7]) = (,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7
   fromObject _ = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7, MessagePack a8) => MessagePack (a1, a2, a3, a4, a5, a6, a7, a8) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8]
+  toBinary (a1, a2, a3, a4, a5, a6, a7, a8) = putArray' 8 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6; toBinary a7; toBinary a8 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8]) = (,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8
   fromObject _ = Nothing
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7, MessagePack a8, MessagePack a9) => MessagePack (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8, a9) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8, toObject a9]
+  toBinary (a1, a2, a3, a4, a5, a6, a7, a8, a9) = putArray' 8 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6; toBinary a7; toBinary a8; toBinary a9 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8, a9]) = (,,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8 <*> fromObject a9
   fromObject _ = Nothing
