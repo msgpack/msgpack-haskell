@@ -42,11 +42,11 @@ test :: (MessagePack a, Show a, Eq a) => a -> IO ()
 test v = do
   let bs = pack v
   print bs
-  print (unpack bs == Just v)
+  print (unpack bs == Right v)
 
   let oa = toObject v
   print oa
-  print (fromObject oa == Just v)
+  print (fromObject oa == Data.MessagePack.Success v)
 
 roundTrip :: (Show a, Eq a, ToJSON a, FromJSON a) => a -> IO ()
 roundTrip v = do

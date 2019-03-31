@@ -34,7 +34,7 @@ instance Arbitrary MPTimestamp where
     ]
 
 mid :: MessagePack a => a -> a
-mid = fromJust . unpack . pack
+mid = either error id . unpack . pack
 
 idPropTests :: TestTree
 idPropTests = testGroup "Identity Properties"

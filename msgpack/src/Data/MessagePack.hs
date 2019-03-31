@@ -35,6 +35,8 @@ import           Data.MessagePack.Put
 pack :: MessagePack a => a -> L.ByteString
 pack = runPut . toBinary
 
--- | Unpack MessagePack binary to a Haskell value. If it fails, it returns Nothing.
-unpack :: MessagePack a => L.ByteString -> Maybe a
-unpack = fromObject . decode
+-- | Unpack MessagePack binary to a Haskell value. If it fails, it returns 'Left' with an error message.
+unpack :: MessagePack a => L.ByteString -> Either String a
+unpack bs = case fromObject (decode bs) of
+  Success a -> Right a
+  Error e   -> Left e

@@ -150,16 +150,16 @@ instance MessagePack MPTimestamp where
 
   fromObject = \case
     ObjectExt XTAG_Timestamp bs -> mptsDecode bs
-    _                           -> Nothing
+    obj                         -> typeMismatch "MPTimestamp" obj
 
 -- helpers for 'MessagePack' instance
 mptsEncode :: MPTimestamp -> S.ByteString
 mptsEncode = runPut' . snd . mptsPutExtData
 
-mptsDecode :: S.ByteString -> Maybe MPTimestamp
+mptsDecode :: S.ByteString -> Result MPTimestamp
 mptsDecode bs = do
-  len <- intCastMaybe (S.length bs)
-  runGet' bs (mptsGetExtData len)
+  len <- maybe (fail "invalid data-length for Timestamp") pure $ intCastMaybe (S.length bs)
+  either fail pure $ runGet' bs (mptsGetExtData len)
 
 -- | This 'Binary' instance encodes\/decodes to\/from MessagePack format
 instance Bin.Binary MPTimestamp where
@@ -198,4 +198,4 @@ mptsGetExtData = \case
     when (ns > 999999999) $ fail "invalid nanosecond value"
     pure $! MPTimestamp s ns
 
-  _ -> fail "unsupported timestamp encoding"
+  _ -> fail "unsupported timestamp encoding (length)"

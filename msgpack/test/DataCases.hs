@@ -39,7 +39,7 @@ genDataCases fns = testGroup "Reference Tests" <$> forM fns doFile
           assertBool ("pack " ++ show obj)  (b0 `elem` dcMsgPack tc)
 
           forM_ (zip [0..] (dcMsgPack tc)) $ \(j,b) -> do
-            let Just decoded = unpack (L.fromStrict b)
+            let Right decoded = unpack (L.fromStrict b)
 
                 packLbl   = "pack #" ++ (show (j::Int))
                 unpackLbl = "un" ++ packLbl

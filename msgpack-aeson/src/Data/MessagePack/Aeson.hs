@@ -34,17 +34,17 @@ import qualified Data.Vector          as V
 toAeson :: MP.Object -> A.Result Value
 toAeson = \case
   ObjectNil      -> pure Null
-  ObjectBool b   -> pure . Bool $ b
-  ObjectInt n    -> pure . Number $ fromIntegral n
-  ObjectFloat f  -> pure . Number $ realToFrac f
-  ObjectDouble d -> pure . Number $ realToFrac d
-  ObjectStr t    -> pure . String $ t
+  ObjectBool b   -> pure (Bool b)
+  ObjectInt n    -> pure $! Number $! fromIntegral n
+  ObjectFloat f  -> pure $! Number $! realToFrac f
+  ObjectDouble d -> pure $! Number $! realToFrac d
+  ObjectStr t    -> pure (String t)
   ObjectBin b    -> String <$> either (fail . show) pure (T.decodeUtf8' b)
   ObjectArray v  -> Array <$> V.mapM toAeson v
   ObjectMap m    ->
     A.Object . HM.fromList . V.toList
       <$> V.mapM (\(k, v) -> (,) <$> from k <*> toAeson v) m
-      where from = maybe (fail "bad object") pure . MP.fromObject
+      where from = mpResult fail pure . MP.fromObject
   ObjectExt _ _  -> fail "ObjectExt is not supported"
 
 -- | Convert JSON 'Value' to 'MP.Object'
@@ -65,7 +65,7 @@ newtype AsMessagePack a = AsMessagePack { getAsMessagePack :: a }
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable, NFData)
 
 instance (FromJSON a, ToJSON a) => MessagePack (AsMessagePack a) where
-  fromObject o = AsMessagePack <$> (\case { A.Error _ -> Nothing; A.Success x -> Just x } $ (fromJSON =<< toAeson o))
+  fromObject o = AsMessagePack <$> (aResult fail pure (fromJSON =<< toAeson o))
   toObject = fromAeson . toJSON . getAsMessagePack
 
 -- | Wrapper for using MessagePack values as Aeson value.
@@ -73,18 +73,18 @@ newtype AsAeson a = AsAeson { getAsAeson :: a }
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable, NFData)
 
 instance MessagePack a => ToJSON (AsAeson a) where
-  toJSON = \case { A.Error _ -> Null; A.Success x -> x } . toAeson . toObject . getAsAeson
+  toJSON = aResult (const Null) id . toAeson . toObject . getAsAeson
 
 instance MessagePack a => FromJSON (AsAeson a) where
-  parseJSON = maybe empty (return . AsAeson) . fromObject . fromAeson
+  parseJSON = mpResult fail (pure . AsAeson) . fromObject . fromAeson
 
 -- | Encode to MessagePack via "Data.Aeson"'s 'ToJSON' instances
 packAeson :: ToJSON a => a -> L.ByteString
 packAeson = pack . fromAeson . toJSON
 
 -- | Decode from MessagePack via "Data.Aeson"'s 'FromJSON' instances
-unpackAeson :: FromJSON a => L.ByteString -> Result a
-unpackAeson b = fromJSON =<< toAeson =<< maybe (fail "unpackAeson") pure (unpack b)
+unpackAeson :: FromJSON a => L.ByteString -> A.Result a
+unpackAeson b = fromJSON =<< toAeson =<< either fail pure (unpack b)
 
 -- | Encode MessagePack value to JSON document
 encodeMessagePack :: MessagePack a => a -> L.ByteString
@@ -93,3 +93,11 @@ encodeMessagePack = encode . toJSON . AsAeson
 -- | Decode MessagePack value from JSON document
 decodeMessagePack :: MessagePack a => L.ByteString -> A.Result a
 decodeMessagePack b = getAsAeson <$> (fromJSON =<< either A.Error A.Success (eitherDecode b))
+
+aResult f s = \case
+  A.Success a -> s a
+  A.Error e   -> f e
+
+mpResult f s = \case
+  MP.Success a -> s a
+  MP.Error e   -> f e

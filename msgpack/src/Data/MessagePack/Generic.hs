@@ -21,12 +21,12 @@ import           Data.MessagePack.Object
 genericToObject :: (Generic a, GMessagePack (Rep a)) => a -> Object
 genericToObject = gToObject . from
 
-genericFromObject :: (Generic a, GMessagePack (Rep a)) => Object -> Maybe a
+genericFromObject :: (Generic a, GMessagePack (Rep a)) => Object -> Result a
 genericFromObject x = to <$> gFromObject x
 
 class GMessagePack f where
   gToObject   :: f a -> Object
-  gFromObject :: Object -> Maybe (f a)
+  gFromObject :: Object -> Result (f a)
 
 instance GMessagePack U1 where
   gToObject U1 = ObjectNil
@@ -61,7 +61,7 @@ instance MessagePack a => GMessagePack (K1 i a) where
 
 class GProdPack f where
   prodToObject :: f a -> [Object]
-  prodFromObject :: [Object] -> Maybe (f a)
+  prodFromObject :: [Object] -> Result (f a)
 
 
 instance (GMessagePack a, GProdPack b) => GProdPack (a :*: b) where
@@ -77,13 +77,13 @@ instance GMessagePack a => GProdPack (M1 t c a) where
 
 -- Sum type packing.
 
-checkSumFromObject0 :: GSumPack f => Word64 -> Word64 -> Maybe (f a)
+checkSumFromObject0 :: GSumPack f => Word64 -> Word64 -> Result (f a)
 checkSumFromObject0 size code
   | code < size = sumFromObject code size ObjectNil
   | otherwise   = fail "invalid encoding for sum type"
 
 
-checkSumFromObject :: (GSumPack f) => Word64 -> Word64 -> Object -> Maybe (f a)
+checkSumFromObject :: (GSumPack f) => Word64 -> Word64 -> Object -> Result (f a)
 checkSumFromObject size code x
   | code < size = sumFromObject code size x
   | otherwise   = fail "invalid encoding for sum type"
@@ -91,7 +91,7 @@ checkSumFromObject size code x
 
 class GSumPack f where
   sumToObject :: Word64 -> Word64 -> f a -> Object
-  sumFromObject :: Word64 -> Word64 -> Object -> Maybe (f a)
+  sumFromObject :: Word64 -> Word64 -> Object -> Result (f a)
 
 
 instance (GSumPack a, GSumPack b) => GSumPack (a :+: b) where

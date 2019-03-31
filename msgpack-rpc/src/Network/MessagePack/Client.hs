@@ -87,8 +87,8 @@ instance MessagePack o => RpcType (Client o) where
   rpcc m args = do
     res <- rpcCall m (reverse args)
     case fromObject res of
-      Just r  -> return r
-      Nothing -> throwM $ ResultTypeError "type mismatch"
+      Success r -> return r
+      Error e   -> throwM $ ResultTypeError e
 
 instance (MessagePack o, RpcType r) => RpcType (o -> r) where
   rpcc m args arg = rpcc m (toObject arg:args)
@@ -102,8 +102,8 @@ rpcCall methodName args = ClientT $ do
   CMS.put $ Connection rsrc' sink (msgid + 1)
 
   case fromObject res of
-    Nothing -> throwM $ ProtocolError "invalid response data"
-    Just (rtype, rmsgid, rerror, rresult) -> do
+    Error e -> throwM $ ProtocolError e
+    Success (rtype, rmsgid, rerror, rresult) -> do
 
       when (rtype /= (1 :: Int)) $
         throwM $ ProtocolError $
@@ -116,8 +116,8 @@ rpcCall methodName args = ClientT $ do
           ++ show rmsgid
 
       case fromObject rerror of
-        Nothing -> throwM $ ServerError rerror
-        Just () -> return rresult
+        Error e    -> throwM $ ServerError rerror
+        Success () -> return rresult
 
 -- | Call an RPC Method
 call :: RpcType a

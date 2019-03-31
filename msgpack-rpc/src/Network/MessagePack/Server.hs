@@ -90,8 +90,8 @@ instance (Functor m, MonadThrow m, MessagePack o) => MethodType m (ServerT m o) 
 instance (MonadThrow m, MessagePack o, MethodType m r) => MethodType m (o -> r) where
   toBody f (x: xs) =
     case fromObject x of
-      Nothing -> throwM $ ServerError "argument type error"
-      Just r  -> toBody (f r) xs
+      Error e   -> throwM $ ServerError e
+      Success r -> toBody (f r) xs
 
 -- | Build a method
 method :: MethodType m f
@@ -114,8 +114,8 @@ serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
       (rsrc', res) <- rsrc $$++ do
         obj <- sinkGet get
         case fromObject obj of
-          Nothing  -> throwM $ ServerError "invalid request"
-          Just req -> lift $ getResponse (req :: Request)
+          Error e     -> throwM $ ServerError e
+          Success req -> lift $ getResponse (req :: Request)
       _ <- CB.sourceLbs (pack res) $$ sink
       processRequests rsrc' sink
 

@@ -38,13 +38,13 @@ import qualified Data.Binary.Put      as Bin
 import           GHC.ST               (ST, runST)
 
 
-runGet' :: BS.ByteString -> Get a -> Maybe a
+runGet' :: BS.ByteString -> Get a -> Either String a
 runGet' bs0 g = case Bin.pushEndOfInput (Bin.runGetIncremental g `Bin.pushChunk` bs0) of
                   Bin.Done bs _ x
-                    | BS.null bs -> return x
-                    | otherwise -> fail "trailing data"
-                  Bin.Partial _ -> fail "eof"
-                  Bin.Fail _ _ msg -> fail msg
+                    | BS.null bs -> Right x
+                    | otherwise -> Left "unexpected trailing data"
+                  Bin.Partial _ -> Left "truncated data"
+                  Bin.Fail _ _ msg -> Left msg
 
 runPut' :: Put -> BS.ByteString
 runPut' = BL.toStrict . Bin.runPut

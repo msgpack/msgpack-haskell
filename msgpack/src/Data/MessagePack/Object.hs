@@ -22,7 +22,7 @@ module Data.MessagePack.Object (
   Object(..),
 
   -- * MessagePack Serializable Types
-  MessagePack(..),
+  MessagePack(..), typeMismatch, Result(..)
   ) where
 
 import           Compat.Prelude
@@ -44,6 +44,7 @@ import           Data.MessagePack.Assoc
 import           Data.MessagePack.Get
 import           Data.MessagePack.Integer
 import           Data.MessagePack.Put
+import           Data.MessagePack.Result
 
 import           Compat.Binary
 
@@ -135,7 +136,7 @@ class MessagePack a where
   toBinary :: a -> Put
   toBinary = putObject . toObject
 
-  fromObject :: Object -> Maybe a
+  fromObject :: Object -> Result a
 
 -- core instances
 
@@ -143,22 +144,18 @@ class MessagePack a where
 instance MessagePack Object where
   toObject = id
   toBinary = putObject
-  fromObject = Just
+  fromObject = pure
 
 -- | Encodes as 'ObjectNil'
 instance MessagePack () where
   toObject _ = ObjectNil
   toBinary _ = putNil
-  fromObject = \case
-    ObjectNil -> Just ()
-    _         -> Nothing
+  fromObject = withNil "()" (pure ())
 
 instance MessagePack Bool where
   toObject = ObjectBool
   toBinary = putBool
-  fromObject = \case
-    ObjectBool b -> Just b
-    _            -> Nothing
+  fromObject = withBool "Bool" pure
 
 ----------------------------------------------------------------------------
 
@@ -166,89 +163,73 @@ instance MessagePack Bool where
 instance MessagePack MPInteger where
   toObject = ObjectInt
   toBinary = put
-  fromObject = \case
-    ObjectInt n -> Just n
-    _           -> Nothing
+  fromObject = withInt "MPInteger" pure
+
+fromObjectInt :: FromMPInteger i => String -> Object -> Result i
+fromObjectInt expected = withInt expected go
+  where
+    go j = case fromMPInteger j of
+      Just j' -> pure j'
+      Nothing -> fail ("MessagePack integer " ++ show j ++ " cannot be decoded into " ++ expected)
 
 -- | @since 1.1.0.0
 instance MessagePack Word64 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Word64"
 
 -- | @since 1.1.0.0
 instance MessagePack Word32 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Word32"
 
 -- | @since 1.1.0.0
 instance MessagePack Word16 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Word16"
 
 -- | @since 1.1.0.0
 instance MessagePack Word8 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Word8"
 
 -- | @since 1.1.0.0
 instance MessagePack Word where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
-
+  fromObject = fromObjectInt "Word"
 
 -- | @since 1.1.0.0
 instance MessagePack Int64 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Int64"
 
 -- | @since 1.1.0.0
 instance MessagePack Int32 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Int32"
 
 -- | @since 1.1.0.0
 instance MessagePack Int16 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Int16"
 
 -- | @since 1.1.0.0
 instance MessagePack Int8 where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Int8"
 
 instance MessagePack Int where
   toObject = ObjectInt . toMPInteger
   toBinary = put . toMPInteger
-  fromObject = \case
-    ObjectInt n -> fromMPInteger n
-    _           -> Nothing
+  fromObject = fromObjectInt "Int"
 
 ----------------------------------------------------------------------------
 
@@ -256,26 +237,24 @@ instance MessagePack Float where
   toObject = ObjectFloat
   toBinary = putFloat
   fromObject = \case
-    ObjectInt    n -> Just $! fromIntegral n
-    ObjectFloat  f -> Just f
-    ObjectDouble d -> Just $! realToFrac d
-    _              -> Nothing
+    ObjectInt    n -> pure $! fromIntegral n
+    ObjectFloat  f -> pure f
+    ObjectDouble d -> pure $! realToFrac d
+    obj            -> typeMismatch "Float" obj
 
 instance MessagePack Double where
   toObject = ObjectDouble
   toBinary = putDouble
   fromObject = \case
-    ObjectInt    n -> Just $! fromIntegral n
-    ObjectFloat  f -> Just $! realToFrac f
-    ObjectDouble d -> Just d
-    _              -> Nothing
+    ObjectInt    n -> pure $! fromIntegral n
+    ObjectFloat  f -> pure $! realToFrac f
+    ObjectDouble d -> pure d
+    obj            -> typeMismatch "Double" obj
 
 instance MessagePack S.ByteString where
   toObject = ObjectBin
   toBinary = putBin
-  fromObject = \case
-    ObjectBin r -> Just r
-    _           -> Nothing
+  fromObject = withBin "ByteString" pure
 
 -- Because of overlapping instance, this must be above [a]
 instance MessagePack String where
@@ -286,20 +265,12 @@ instance MessagePack String where
 instance MessagePack a => MessagePack (V.Vector a) where
   toObject = ObjectArray . V.map toObject
   toBinary = putArray toBinary
-  fromObject = \case
-    ObjectArray xs -> V.mapM fromObject xs
-    _              -> Nothing
+  fromObject = withArray "Vector" (V.mapM fromObject)
 
 instance (MessagePack a, MessagePack b) => MessagePack (Assoc (V.Vector (a, b))) where
   toObject (Assoc xs) = ObjectMap $ V.map (toObject *** toObject) xs
   toBinary (Assoc xs) = putMap toBinary toBinary xs
-  fromObject = \case
-    ObjectMap xs -> Assoc <$> V.mapM (\(k, v) -> (,) <$> fromObject k <*> fromObject v) xs
-    _            -> Nothing
-
--- util instances
-
--- nullable
+  fromObject = withMap "Assoc" (fmap Assoc . (V.mapM (\(k, v) -> (,) <$> fromObject k <*> fromObject v)))
 
 -- | 'Maybe's are encoded as nullable types, i.e. 'Nothing' is encoded as @nil@.
 --
@@ -313,8 +284,8 @@ instance MessagePack a => MessagePack (Maybe a) where
     Nothing -> putNil
 
   fromObject = \case
-    ObjectNil -> Just Nothing
-    obj -> Just <$> fromObject obj
+    ObjectNil -> pure Nothing
+    obj       -> Just <$> fromObject obj
 
 -- UTF8 string like
 
@@ -332,9 +303,7 @@ instance MessagePack SBS.ShortByteString where
 instance MessagePack T.Text where
   toObject = ObjectStr
   toBinary = putStr
-  fromObject = \case
-    ObjectStr s -> Just s
-    _           -> Nothing
+  fromObject = withStr "Text" pure
 
 instance MessagePack LT.Text where
   toObject = toObject . LT.toStrict
@@ -376,46 +345,90 @@ instance (MessagePack a1, MessagePack a2) => MessagePack (a1, a2) where
   toObject (a1, a2) = ObjectArray [toObject a1, toObject a2]
   toBinary (a1, a2) = putArray' 2 $ do { toBinary a1; toBinary a2 }
   fromObject (ObjectArray [a1, a2]) = (,) <$> fromObject a1 <*> fromObject a2
-  fromObject _                      = Nothing
+  fromObject obj                    = typeMismatch "2-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3) => MessagePack (a1, a2, a3) where
   toObject (a1, a2, a3) = ObjectArray [toObject a1, toObject a2, toObject a3]
   toBinary (a1, a2, a3) = putArray' 3 $ do { toBinary a1; toBinary a2; toBinary a3 }
   fromObject (ObjectArray [a1, a2, a3]) = (,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "3-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4) => MessagePack (a1, a2, a3, a4) where
   toObject (a1, a2, a3, a4) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4]
   toBinary (a1, a2, a3, a4) = putArray' 4 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4 }
   fromObject (ObjectArray [a1, a2, a3, a4]) = (,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "4-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5) => MessagePack (a1, a2, a3, a4, a5) where
   toObject (a1, a2, a3, a4, a5) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5]
   toBinary (a1, a2, a3, a4, a5) = putArray' 5 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5]) = (,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "5-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6) => MessagePack (a1, a2, a3, a4, a5, a6) where
   toObject (a1, a2, a3, a4, a5, a6) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6]
   toBinary (a1, a2, a3, a4, a5, a6) = putArray' 6 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6]) = (,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "6-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7) => MessagePack (a1, a2, a3, a4, a5, a6, a7) where
   toObject (a1, a2, a3, a4, a5, a6, a7) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7]
   toBinary (a1, a2, a3, a4, a5, a6, a7) = putArray' 7 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6; toBinary a7 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7]) = (,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "7-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7, MessagePack a8) => MessagePack (a1, a2, a3, a4, a5, a6, a7, a8) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8]
   toBinary (a1, a2, a3, a4, a5, a6, a7, a8) = putArray' 8 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6; toBinary a7; toBinary a8 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8]) = (,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "8-tuple" obj
 
 instance (MessagePack a1, MessagePack a2, MessagePack a3, MessagePack a4, MessagePack a5, MessagePack a6, MessagePack a7, MessagePack a8, MessagePack a9) => MessagePack (a1, a2, a3, a4, a5, a6, a7, a8, a9) where
   toObject (a1, a2, a3, a4, a5, a6, a7, a8, a9) = ObjectArray [toObject a1, toObject a2, toObject a3, toObject a4, toObject a5, toObject a6, toObject a7, toObject a8, toObject a9]
   toBinary (a1, a2, a3, a4, a5, a6, a7, a8, a9) = putArray' 8 $ do { toBinary a1; toBinary a2; toBinary a3; toBinary a4; toBinary a5; toBinary a6; toBinary a7; toBinary a8; toBinary a9 }
   fromObject (ObjectArray [a1, a2, a3, a4, a5, a6, a7, a8, a9]) = (,,,,,,,,) <$> fromObject a1 <*> fromObject a2 <*> fromObject a3 <*> fromObject a4 <*> fromObject a5 <*> fromObject a6 <*> fromObject a7 <*> fromObject a8 <*> fromObject a9
-  fromObject _ = Nothing
+  fromObject obj = typeMismatch "9-tuple" obj
+
+typeMismatch :: String -> Object -> Result a
+typeMismatch expected obj = fail ("MessagePack " ++ got ++ " type cannot be decoded into " ++ expected)
+  where
+    got = case obj of
+      ObjectNil      -> "nil"
+      ObjectArray v  -> "array["++show (V.length v)++"]"
+      ObjectMap v    -> "map["++show (V.length v)++"]"
+      ObjectStr _    -> "str"
+      ObjectBool _   -> "bool"
+      ObjectInt _    -> "int"
+      ObjectFloat _  -> "float32"
+      ObjectDouble _ -> "float64"
+      ObjectBin _    -> "bin"
+      ObjectExt ty _ -> "ext["++show ty++"]"
+
+withNil :: String -> Result a -> Object -> Result a
+withNil _ f ObjectNil  = f
+withNil expected _ got = typeMismatch expected got
+
+withBool :: String -> (Bool -> Result a) -> Object -> Result a
+withBool _ f (ObjectBool b) = f b
+withBool expected _ got     = typeMismatch expected got
+
+withInt :: String -> (MPInteger -> Result a) -> Object -> Result a
+withInt _ f (ObjectInt i) = f i
+withInt expected _ got    = typeMismatch expected got
+
+withBin :: String -> (S.ByteString -> Result a) -> Object -> Result a
+withBin _ f (ObjectBin i) = f i
+withBin expected _ got    = typeMismatch expected got
+
+withStr :: String -> (T.Text -> Result a) -> Object -> Result a
+withStr _ f (ObjectStr i) = f i
+withStr expected _ got    = typeMismatch expected got
+
+withArray :: String -> (V.Vector Object -> Result a) -> Object -> Result a
+withArray _ f (ObjectArray xs) = f xs
+withArray expected _ got       = typeMismatch expected got
+
+
+withMap :: String -> (V.Vector (Object,Object) -> Result a) -> Object -> Result a
+withMap _ f (ObjectMap xs) = f xs
+withMap expected _ got     = typeMismatch expected got
