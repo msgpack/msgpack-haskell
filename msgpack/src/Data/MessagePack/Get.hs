@@ -126,13 +126,13 @@ getMap k v = do
   len' <- fromSizeM "getMap: data exceeds capacity of Vector" len
   V.replicateM len' $ (,) <$> k <*> v
 
-getExt :: Get (Word8, S.ByteString)
+getExt :: Get (Int8, S.ByteString)
 getExt = getExt' $ \typ len -> do
   len' <- fromSizeM "getExt: data exceeds capacity of ByteString" len
   (,) typ <$> getByteString len'
 
 -- | @since 1.1.0.0
-getExt' :: (Word8 -> Word32 -> Get a) -> Get a
+getExt' :: (Int8 -> Word32 -> Get a) -> Get a
 getExt' getdat = do
   len <- getWord8 >>= \case
     TAG_fixext1  -> return 1
@@ -144,7 +144,7 @@ getExt' getdat = do
     TAG_ext16    -> intCast <$> getWord16be
     TAG_ext32    -> getWord32be
     _            -> empty
-  typ <- getWord8
+  typ <- getInt8
   getdat typ len
 
 fromSizeM :: String -> Word32 -> Get Int

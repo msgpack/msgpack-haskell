@@ -1,5 +1,6 @@
-{-# LANGUAGE CPP             #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE PatternSynonyms     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 #if __GLASGOW_HASKELL__ >= 800
 {-# OPTIONS_GHC -Wno-missing-pattern-synonym-signatures #-}
@@ -102,6 +103,9 @@ pattern TAG_array32       = 0xdd -- 0b11011101
 pattern TAG_map16         = 0xde -- 0b11011110
 pattern TAG_map32         = 0xdf -- 0b11011111
 
--- used by "Data.MessagePack.Timestamp"
-pattern XTAG_Timestamp = 0xff
+-- NOTE: Currently the MessagePack specification only defines the @-1@
+-- extension type (for timestamps). All remaining negative Int8
+-- type-ids are reserved for future use by the MessagePack.
 
+-- Used by "Data.MessagePack.Timestamp"
+pattern XTAG_Timestamp = -1 :: Int8

@@ -78,11 +78,14 @@ data Object
     -- ^ represents key-value pairs of objects
     --
     -- __NOTE__: MessagePack is limited to maximum of \( 2^{32}-1 \) map entries.
-  | ObjectExt    {-# UNPACK #-} !Word8 !S.ByteString
+  | ObjectExt    {-# UNPACK #-} !Int8 !S.ByteString
     -- ^ represents a tuple of an integer and a byte array where
-    -- the integer represents type information and the byte array represents data.
+    -- the signed 8-bit represents type information and the byte array represents data.
+    -- Negative type-ids are reserved for use by the MessagePack specification; in other words, only the use of the type values @[ 0 .. 127 ]@ is allowed for custom extension data.
     --
-    -- __NOTE__: MessagePack is limited to maximum data size of \( 2^{32}-1 \) bytes.
+    -- See "Data.MessagePack.Timestamp" for dealing with the MessagePack defined extension type @-1@.
+    --
+    -- __NOTE__: MessagePack is limited to maximum extension data size of up to \( 2^{32}-1 \) bytes.
   deriving (Show, Read, Eq, Ord, Typeable, Generic)
 
 instance NFData Object where
