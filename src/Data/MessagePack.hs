@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP  #-}
 {-# LANGUAGE Safe #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 --------------------------------------------------------------------
@@ -40,7 +41,11 @@ pack = encode . toObject
 
 -- | Unpack MessagePack binary to a Haskell value. If it fails, it fails in the
 -- Monad. In the Maybe monad, failure returns Nothing.
+#if (MIN_VERSION_base(4,13,0))
+unpack :: (Applicative m, Monad m, MonadFail m, MessagePack a)
+#else
 unpack :: (Applicative m, Monad m, MessagePack a)
+#endif
        => L.ByteString -> m a
 unpack = eitherToM . decodeOrFail >=> fromObject
   where
