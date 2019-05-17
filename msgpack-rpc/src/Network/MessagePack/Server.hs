@@ -22,7 +22,7 @@
 --
 -- A simple example:
 --
--- > import Network.MessagePackRpc.Server
+-- > import Network.MessagePack.Server
 -- >
 -- > add :: Int -> Int -> Server Int
 -- > add x y = return $ x + y
