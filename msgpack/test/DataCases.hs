@@ -19,7 +19,7 @@ import           System.FilePath
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Data.MessagePack
+import           Data.MessagePack           hiding ((.:), (.=))
 import           Data.MessagePack.Timestamp
 
 genDataCases :: [FilePath] -> IO TestTree
