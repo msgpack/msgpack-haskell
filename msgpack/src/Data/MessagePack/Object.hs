@@ -35,6 +35,8 @@ import qualified Data.ByteString.Short         as SBS
 import           Data.Hashable                 (Hashable)
 import qualified Data.HashMap.Strict           as HashMap
 import qualified Data.IntMap.Strict            as IntMap
+import           Data.List.NonEmpty            (NonEmpty)
+import qualified Data.List.NonEmpty            as NEL
 import qualified Data.Map                      as Map
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as LT
@@ -316,6 +318,15 @@ instance MessagePack a => MessagePack [a] where
   toObject = toObject . V.fromList
   toBinary = putArray toBinary . V.fromList
   fromObject obj = V.toList <$> fromObject obj
+
+instance MessagePack a => MessagePack (NonEmpty a) where
+  toObject = toObject . NEL.toList
+  toBinary = toBinary . NEL.toList
+  fromObject o = do
+    lst <- fromObject o
+    case NEL.nonEmpty lst of
+      Just as -> Success as
+      Nothing -> Error "empty list"
 
 -- map like
 
