@@ -7,6 +7,7 @@
 module Data.MessagePack.Aeson (
   -- * Conversion functions
   toAeson, fromAeson,
+  viaToJSON, viaFromJSON,
 
   -- * Wrapper instances
   AsMessagePack(..),
@@ -59,6 +60,18 @@ fromAeson = \case
   String t    -> ObjectStr t
   Array v     -> ObjectArray $ V.map fromAeson v
   A.Object o  -> ObjectMap $ V.fromList $ map (toObject *** fromAeson) $ HM.toList o
+
+-- Helpers to piggyback off a JSON encoder / decoder when creating a MessagePack
+-- instance.
+--
+-- Not as efficient as a direct encoder.
+viaFromJSON :: FromJSON a => MP.Object -> MP.Result a
+viaFromJSON o = case toAeson o >>= fromJSON of
+  A.Success a -> MP.Success a
+  A.Error   e -> MP.Error e
+
+viaToJSON :: ToJSON a => a -> MP.Object
+viaToJSON = fromAeson . toJSON
 
 -- | Wrapper for using Aeson values as MessagePack value.
 newtype AsMessagePack a = AsMessagePack { getAsMessagePack :: a }

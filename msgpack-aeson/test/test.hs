@@ -39,6 +39,10 @@ data W a
 
 instance FromJSON a => FromJSON (W a); instance ToJSON a => ToJSON (W a)
 
+instance (FromJSON a, ToJSON a) => MessagePack (W a) where
+  toObject = viaToJSON
+  fromObject = viaFromJSON
+
 test :: (MessagePack a, Show a, Eq a) => a -> IO ()
 test v = do
   let bs = pack v
@@ -54,6 +58,9 @@ roundTrip v = do
   let mp = packAeson v
       v' = unpackAeson mp
   v' @?= pure v
+
+roundTrip' :: (Show a, Eq a, MessagePack a) => a -> IO ()
+roundTrip' v = (unpack . pack $ v) @?= pure v
 
 main :: IO ()
 main =
@@ -72,7 +79,7 @@ main =
   , testCase "unit 2" $
     roundTrip F
   , testCase "parameterized 1" $
-    roundTrip $ G (E "hello") "world"
+    roundTrip' $ G (E "hello") "world"
   , testCase "parameterized 2" $
-    roundTrip $ H 123 F
+    roundTrip' $ H 123 F
   ]
