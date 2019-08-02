@@ -6,8 +6,10 @@ import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.TH
+import           Data.Int
 import           Data.MessagePack
 import           Data.MessagePack.Aeson
+import           Data.Word
 import           GHC.Generics           (Generic)
 import           Test.Tasty
 import           Test.Tasty.HUnit
@@ -82,4 +84,8 @@ main =
     roundTrip' $ G (E "hello") "world"
   , testCase "parameterized 2" $
     roundTrip' $ H 123 F
+  , testCase "negative numbers" $
+    roundTrip $ Number $ fromIntegral (minBound :: Int64)
+  , testCase "positive numbers" $
+    roundTrip $ Number $ fromIntegral (maxBound :: Word64)
   ]
