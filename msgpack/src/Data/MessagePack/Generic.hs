@@ -110,12 +110,12 @@ instance (GSumPack a, GSumPack b) => GSumPack (a :+: b) where
       sizeR = size - sizeL
 
 
-instance GSumPack (C1 c U1) where
+instance {-# OVERLAPPING #-} GSumPack (C1 c U1) where
   sumToObject code _ _ = toObject code
   sumFromObject _ _ = gFromObject
 
 
-instance GMessagePack a => GSumPack (C1 c a) where
+instance {-# OVERLAPPABLE #-} GMessagePack a => GSumPack (C1 c a) where
   sumToObject code _ x = toObject (code, gToObject x)
   sumFromObject _ _ = gFromObject
 
