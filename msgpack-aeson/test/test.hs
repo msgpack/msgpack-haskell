@@ -4,10 +4,10 @@
 
 import           Control.Applicative
 import           Control.Monad
-import           Data.Aeson
+import           Data.Aeson             as A
 import           Data.Aeson.TH
 import           Data.Int
-import           Data.MessagePack
+import           Data.MessagePack       as MP
 import           Data.MessagePack.Aeson
 import           Data.Word
 import           GHC.Generics           (Generic)
@@ -42,7 +42,7 @@ data W a
 instance FromJSON a => FromJSON (W a); instance ToJSON a => ToJSON (W a)
 
 instance (FromJSON a, ToJSON a) => MessagePack (W a) where
-  toObject = viaToJSON
+  toObject = unsafeViaToJSON
   fromObject = viaFromJSON
 
 test :: (MessagePack a, Show a, Eq a) => a -> IO ()
@@ -53,12 +53,14 @@ test v = do
 
   let oa = toObject v
   print oa
-  print (fromObject oa == Data.MessagePack.Success v)
+  print (fromObject oa == MP.Success v)
 
 roundTrip :: (Show a, Eq a, ToJSON a, FromJSON a) => a -> IO ()
 roundTrip v = do
   let mp = packAeson v
-      v' = unpackAeson mp
+      v' = case mp of
+        MP.Error e   -> A.Error e
+        MP.Success a -> unpackAeson a
   v' @?= pure v
 
 roundTrip' :: (Show a, Eq a, MessagePack a) => a -> IO ()
@@ -88,4 +90,13 @@ main =
     roundTrip $ Number $ fromIntegral (minBound :: Int64)
   , testCase "positive numbers" $
     roundTrip $ Number $ fromIntegral (maxBound :: Word64)
+  , testCase "big negative" $
+    (fromAeson . Number $ -9223372036854775936) @?= (MP.Error "number out of bounds")
+  , testCase "big positive" $
+    (fromAeson . Number $ 999223372036854775936) @?= (MP.Error "number out of bounds")
+  , testCase "double precision" $
+    roundTrip . Number $ 10.0
+  , testCase "really big integer" $
+    (fromAeson . Number $ read "1.0e999999") @?= (MP.Error "number out of bounds")
+    -- high precision decimals silently lose precision
   ]
