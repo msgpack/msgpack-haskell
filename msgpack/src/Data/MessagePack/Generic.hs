@@ -5,11 +5,13 @@
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.MessagePack.Generic
     ( GMessagePack
     , genericToObject
     , genericFromObject
+    , GenericMsgPack(..)
     ) where
 
 import           Compat.Prelude
@@ -23,6 +25,12 @@ genericToObject = gToObject . from
 
 genericFromObject :: (Generic a, GMessagePack (Rep a)) => Object -> Result a
 genericFromObject x = to <$> gFromObject x
+
+newtype GenericMsgPack a = GenericMsgPack a
+
+instance (Generic a, GMessagePack (Rep a)) => MessagePack (GenericMsgPack a) where
+  toObject (GenericMsgPack a) = genericToObject a
+  fromObject a = GenericMsgPack <$> genericFromObject a
 
 class GMessagePack f where
   gToObject   :: f a -> Object
