@@ -87,7 +87,8 @@ unsafeViaToJSON a = case fromAeson $ toJSON a of
   MP.Error e   -> throw $ MessagePackAesonError e
   MP.Success a -> a
 
-data MessagePackAesonError = MessagePackAesonError String deriving (Eq, Show)
+data MessagePackAesonError = MessagePackAesonError String
+  deriving (Eq, Show, Typeable)
 instance Exception MessagePackAesonError
 
 -- | Wrapper for using Aeson values as MessagePack value.
