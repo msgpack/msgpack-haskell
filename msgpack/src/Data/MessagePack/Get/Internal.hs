@@ -43,35 +43,35 @@ mkGet :: (Word8 -> t -> Get a -> Get b) -> t -> String -> Get b
 mkGet tryT f n = do { tag <- getWord8; tryT tag f empty } <|> fail n
 
 getNil :: Get ()
-getNil = mkGet tryNil id "()"
+getNil = mkGet tryNil id "expected MessagePack nil"
 
 getBool :: Get Bool
-getBool = mkGet tryBool id "Bool"
+getBool = mkGet tryBool id "expected MessagePack bool"
 
 getFloat :: Get Float
-getFloat = mkGet tryFloat id "Float"
+getFloat = mkGet tryFloat id "expected MessagePack float32"
 
 getDouble :: Get Double
-getDouble = mkGet tryDouble id "Double"
+getDouble = mkGet tryDouble id "expected MessagePack float64"
 
 getStr :: Get T.Text
-getStr = mkGet tryStr id "Str"
+getStr = mkGet tryStr id "expected MessagePack str"
 
 getBin :: Get S.ByteString
-getBin = mkGet tryBin id "Bin"
+getBin = mkGet tryBin id "expected MessagePack bin"
 
 getArray :: Get a -> Get (V.Vector a)
-getArray g = mkGet (tryArray g) id "Array"
+getArray g = mkGet (tryArray g) id "expected MessagePack array"
 
 getMap :: Get a -> Get b -> Get (V.Vector (a, b))
 getMap k v = mkGet (tryMap k v) id "Map"
 
 getExt :: Get (Int8, S.ByteString)
-getExt = mkGet tryExt id "Ext"
+getExt = mkGet tryExt id "expected MessagePack ext"
 
 -- | @since 1.1.0.0
 getExt' :: (Int8 -> Word32 -> Get a) -> Get a
-getExt' getdat = mkGet (tryExt' getdat) id "Ext"
+getExt' getdat = mkGet (tryExt' getdat) id "expected MessagePack ext"
 
 ----------------------------------------------------------------------------
 -- primitives that take a tag as first argument
@@ -128,7 +128,6 @@ tryBin tag f cont = case tag of
     cont' len = do
       len' <- fromSizeM "getBin: data exceeds capacity of ByteString" len
       f <$> getByteString len'
-
 
 {-# INLINE tryArray #-}
 tryArray :: Get b -> Word8 -> (V.Vector b -> a) -> Get a -> Get a
