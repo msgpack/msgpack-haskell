@@ -255,9 +255,7 @@ putMPInteger (MPInteger True w) = putWord8 TAG_uint64 >> putWord64be (toW64 w)
 --
 -- This operation will only fail if a non-integer MessagePack tag is encountered.
 getMPInteger :: Get MPInteger
-getMPInteger = do
-  tag <- getWord8
-  tryMPInteger tag id (fail "getMPInteger")
+getMPInteger = do { tag <- getWord8; tryMPInteger tag id empty } <|> fail "expected MessagePack int"
 
 -- | @since 1.1.0.0
 {-# INLINE tryMPInteger #-}

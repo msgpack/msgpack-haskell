@@ -40,7 +40,7 @@ import           Compat.Binary
 import           Data.MessagePack.Tags
 
 mkGet :: (Word8 -> t -> Get a -> Get b) -> t -> String -> Get b
-mkGet tryT f n = do { tag <- getWord8; tryT tag f (fail n) }
+mkGet tryT f n = do { tag <- getWord8; tryT tag f empty } <|> fail n
 
 getNil :: Get ()
 getNil = mkGet tryNil id "()"
