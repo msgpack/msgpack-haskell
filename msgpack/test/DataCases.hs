@@ -9,7 +9,6 @@ import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.Char
 import qualified Data.Map                   as Map
-import           Data.Monoid                (mempty)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Data.Word
@@ -108,7 +107,7 @@ scalarToObj (SUnknown _ _) = error "scalarToValue"
 
 hex2bin :: Text -> S.ByteString
 hex2bin t
-  | T.null t = mempty
+  | T.null t  = BS.empty
   | otherwise = BS.pack (map f $ T.split (=='-') t)
   where
     f :: T.Text -> Word8

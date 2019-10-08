@@ -128,4 +128,4 @@ putExt' typ (sz,putdat) = do
 ----------------------------------------------------------------------------
 
 toSizeM :: String -> Int -> PutM Word32
-toSizeM label len0 = maybe (fail label) pure (intCastMaybe len0)
+toSizeM label len0 = maybe (error label) pure (intCastMaybe len0)
