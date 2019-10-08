@@ -5,11 +5,13 @@
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.MessagePack.Generic
     ( GMessagePack
     , genericToObject
     , genericFromObject
+    , GenericMsgPack(..)
     ) where
 
 import           Compat.Prelude
@@ -23,6 +25,12 @@ genericToObject = gToObject . from
 
 genericFromObject :: (Generic a, GMessagePack (Rep a)) => Object -> Result a
 genericFromObject x = to <$> gFromObject x
+
+newtype GenericMsgPack a = GenericMsgPack a
+
+instance (Generic a, GMessagePack (Rep a)) => MessagePack (GenericMsgPack a) where
+  toObject (GenericMsgPack a) = genericToObject a
+  fromObject a = GenericMsgPack <$> genericFromObject a
 
 class GMessagePack f where
   gToObject   :: f a -> Object
@@ -110,12 +118,12 @@ instance (GSumPack a, GSumPack b) => GSumPack (a :+: b) where
       sizeR = size - sizeL
 
 
-instance GSumPack (C1 c U1) where
+instance {-# OVERLAPPING #-} GSumPack (C1 c U1) where
   sumToObject code _ _ = toObject code
   sumFromObject _ _ = gFromObject
 
 
-instance GMessagePack a => GSumPack (C1 c a) where
+instance {-# OVERLAPPABLE #-} GMessagePack a => GSumPack (C1 c a) where
   sumToObject code _ x = toObject (code, gToObject x)
   sumFromObject _ _ = gFromObject
 

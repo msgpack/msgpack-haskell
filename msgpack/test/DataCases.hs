@@ -73,7 +73,7 @@ data DataCase = DataCase
   } deriving Show
 
 instance FromYAML DataCase where
-  parseYAML = withMap "DataCase" $ \m -> do
+  parseYAML = Y.withMap "DataCase" $ \m -> do
     msgpack <- m .: "msgpack"
 
     obj <- do { Just (Y.Scalar Y.SNull) <- m .:! "nil" ; pure ObjectNil }

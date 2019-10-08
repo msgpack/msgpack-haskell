@@ -24,6 +24,10 @@ module Data.MessagePack.Object (
   -- * MessagePack conveniences
   (.:), (.=),
 
+  withNil, withBool, withInt,
+  withFloat, withDouble, withBin, withStr,
+  withArray, withMap,
+
   -- * MessagePack Serializable Types
   MessagePack(..), typeMismatch, Result(..)
   ) where
