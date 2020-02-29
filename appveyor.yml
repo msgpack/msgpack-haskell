@@ -9,8 +9,9 @@ install:
 
 build_script:
   - cabal update
-  - cabal install happy
-  - cabal install --enable-tests --enable-benchmarks --disable-documentation --only-dependencies
+  - cabal install happy --overwrite-policy=always
+  - cabal configure --enable-tests --enable-benchmarks
+  - cabal build
 
 test_script:
   - cabal test

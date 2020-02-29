@@ -1,5 +1,5 @@
 name:                 data-msgpack
-version:              0.0.12
+version:              0.0.13
 synopsis:             A Haskell implementation of MessagePack
 homepage:             http://msgpack.org/
 license:              BSD3
