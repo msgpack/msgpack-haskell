@@ -4,11 +4,7 @@ load("@rules_haskell//haskell:defs.bzl", "haskell_binary")
 haskell_binary(
     name = "msgpack-parser",
     srcs = ["msgpack-parser.hs"],
-    compiler_flags = [
-        "-Wall",
-        "-Werror",
-        "-Wno-unused-imports",
-    ],
+    compiler_flags = ["-Wno-unused-imports"],
     deps = [
         "//hs-msgpack",
         hazel_library("base"),
