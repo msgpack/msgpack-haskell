@@ -1,6 +1,5 @@
 ---
 packages: [.]
-resolver: lts-6.27
+resolver: lts-14.27
 extra-deps:
-  - QuickCheck-2.9.2
-  - data-msgpack-types-0.0.2
+  - msgpack-types-0.0.4

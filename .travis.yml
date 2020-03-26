@@ -1,5 +1,7 @@
 ---
 language: generic
+dist: xenial
+os: linux
 
 cache:
   directories:
@@ -7,11 +9,11 @@ cache:
 
 before_install:
   - export PATH=$HOME/.local/bin:$PATH
-  - travis_retry curl -L https://github.com/TokTok/hs-tools/releases/download/v0.1/hs-tools-v0.1.tar.gz | tar xz -C $HOME
+  - travis_retry curl -L https://github.com/TokTok/hs-tools/releases/download/v0.6/hs-tools-v0.6.tar.gz | tar xz -C $HOME
 
 script:
   - hlint .
   - stylish-haskell-lhs -i .
   - git diff --exit-code
   - travis_wait stack --no-terminal test --coverage
-  - shc data-msgpack testsuite
+  - shc msgpack-binary testsuite

@@ -6,7 +6,7 @@ haskell_binary(
     srcs = ["msgpack-parser.hs"],
     compiler_flags = ["-Wno-unused-imports"],
     deps = [
-        "//hs-msgpack",
+        "//hs-msgpack-binary",
         hazel_library("base"),
         hazel_library("bytestring"),
         hazel_library("groom"),

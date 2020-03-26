@@ -1,5 +1,5 @@
-name:                 data-msgpack
-version:              0.0.13
+name:                 msgpack-binary
+version:              0.0.14
 synopsis:             A Haskell implementation of MessagePack
 homepage:             http://msgpack.org/
 license:              BSD3
@@ -39,7 +39,7 @@ library
     , binary >= 0.7.0.0
     , bytestring
     , data-binary-ieee754
-    , data-msgpack-types >= 0.0.1 && < 0.1.0
+    , msgpack-types >= 0.0.1 && < 0.1.0
     , text
 
 executable msgpack-parser
@@ -49,12 +49,12 @@ executable msgpack-parser
   ghc-options:
       -Wall
       -fno-warn-unused-imports
+  main-is: msgpack-parser.hs
   build-depends:
       base < 5
     , bytestring
     , groom
-    , data-msgpack
-  main-is: msgpack-parser.hs
+    , msgpack-binary
 
 test-suite testsuite
   type: exitcode-stdio-1.0
@@ -71,14 +71,13 @@ test-suite testsuite
     , QuickCheck
     , bytestring
     , containers
-    , data-msgpack
-    , data-msgpack-types
     , hashable
     , hspec
+    , msgpack-binary
+    , msgpack-types
     , text
     , unordered-containers
     , vector
-    , void
 
 benchmark benchmark
   type: exitcode-stdio-1.0
@@ -96,5 +95,5 @@ benchmark benchmark
     , QuickCheck
     , bytestring
     , criterion
-    , data-msgpack
     , deepseq
+    , msgpack-binary
