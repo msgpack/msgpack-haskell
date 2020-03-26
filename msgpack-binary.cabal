@@ -20,7 +20,7 @@ description:
 
 source-repository head
   type:             git
-  location:         https://github.com/TokTok/hs-msgpack.git
+  location:         https://github.com/TokTok/hs-msgpack-binary.git
 
 library
   default-language: Haskell2010
@@ -63,6 +63,7 @@ test-suite testsuite
   main-is: testsuite.hs
   other-modules:
       Data.MessagePackSpec
+      Data.Result
   ghc-options:
       -Wall
       -fno-warn-unused-imports

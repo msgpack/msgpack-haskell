@@ -3,6 +3,13 @@ language: generic
 dist: xenial
 os: linux
 
+env:
+  global:
+    # HACKAGE_USERNAME=[secure]
+    - secure: "Q2e8LExZyRz/m+2KKCpD/QvLAkyGGG7gwQqUm+U5o5bnS/pOYhd1RoxcB1AvAKGHov9IAiZys5flXf0dsXx/ZTzRjsV3Pu30FcGyDDnxJ3DSSzpp5GBFm7Rwz5En/SeSc7paUSybZzpeIeeHipsOp3zMTo16r7esxtD/DzTQQKV55ul1m5zaVqozRVG0poGOlgy8Pu0luqNK4IX9nmQc3Cpy0if/gDBqFzQ5sw5Z7YQ5AtlWYfSq8EoUknnSwjOTKqMzZXutXoii2LB+cBeiycIeUtGmlcIumyktzXtT+VIidpUjJR+4TO9v+0LzA8peQkd2Rtg5W40+IzcfkG0pY7R8uqmkkHAlmUc1ZJESCdBrTOZ6/1SbTZkvS/9ohq8SrY6BojfNeHbyji5FqTIMkitYcyVT6zyI3Ki39mqstPWxWfPJeUpQd6DFCLq6C0mp4zzD1D9uRa+1UtjMZKqhZgc11i17WHL7Snd7KqRKik8ywDNxbngT14l9O77dfaI8gcDFDWaj2pu+FaPgI0/0qRVrKjychVkFvTt1wcC5xEo8LaCIYXbWM7RdUjGVWk4YmX8xBi5zNHTbIkSNARipJLseVyc71p2nggWwjKYTszjV47qdCaMn1ifKNXlttUjdvzX+M5rceuCkKbRuHv8dQprvoVfthjM5XHxHyjco6vQ="
+    # HACKAGE_PASSWORD=[secure]
+    - secure: "jJp2ris2yfpQE0B23jA5N6SWSakFK/ud/KzAhevgjey7pp5p83NUClr1ZZtkkjhSUFiPO7ROCb2zL7GPwjRNfQU6c/9Mdz82o1xDQm8VsL+exxaxmmtsW6jahA2TaKddmJ5MyR+8knLTmGql2q7mXvx2BjH1q0S3XxeoQICmrF2m6jACZp0htF7RgHAn9pR82cK2gaaxLGt6VEfp5s91Z0jqKpYqbz0rzOrQxUsYze82oR1TECxxc6klBqFfW3cd6FI77yXgyLznxEqZd0p4dBk7wn0pyaTm5BsFw1uuofW5SK9ncs62OJbdIlRMgkyEEAhnL8cRDJgzYYlTfA2D//Sw4B1v8W2zVqvtY1NtXut7xjf8HTD4KA5VreqbkRIntisvOp/LlwwgliaRdIaUJyHVKCGmSShgDrwE/W0/+wu8rDXmUUgrhEZdtT4rj1wv6tnlOqORrdk2wjHeJMQ5JjZSIBYJo7RKL/3j/eE4FjIvTDHVeq8iPW3YJ+tVh1swwdtU7gfYOSbU0ntCmRLWKoMdOCiCzFUPGTAWeYmeZDXXTypECTyodnrwjGo9u+rx1u1y6XnrLxjFH9i8RiW5Xc/U1ldAqreGfjspPWD2CziyYDvse/JF/5b5pIhmSVeExDW1thqGo0Lt8ngqnVEKgMT46ZsYSX3nLToJr4drFKs="
+
 cache:
   directories:
     - $HOME/.stack
@@ -15,5 +22,25 @@ script:
   - hlint .
   - stylish-haskell-lhs -i .
   - git diff --exit-code
-  - travis_wait stack --no-terminal test --coverage
+  - stack --no-terminal test --coverage
   - shc msgpack-binary testsuite
+  - stack sdist --tar-dir .
+
+deploy:
+  provider: releases
+  token:
+    secure: "yw1HnHv2JSKAc5ADRtkLjYeIC+NCCyezRavEUISzYCDrgkAw3e9C8KqNrEwb0XbkwSMOn7rpYzYLAjRKUk0HFTx2jPTawQMwHsvZYc6595J/kp4ZNr6Aygg/VV64dGWoA+bRJRiDIkF1P/89LT7iYMNAaAraUxxzlX8XP4dTc72hd3DbBwT3JO/M2ZCMyVF3+HacHywW0P03H3H2u2LSzbrqkc/FlXZ7IhSFLSTjntipmC9wBFFlMuTgO+gn4vHEKaGHjz7mqTJI0XX/adcmFrSNZHOVOgf5/22qKuXgqzXknlqpgYnWKdXNP5WRbysMM0T5abtu1VU9+LmXxQXmVRDdw1Ua+yGkM4nSNjSPxuP8uSTgrH2ZQMP9zTcg3fpFU4GOsMQrG9NjdJHBgSrdHJDFcDp81JIWHLJOXam++jtCdrmdj/4F0RR5+fg4wvQ6gcdmEDUzHT5mONhmJrvbaRJDnPcWsfDFUfKOPf712bLJdq/iRruAUSJvHL7IZyWg7lB31OVf9fvEpGyNs8yXLxOR0lf3JtQXRWrnFQHMM+G9j8IfU34bZZWX34i76/8aEaW+0StcDR3svml4sHg7daRNcQFl6GuFHvYWY2QG34IfBbPFJBTMIbIU8YE0G3JBhfbDPgem/ODIbzqJVRUdp4pU+DnqiuZb+3bvvmVWHYY="
+  file: msgpack-binary-0.0.14.tar.gz
+  skip_cleanup: true
+  on:
+    repo: TokTok/hs-msgpack-binary
+    tags: true
+
+after_deploy:
+  - mkdir -p "$HOME/.stack/upload"
+  - echo "{\"username\":\"$HACKAGE_USERNAME\",\"password\":\"$HACKAGE_PASSWORD\"}" > $HOME/.stack/upload/credentials.json
+  - stack --no-terminal upload .
+
+# Only build pull requests and releases, don't build master on pushes,
+# except through api or cron.
+if: type IN (pull_request, api, cron) OR tag IS present
