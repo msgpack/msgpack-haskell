@@ -3,12 +3,9 @@ load("@rules_haskell//haskell:defs.bzl", "haskell_library")
 load("//third_party/haskell/hspec-discover:build_defs.bzl", "hspec_test")
 load("//tools/project:build_defs.bzl", "project")
 
-VERSION = "0.0.14"
-
 project(
     license = "hs-msgpack",
     standard_travis = True,
-    version = VERSION,
 )
 
 haskell_library(
@@ -16,7 +13,7 @@ haskell_library(
     srcs = glob(["src/**/*.*hs"]),
     compiler_flags = ["-Wno-unused-imports"],
     src_strip_prefix = "src",
-    version = VERSION,
+    version = "0.0.14",
     visibility = ["//visibility:public"],
     deps = [
         "//hs-msgpack-types",

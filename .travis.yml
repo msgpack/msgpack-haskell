@@ -11,35 +11,26 @@ env:
     - secure: "jJp2ris2yfpQE0B23jA5N6SWSakFK/ud/KzAhevgjey7pp5p83NUClr1ZZtkkjhSUFiPO7ROCb2zL7GPwjRNfQU6c/9Mdz82o1xDQm8VsL+exxaxmmtsW6jahA2TaKddmJ5MyR+8knLTmGql2q7mXvx2BjH1q0S3XxeoQICmrF2m6jACZp0htF7RgHAn9pR82cK2gaaxLGt6VEfp5s91Z0jqKpYqbz0rzOrQxUsYze82oR1TECxxc6klBqFfW3cd6FI77yXgyLznxEqZd0p4dBk7wn0pyaTm5BsFw1uuofW5SK9ncs62OJbdIlRMgkyEEAhnL8cRDJgzYYlTfA2D//Sw4B1v8W2zVqvtY1NtXut7xjf8HTD4KA5VreqbkRIntisvOp/LlwwgliaRdIaUJyHVKCGmSShgDrwE/W0/+wu8rDXmUUgrhEZdtT4rj1wv6tnlOqORrdk2wjHeJMQ5JjZSIBYJo7RKL/3j/eE4FjIvTDHVeq8iPW3YJ+tVh1swwdtU7gfYOSbU0ntCmRLWKoMdOCiCzFUPGTAWeYmeZDXXTypECTyodnrwjGo9u+rx1u1y6XnrLxjFH9i8RiW5Xc/U1ldAqreGfjspPWD2CziyYDvse/JF/5b5pIhmSVeExDW1thqGo0Lt8ngqnVEKgMT46ZsYSX3nLToJr4drFKs="
 
 cache:
+  timeout: 600
   directories:
+    - $HOME/.local
     - $HOME/.stack
 
-before_install:
-  - export PATH=$HOME/.local/bin:$PATH
-  - travis_retry curl -L https://github.com/TokTok/hs-tools/releases/download/v0.6/hs-tools-v0.6.tar.gz | tar xz -C $HOME
-
 script:
-  - hlint .
-  - stylish-haskell-lhs -i .
-  - git diff --exit-code
-  - stack --no-terminal test --coverage
-  - shc msgpack-binary testsuite
-  - stack sdist --tar-dir .
+  - bash <(travis_retry curl -s https://raw.githubusercontent.com/TokTok/hs-tools/master/bin/travis-haskell) script
+  - eval $(travis-haskell env)
 
 deploy:
   provider: releases
   token:
     secure: "yw1HnHv2JSKAc5ADRtkLjYeIC+NCCyezRavEUISzYCDrgkAw3e9C8KqNrEwb0XbkwSMOn7rpYzYLAjRKUk0HFTx2jPTawQMwHsvZYc6595J/kp4ZNr6Aygg/VV64dGWoA+bRJRiDIkF1P/89LT7iYMNAaAraUxxzlX8XP4dTc72hd3DbBwT3JO/M2ZCMyVF3+HacHywW0P03H3H2u2LSzbrqkc/FlXZ7IhSFLSTjntipmC9wBFFlMuTgO+gn4vHEKaGHjz7mqTJI0XX/adcmFrSNZHOVOgf5/22qKuXgqzXknlqpgYnWKdXNP5WRbysMM0T5abtu1VU9+LmXxQXmVRDdw1Ua+yGkM4nSNjSPxuP8uSTgrH2ZQMP9zTcg3fpFU4GOsMQrG9NjdJHBgSrdHJDFcDp81JIWHLJOXam++jtCdrmdj/4F0RR5+fg4wvQ6gcdmEDUzHT5mONhmJrvbaRJDnPcWsfDFUfKOPf712bLJdq/iRruAUSJvHL7IZyWg7lB31OVf9fvEpGyNs8yXLxOR0lf3JtQXRWrnFQHMM+G9j8IfU34bZZWX34i76/8aEaW+0StcDR3svml4sHg7daRNcQFl6GuFHvYWY2QG34IfBbPFJBTMIbIU8YE0G3JBhfbDPgem/ODIbzqJVRUdp4pU+DnqiuZb+3bvvmVWHYY="
-  file: msgpack-binary-0.0.14.tar.gz
+  file: $PACKAGE-$VERSION.tar.gz
   skip_cleanup: true
   on:
     repo: TokTok/hs-msgpack-binary
     tags: true
 
-after_deploy:
-  - mkdir -p "$HOME/.stack/upload"
-  - echo "{\"username\":\"$HACKAGE_USERNAME\",\"password\":\"$HACKAGE_PASSWORD\"}" > $HOME/.stack/upload/credentials.json
-  - stack --no-terminal upload .
+after_deploy: travis-haskell deploy
 
 # Only build pull requests and releases, don't build master on pushes,
 # except through api or cron.
