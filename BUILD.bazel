@@ -3,10 +3,7 @@ load("@rules_haskell//haskell:defs.bzl", "haskell_library")
 load("//third_party/haskell/hspec-discover:build_defs.bzl", "hspec_test")
 load("//tools/project:build_defs.bzl", "project")
 
-project(
-    license = "hs-msgpack",
-    standard_travis = True,
-)
+project(license = "hs-msgpack")
 
 haskell_library(
     name = "hs-msgpack-binary",
