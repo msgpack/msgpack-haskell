@@ -21,7 +21,9 @@ instance Applicative Result where
 
 instance Monad Result where
     return = Success
+#if !MIN_VERSION_base(4,13,0)
     fail = Failure
+#endif
 
     Success x   >>= f = f x
     Failure msg >>= _ = Failure msg
