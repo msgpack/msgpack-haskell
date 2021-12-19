@@ -1,6 +1,6 @@
 cabal-version:      1.12
 name:               msgpack
-version:            1.1.0.0
+version:            1.2.0.0
 
 synopsis:           A Haskell implementation of MessagePack
 description:
@@ -64,27 +64,26 @@ library
                     Data.MessagePack.Object
                     Data.MessagePack.Get
                     Data.MessagePack.Put
+                    Data.MessagePack.Result
 
   other-modules:    Data.MessagePack.Tags
-                    Data.MessagePack.Result
                     Data.MessagePack.Get.Internal
                     Compat.Binary
                     Compat.Prelude
 
-  build-depends:    base                 >= 4.7     && < 4.14
-                  , mtl                  >= 2.2.1   && < 2.3
-                  , bytestring           >= 0.10.4  && < 0.11
-                  , text                 >= 1.2.3   && < 1.3
-                  , containers           >= 0.5.5   && < 0.7
-                  , unordered-containers >= 0.2.5   && < 0.3
-                  , hashable             >= 1.1.2.4 && < 1.4
-                  , vector               >= 0.10.11 && < 0.13
-                  , deepseq              >= 1.3     && < 1.5
-                  , binary               >= 0.7.1   && < 0.9
-                  , semigroups           >= 0.5.0   && < 0.20
-                  , time                 >= 1.4.2   && < 1.10
-                  , int-cast             >= 0.1.1   && < 0.3
-                  , array                >= 0.5.0   && < 0.6
+  build-depends:    base                 == 4.14.*
+                  , mtl                  == 2.2.*
+                  , bytestring           == 0.10.*
+                  , text                 == 1.2.*
+                  , containers           == 0.6.*
+                  , unordered-containers == 0.2.*
+                  , hashable             == 1.3.*
+                  , vector               == 0.12.*
+                  , deepseq              == 1.4.*
+                  , binary               == 0.8.*
+                  , time                 == 1.9.*
+                  , int-cast             == 0.2.*
+                  , array                == 0.5.*
 
   if !impl(ghc > 8.0)
     build-depends: fail == 4.9.*
@@ -117,7 +116,7 @@ test-suite msgpack-tests
                   -- test-specific dependencies
                   , async              == 2.2.*
                   , filepath           == 1.3.* || == 1.4.*
-                  , HsYAML             >= 0.1.1 && < 0.2
+                  , HsYAML             >= 0.1.1
                   , tasty              == 1.2.*
                   , tasty-quickcheck   == 0.10.*
                   , tasty-hunit        == 0.10.*

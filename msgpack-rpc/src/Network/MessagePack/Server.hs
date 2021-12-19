@@ -42,6 +42,7 @@ module Network.MessagePack.Server (
   serveUnix,
   ) where
 
+import           Conduit                           (MonadUnliftIO)
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Catch
@@ -55,6 +56,7 @@ import qualified Data.Conduit.Network.Unix         as U
 import           Data.Conduit.Serialization.Binary
 import           Data.List
 import           Data.MessagePack
+import           Data.MessagePack.Result
 import           Data.Typeable
 
 -- ^ MessagePack RPC method
@@ -103,7 +105,7 @@ method :: MethodType m f
 method name body = Method name $ toBody body
 
 -- | Start an RPC server with a set of RPC methods on a TCP socket.
-serve :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
+serve :: (MonadBaseControl IO m, MonadUnliftIO m, MonadIO m, MonadCatch m, MonadThrow m)
          => Int        -- ^ Port number
          -> [Method m] -- ^ list of methods
          -> m ()
@@ -127,9 +129,9 @@ processRequests methods rsrc sink = do
   (rsrc', res) <- rsrc $$++ do
     obj <- sinkGet get
     case fromObject obj of
-      Nothing  -> throwM $ ServerError "invalid request"
-      Just req -> lift $ getResponse (req :: Request)
-  _ <- CB.sourceLbs (pack res) $$ sink
+      Error err  -> throwM $ ServerError $ "invalid request: " ++ err
+      Success req -> lift $ getResponse (req :: Request)
+  _ <- runConduit $ CB.sourceLbs (pack res) .| sink
   processRequests methods rsrc' sink
   where
     getResponse (rtype, msgid, methodName, args) = do
