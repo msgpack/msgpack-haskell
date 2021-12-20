@@ -40,6 +40,20 @@ module Network.MessagePack.Server (
   -- * Start RPC server
   serve,
   serveUnix,
+
+  -- * RPC server settings
+  ServerSettings,
+  serverSettings,
+  U.ServerSettingsUnix,
+
+  -- * Getters & setters
+  SN.serverSettingsUnix,
+  SN.getReadBufferSize,
+  SN.setReadBufferSize,
+  getAfterBind,
+  setAfterBind,
+  getPort,
+  setPort,
   ) where
 
 import           Conduit                           (MonadUnliftIO)
@@ -49,6 +63,7 @@ import           Control.Monad.Catch
 import           Control.Monad.Trans
 import           Control.Monad.Trans.Control
 import           Data.Binary
+import           Data.ByteString                   (ByteString)
 import           Data.Conduit
 import qualified Data.Conduit.Binary               as CB
 import           Data.Conduit.Network
@@ -57,6 +72,7 @@ import           Data.Conduit.Serialization.Binary
 import           Data.List
 import           Data.MessagePack
 import           Data.MessagePack.Result
+import qualified Data.Streaming.Network            as SN
 import           Data.Typeable
 
 -- ^ MessagePack RPC method
@@ -106,25 +122,30 @@ method name body = Method name $ toBody body
 
 -- | Start an RPC server with a set of RPC methods on a TCP socket.
 serve :: (MonadBaseControl IO m, MonadUnliftIO m, MonadIO m, MonadCatch m, MonadThrow m)
-         => Int        -- ^ Port number
-         -> [Method m] -- ^ list of methods
+         => ServerSettings -- ^ settings
+         -> [Method m]     -- ^ list of methods
          -> m ()
-serve port methods = runGeneralTCPServer (serverSettings port "*") $ \ad -> do
+serve settings methods = runGeneralTCPServer settings $ \ad -> do
   (rsrc, _) <- appSource ad $$+ return ()
   (_ :: Either ParseError ()) <- try $ processRequests methods rsrc (appSink ad)
   return ()
 
 -- | Start an RPC server with a set of RPC methods on a Unix domain socket.
 serveUnix :: (MonadBaseControl IO m, MonadIO m, MonadCatch m, MonadThrow m)
-          => FilePath  -- ^ Socket path
+          => U.ServerSettingsUnix
           -> [Method m] -- ^ list of methods
           -> m ()
-serveUnix path methods = liftBaseWith $ \run ->
-  U.runUnixServer (U.serverSettings path) $ \ad -> void . run $ do
+serveUnix settings methods = liftBaseWith $ \run ->
+  U.runUnixServer settings $ \ad -> void . run $ do
     (rsrc, _) <- appSource ad $$+ return ()
     (_ :: Either ParseError ()) <- try $ processRequests methods rsrc (appSink ad)
     return ()
 
+processRequests :: (MonadThrow m)
+  => [Method m] -- ^ list of methods
+  -> SealedConduitT () ByteString m ()
+  -> ConduitT ByteString Void m a
+  -> m b
 processRequests methods rsrc sink = do
   (rsrc', res) <- rsrc $$++ do
     obj <- sinkGet get

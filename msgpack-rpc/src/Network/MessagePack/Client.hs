@@ -37,6 +37,21 @@ module Network.MessagePack.Client (
 
   -- * RPC error
   RpcError(..),
+
+  -- * Settings
+  ClientSettings,
+  clientSettings,
+  U.ClientSettingsUnix,
+  SN.clientSettingsUnix,
+
+  -- * Getters & setters
+  SN.serverSettingsUnix,
+  SN.getReadBufferSize,
+  SN.setReadBufferSize,
+  getAfterBind,
+  setAfterBind,
+  getPort,
+  setPort,
   ) where
 
 import           Control.Applicative
@@ -52,8 +67,12 @@ import           Data.Conduit.Network
 import qualified Data.Conduit.Network.Unix         as U
 import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
+import qualified Data.Streaming.Network            as SN
 import           Data.Typeable
 import           System.IO
+
+clientSettingsUnix :: FilePath -> U.ClientSettingsUnix
+clientSettingsUnix = U.clientSettings
 
 newtype Client a
   = ClientT { runClient :: StateT Connection IO a }
@@ -66,15 +85,15 @@ data Connection
     !(ConduitT S.ByteString Void IO ())
     !Int
 
-execClient :: S.ByteString -> Int -> Client a -> IO ()
-execClient host port m =
-  runTCPClient (clientSettings port host) $ \ad -> do
+execClient :: ClientSettings -> Client a -> IO ()
+execClient settings m =
+  runTCPClient settings $ \ad -> do
     (rsrc, _) <- appSource ad $$+ return ()
     void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
 
-execClientUnix :: FilePath -> Client a -> IO ()
-execClientUnix path m =
-  U.runUnixClient (U.clientSettings path) $ \ad -> do
+execClientUnix :: U.ClientSettingsUnix -> Client a -> IO ()
+execClientUnix settings m =
+  U.runUnixClient settings $ \ad -> do
     (rsrc, _) <- appSource ad $$+ return ()
     void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
 
