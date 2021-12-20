@@ -30,7 +30,7 @@
 
 module Network.MessagePack.Client (
   -- * MessagePack Client type
-  Client, execClient,
+  Client, execClient, execClientUnix,
 
   -- * Call RPC method
   call,
@@ -49,6 +49,7 @@ import qualified Data.ByteString                   as S
 import           Data.Conduit
 import qualified Data.Conduit.Binary               as CB
 import           Data.Conduit.Network
+import qualified Data.Conduit.Network.Unix         as U
 import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
 import           Data.Typeable
@@ -68,6 +69,12 @@ data Connection
 execClient :: S.ByteString -> Int -> Client a -> IO ()
 execClient host port m =
   runTCPClient (clientSettings port host) $ \ad -> do
+    (rsrc, _) <- appSource ad $$+ return ()
+    void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
+
+execClientUnix :: FilePath -> Client a -> IO ()
+execClientUnix path m =
+  U.runUnixClient (U.clientSettings path) $ \ad -> do
     (rsrc, _) <- appSource ad $$+ return ()
     void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
 
