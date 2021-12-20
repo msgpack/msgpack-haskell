@@ -53,6 +53,6 @@ test-suite msgpack-rpc-test
                   , mtl
                   , network
                   -- test-specific dependencies
-                  , async              == 2.2.*
-                  , tasty              == 1.2.*
-                  , tasty-hunit        == 0.10.*
+                  , async
+                  , tasty
+                  , tasty-hunit

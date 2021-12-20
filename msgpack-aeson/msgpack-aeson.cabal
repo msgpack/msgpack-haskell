@@ -47,7 +47,7 @@ test-suite msgpack-aeson-test
                      , aeson
                      , msgpack
                      -- test-specific dependencies
-                     , tasty              == 1.2.*
-                     , tasty-hunit        == 0.10.*
+                     , tasty
+                     , tasty-hunit
 
   default-language:    Haskell2010
