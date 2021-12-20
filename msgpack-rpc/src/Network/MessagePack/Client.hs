@@ -30,13 +30,28 @@
 
 module Network.MessagePack.Client (
   -- * MessagePack Client type
-  Client, execClient,
+  Client, execClient, execClientUnix,
 
   -- * Call RPC method
   call,
 
   -- * RPC error
   RpcError(..),
+
+  -- * Settings
+  ClientSettings,
+  clientSettings,
+  U.ClientSettingsUnix,
+  SN.clientSettingsUnix,
+
+  -- * Getters & setters
+  SN.serverSettingsUnix,
+  SN.getReadBufferSize,
+  SN.setReadBufferSize,
+  getAfterBind,
+  setAfterBind,
+  getPort,
+  setPort,
   ) where
 
 import           Control.Applicative
@@ -49,10 +64,15 @@ import qualified Data.ByteString                   as S
 import           Data.Conduit
 import qualified Data.Conduit.Binary               as CB
 import           Data.Conduit.Network
+import qualified Data.Conduit.Network.Unix         as U
 import           Data.Conduit.Serialization.Binary
 import           Data.MessagePack
+import qualified Data.Streaming.Network            as SN
 import           Data.Typeable
 import           System.IO
+
+clientSettingsUnix :: FilePath -> U.ClientSettingsUnix
+clientSettingsUnix = U.clientSettings
 
 newtype Client a
   = ClientT { runClient :: StateT Connection IO a }
@@ -61,13 +81,19 @@ newtype Client a
 -- | RPC connection type
 data Connection
   = Connection
-    !(ResumableSource IO S.ByteString)
-    !(Sink S.ByteString IO ())
+    !(SealedConduitT () S.ByteString IO ())
+    !(ConduitT S.ByteString Void IO ())
     !Int
 
-execClient :: S.ByteString -> Int -> Client a -> IO ()
-execClient host port m =
-  runTCPClient (clientSettings port host) $ \ad -> do
+execClient :: ClientSettings -> Client a -> IO ()
+execClient settings m =
+  runTCPClient settings $ \ad -> do
+    (rsrc, _) <- appSource ad $$+ return ()
+    void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
+
+execClientUnix :: U.ClientSettingsUnix -> Client a -> IO ()
+execClientUnix settings m =
+  U.runUnixClient settings $ \ad -> do
     (rsrc, _) <- appSource ad $$+ return ()
     void $ evalStateT (runClient m) (Connection rsrc (appSink ad) 0)
 
@@ -97,7 +123,7 @@ rpcCall :: String -> [Object] -> Client Object
 rpcCall methodName args = ClientT $ do
   Connection rsrc sink msgid <- CMS.get
   (rsrc', res) <- lift $ do
-    CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) $$ sink
+    runConduit $ CB.sourceLbs (pack (0 :: Int, msgid, methodName, args)) .| sink
     rsrc $$++ sinkGet Binary.get
   CMS.put $ Connection rsrc' sink (msgid + 1)
 
