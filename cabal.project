@@ -6,3 +6,8 @@ packages:
     msgpack-rpc
 --  msgpack-idl
 --  msgpack-idl-web
+
+source-repository-package
+    type: git
+    location: https://github.com/input-output-hk/int-cast
+    tag: 20cc3a9
