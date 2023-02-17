@@ -24,18 +24,19 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Exception
-import           Data.Aeson               as A
-import qualified Data.ByteString.Lazy     as L (ByteString)
+import           Data.Aeson as A
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
+import qualified Data.ByteString.Lazy as L (ByteString)
 import           Data.Data
-import qualified Data.HashMap.Strict      as HM
 import           Data.Int
 import           Data.Maybe
-import           Data.MessagePack         as MP
+import           Data.MessagePack as MP
 import           Data.MessagePack.Integer
 import           Data.Scientific
-import qualified Data.Text.Encoding       as T
-import           Data.Traversable         (traverse)
-import qualified Data.Vector              as V
+import qualified Data.Text.Encoding as T
+import           Data.Traversable (traverse)
+import qualified Data.Vector as V
 import           Data.Word
 
 -- | Convert 'MP.Object' to JSON 'Value'
@@ -50,7 +51,7 @@ toAeson = \case
   ObjectBin b    -> fail $ "ObjectBin is not supported by JSON"
   ObjectArray v  -> Array <$> V.mapM toAeson v
   ObjectMap m    ->
-    A.Object . HM.fromList . V.toList
+    A.Object . KM.fromList . V.toList
       <$> V.mapM (\(k, v) -> (,) <$> from k <*> toAeson v) m
       where from = mpResult fail pure . MP.fromObject
   ObjectExt _ _  -> fail "ObjectExt is not supported by JSON"
@@ -68,9 +69,9 @@ fromAeson = \case
       Right _                           -> fail "number out of bounds"
   String t    -> pure $ ObjectStr t
   Array v     -> ObjectArray <$> traverse fromAeson v
-  A.Object o  -> (ObjectMap . V.fromList) <$> traverse fromEntry (HM.toList o)
+  A.Object km -> ObjectMap . V.fromList <$> traverse fromEntry (KM.toList km)
     where
-      fromEntry (k, v) = (\a -> (ObjectStr k, a)) <$> fromAeson v
+      fromEntry (k, v) = (\a -> (ObjectStr (K.toText k), a)) <$> fromAeson v
 
 -- Helpers to piggyback off a JSON encoder / decoder when creating a MessagePack
 -- instance.
@@ -98,6 +99,11 @@ newtype AsMessagePack a = AsMessagePack { getAsMessagePack :: a }
 instance (FromJSON a, ToJSON a) => MessagePack (AsMessagePack a) where
   fromObject o = AsMessagePack <$> (aResult fail pure (fromJSON =<< toAeson o))
   toObject = unsafeViaToJSON . getAsMessagePack
+
+instance MessagePack K.Key where
+  toObject = ObjectStr . K.toText
+  toBinary = MP.putStr . K.toText
+  fromObject = withStr "Text" (pure . K.fromText)
 
 -- | Wrapper for using MessagePack values as Aeson value.
 newtype AsAeson a = AsAeson { getAsAeson :: a }
